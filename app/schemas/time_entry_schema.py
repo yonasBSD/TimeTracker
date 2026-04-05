@@ -92,6 +92,10 @@ class TimeEntryCreateSchema(Schema):
 class TimeEntryUpdateSchema(Schema):
     """Schema for updating a time entry"""
 
+    if_updated_at = fields.DateTime(
+        allow_none=True,
+        metadata={"description": "Last known updated_at for optimistic locking (ISO 8601)."},
+    )
     project_id = fields.Int(allow_none=True)
     client_id = fields.Int(allow_none=True)
     task_id = fields.Int(allow_none=True)

@@ -28,14 +28,17 @@ try:
         api_bp = api_legacy_module.api_bp
     else:
         raise ImportError("Could not load api.py module")
-except Exception as e:
-    # Last resort: create a dummy blueprint to prevent import errors
-    from flask import Blueprint
-
-    api_bp = Blueprint("api", __name__)
+except Exception:
     import logging
 
     logger = logging.getLogger(__name__)
-    logger.warning(f"Could not import api_bp from api.py: {e}. Using dummy blueprint.")
+    logger.exception("Could not import legacy api_bp from app.routes.api.py")
+    if os.getenv("ALLOW_DUMMY_LEGACY_API_BLUEPRINT", "").strip().lower() in ("1", "true", "yes"):
+        from flask import Blueprint
+
+        api_bp = Blueprint("api", __name__)
+        logger.warning("ALLOW_DUMMY_LEGACY_API_BLUEPRINT is set; legacy /api routes are disabled.")
+    else:
+        raise
 
 __all__ = ["api_v1_bp", "api_bp"]

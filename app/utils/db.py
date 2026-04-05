@@ -40,6 +40,10 @@ def safe_query(query_func: Callable[[], T], default: Optional[T] = None) -> Opti
             try:
                 db.session.rollback()
                 current_app.logger.warning(f"Query failed after rollback retry: {retry_error} (original: {e})")
+                current_app.logger.debug(
+                    "safe_query returning default after failed SQLAlchemy retry (%s)",
+                    type(retry_error).__name__,
+                )
             except Exception:
                 pass
             return default
@@ -48,6 +52,11 @@ def safe_query(query_func: Callable[[], T], default: Optional[T] = None) -> Opti
         try:
             db.session.rollback()
             current_app.logger.warning(f"Unexpected error in safe_query: {e}")
+            current_app.logger.debug(
+                "safe_query returning default after unexpected error (%s)",
+                type(e).__name__,
+                exc_info=True,
+            )
         except Exception:
             pass
         return default

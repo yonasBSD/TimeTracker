@@ -37,11 +37,12 @@ def extract_token_from_request():
     return None
 
 
-def authenticate_token(token_string):
+def authenticate_token(token_string, record_usage: bool = True):
     """Authenticate an API token and return the associated user
 
     Args:
         token_string: The plain token string
+        record_usage: If True, increment usage counters (commit). Set False when rate limit runs first.
 
     Returns:
         tuple: (User, ApiToken, error_message) if invalid, (User, ApiToken, None) if valid
@@ -146,8 +147,8 @@ def require_api_token(required_scope=None):
                     401,
                 )
 
-            # Authenticate token
-            user, api_token, error_msg = authenticate_token(token_string)
+            # Authenticate token (defer usage recording until after rate limit)
+            user, api_token, error_msg = authenticate_token(token_string, record_usage=False)
 
             if not user or not api_token:
                 message = error_msg or "The provided API token is invalid or expired"
@@ -179,6 +180,35 @@ def require_api_token(required_scope=None):
                         ),
                         403,
                     )
+
+            # Per-token rate limit (minute + hour)
+            try:
+                from app.utils.api_rate_limit import consume_api_token_rate_limit
+
+                allowed, rl_info = consume_api_token_rate_limit(api_token.id)
+                if not allowed:
+                    retry_after = int(rl_info.get("retry_after_seconds") or 60)
+                    resp = jsonify(
+                        {
+                            "error": "Rate limit exceeded",
+                            "message": "Too many requests for this API token. Try again later.",
+                            "error_code": "rate_limited",
+                            "limit_per_minute": rl_info.get("limit_minute"),
+                            "limit_per_hour": rl_info.get("limit_hour"),
+                            "remaining_per_minute": rl_info.get("remaining_minute"),
+                            "remaining_per_hour": rl_info.get("remaining_hour"),
+                        }
+                    )
+                    resp.status_code = 429
+                    resp.headers["Retry-After"] = str(retry_after)
+                    return resp
+            except Exception as e:
+                current_app.logger.warning("API token rate limit check failed (allowing request): %s", e)
+
+            try:
+                api_token.record_usage(request.remote_addr)
+            except Exception as e:
+                current_app.logger.warning(f"Failed to record API token usage: {e}")
 
             # Store in request context
             g.api_user = user

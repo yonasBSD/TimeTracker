@@ -88,11 +88,78 @@ def get_time_entry(entry_id):
     return jsonify({"time_entry": entry.to_dict()})
 
 
+@api_v1_time_entries_bp.route("/time-entries/import-csv", methods=["POST"])
+@require_api_token("write:time_entries")
+def import_time_entries_csv():
+    """Import time entries from CSV (header row required)."""
+    from app.services.time_entry_csv_import_service import import_time_entries_from_csv_text
+
+    csv_text = ""
+    if request.files and request.files.get("file"):
+        up = request.files["file"]
+        csv_text = (up.read() or b"").decode("utf-8", errors="replace")
+    elif request.is_json:
+        data = request.get_json() or {}
+        csv_text = (data.get("csv") or data.get("data") or "") or ""
+    else:
+        csv_text = request.get_data(as_text=True) or ""
+
+    result, status = import_time_entries_from_csv_text(
+        csv_text, user_id=g.api_user.id, is_admin=g.api_user.is_admin
+    )
+    return jsonify(result), status
+
+
+@api_v1_time_entries_bp.route("/time-entries/bulk", methods=["POST"])
+@require_api_token("write:time_entries")
+def bulk_time_entries():
+    """Bulk actions on time entries (same behavior as session /api/entries/bulk)."""
+    from app.services.time_entry_bulk_service import apply_bulk_time_entry_actions
+
+    data = request.get_json() or {}
+    entry_ids = data.get("entry_ids") or []
+    action = (data.get("action") or "").strip()
+    value = data.get("value")
+    if not entry_ids or not isinstance(entry_ids, list):
+        return validation_error_response(
+            errors={"entry_ids": ["Must be a non-empty list of integer ids"]},
+            message="Invalid entry_ids",
+        )
+    ids = []
+    for eid in entry_ids:
+        try:
+            ids.append(int(eid))
+        except (TypeError, ValueError):
+            return validation_error_response(errors={"entry_ids": ["All entry ids must be integers"]})
+    result = apply_bulk_time_entry_actions(
+        ids, action, value, user_id=g.api_user.id, is_admin=g.api_user.is_admin
+    )
+    if not result.get("success"):
+        code = result.get("http_status", 400)
+        return error_response(result.get("error", "Bulk operation failed"), status_code=code)
+    return jsonify({"success": True, "affected": result.get("affected", 0)})
+
+
 @api_v1_time_entries_bp.route("/time-entries", methods=["POST"])
 @require_api_token("write:time_entries")
 def create_time_entry():
     """Create a new time entry."""
     from app.services import TimeTrackingService
+
+    from app.utils.api_idempotency import (
+        SCOPE_POST_TIME_ENTRY,
+        lookup_idempotent_response,
+        normalize_idempotency_key,
+        replay_response,
+        store_idempotent_response,
+    )
+
+    idem_key = normalize_idempotency_key(request.headers.get("Idempotency-Key"))
+    if idem_key:
+        existing = lookup_idempotent_response(g.api_token.id, SCOPE_POST_TIME_ENTRY, idem_key)
+        if existing:
+            status_code, body_json = existing
+            return replay_response(status_code, body_json)
 
     data = request.get_json() or {}
     schema = TimeEntryCreateSchema()
@@ -155,7 +222,23 @@ def create_time_entry():
             user_agent=user_agent,
         )
 
-    return jsonify({"message": "Time entry created successfully", "time_entry": result["entry"].to_dict()}), 201
+    payload = {"message": "Time entry created successfully", "time_entry": result["entry"].to_dict()}
+    resp = jsonify(payload)
+    resp.status_code = 201
+    if idem_key:
+        from sqlalchemy.exc import IntegrityError
+
+        from app import db
+
+        try:
+            store_idempotent_response(g.api_token.id, SCOPE_POST_TIME_ENTRY, idem_key, 201, payload)
+        except IntegrityError:
+            db.session.rollback()
+            existing = lookup_idempotent_response(g.api_token.id, SCOPE_POST_TIME_ENTRY, idem_key)
+            if existing:
+                status_code, body_json = existing
+                return replay_response(status_code, body_json)
+    return resp
 
 
 @api_v1_time_entries_bp.route("/time-entries/<int:entry_id>", methods=["PUT", "PATCH"])
@@ -188,9 +271,16 @@ def update_time_entry(entry_id):
         paid=validated.get("paid"),
         invoice_number=validated.get("invoice_number"),
         reason=data.get("reason"),
+        expected_updated_at=validated.get("if_updated_at"),
     )
 
     if not result.get("success"):
+        if result.get("error") == "conflict":
+            return error_response(
+                result.get("message", "Conflict"),
+                error_code="conflict",
+                status_code=409,
+            )
         return error_response(
             result.get("message", "Could not update time entry"),
             status_code=400,

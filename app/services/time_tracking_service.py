@@ -417,6 +417,7 @@ class TimeTrackingService:
         paid: Optional[bool] = None,
         invoice_number: Optional[str] = None,
         reason: Optional[str] = None,
+        expected_updated_at: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """
         Update a time entry.
@@ -448,6 +449,16 @@ class TimeTrackingService:
         # Check permissions
         if not is_admin and entry.user_id != user_id:
             return {"success": False, "message": "Access denied", "error": "access_denied"}
+
+        # Optimistic concurrency (optional): mobile / API clients send last known updated_at
+        if expected_updated_at is not None and entry.updated_at is not None:
+            if abs((entry.updated_at - expected_updated_at).total_seconds()) > 2:
+                return {
+                    "success": False,
+                    "message": "Time entry was modified on the server. Refresh and try again.",
+                    "error": "conflict",
+                    "entry": entry,
+                }
 
         # Block non-admin edits in closed periods
         if (not is_admin) and self._is_locked_period(

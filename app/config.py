@@ -53,6 +53,10 @@ class Config:
     # API token default expiry (days); 0 or empty = never expire (not recommended for production)
     API_TOKEN_DEFAULT_EXPIRY_DAYS = int(os.getenv("API_TOKEN_DEFAULT_EXPIRY_DAYS", "90"))
 
+    # Per-token REST API rate limits (enforced in require_api_token when Redis or local fallback is used)
+    API_TOKEN_RATE_LIMIT_PER_MINUTE = int(os.getenv("API_TOKEN_RATE_LIMIT_PER_MINUTE", "100"))
+    API_TOKEN_RATE_LIMIT_PER_HOUR = int(os.getenv("API_TOKEN_RATE_LIMIT_PER_HOUR", "1000"))
+
     # Authentication method: 'none' | 'local' | 'oidc' | 'both'
     # 'none' = no password authentication (username only)
     # 'local' = password authentication required

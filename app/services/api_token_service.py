@@ -284,22 +284,33 @@ class ApiTokenService:
 
     def check_token_rate_limit(self, token_id: int, max_requests_per_hour: int = 1000) -> Dict[str, Any]:
         """
-        Check if token has exceeded rate limit.
-        This is a simple implementation - for production, use Redis or similar.
+        Check if token has exceeded rate limit (delegates to api_rate_limit; increments counters).
+
+        Note: Prefer enforcing limits in ``require_api_token`` so each HTTP request is counted once.
+        This method is kept for diagnostics and tests.
 
         Args:
             token_id: The token ID
-            max_requests_per_hour: Maximum requests per hour
+            max_requests_per_hour: Ignored; limits come from Flask config
 
         Returns:
             dict with 'allowed' bool and 'remaining' requests
         """
-        # This is a placeholder - in production, implement proper rate limiting
-        # using Redis or similar distributed cache
+        from flask import has_request_context
+
+        from app.utils.api_rate_limit import consume_api_token_rate_limit
+
         api_token = ApiToken.query.get(token_id)
         if not api_token:
             return {"allowed": False, "remaining": 0, "error": "token_not_found"}
 
-        # Simple check: if usage_count is very high, might be rate limited
-        # In production, track requests per hour in Redis
-        return {"allowed": True, "remaining": max_requests_per_hour, "reset_at": datetime.utcnow() + timedelta(hours=1)}
+        if not has_request_context():
+            return {"allowed": True, "remaining": max_requests_per_hour, "reset_at": datetime.utcnow() + timedelta(hours=1)}
+
+        allowed, info = consume_api_token_rate_limit(token_id)
+        return {
+            "allowed": allowed,
+            "remaining": info.get("remaining_minute", 0),
+            "remaining_hour": info.get("remaining_hour", 0),
+            "reset_at": datetime.utcnow() + timedelta(hours=1),
+        }

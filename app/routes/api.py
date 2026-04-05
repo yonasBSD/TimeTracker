@@ -947,6 +947,8 @@ def create_entry():
 @login_required
 def bulk_entries_action():
     """Perform bulk actions on time entries: delete, set billable, set paid, add/remove tag."""
+    from app.services.time_entry_bulk_service import apply_bulk_time_entry_actions
+
     data = request.get_json() or {}
     entry_ids = data.get("entry_ids") or []
     action = (data.get("action") or "").strip()
@@ -954,66 +956,17 @@ def bulk_entries_action():
 
     if not entry_ids or not isinstance(entry_ids, list):
         return jsonify({"error": "entry_ids must be a non-empty list"}), 400
-    if action not in {"delete", "set_billable", "set_paid", "add_tag", "remove_tag"}:
-        return jsonify({"error": "Unsupported action"}), 400
+    try:
+        ids_int = [int(eid) for eid in entry_ids]
+    except (TypeError, ValueError):
+        return jsonify({"error": "entry_ids must be integers"}), 400
 
-    # Load entries with permission checks
-    q = TimeEntry.query.filter(TimeEntry.id.in_(entry_ids))
-    entries = q.all()
-    if not entries:
-        return jsonify({"error": "No entries found"}), 404
-
-    # Permission: non-admins can only modify own entries
-    if not current_user.is_admin:
-        for e in entries:
-            if e.user_id != current_user.id:
-                return jsonify({"error": "Access denied for one or more entries"}), 403
-
-    affected = 0
-    if action == "delete":
-        for e in entries:
-            if e.is_active:
-                continue
-            db.session.delete(e)
-            affected += 1
-    elif action == "set_billable":
-        flag = bool(value)
-        for e in entries:
-            if e.is_active:
-                continue
-            e.billable = flag
-            e.updated_at = local_now()
-            affected += 1
-    elif action == "set_paid":
-        flag = bool(value)
-        for e in entries:
-            if e.is_active:
-                continue
-            e.set_paid(flag)
-            affected += 1
-    elif action in {"add_tag", "remove_tag"}:
-        tag = (value or "").strip()
-        if not tag:
-            return jsonify({"error": "Tag value is required"}), 400
-        for e in entries:
-            if e.is_active:
-                continue
-            tags = set(e.tag_list)
-            if action == "add_tag":
-                tags.add(tag)
-            else:
-                tags.discard(tag)
-            e.tags = ", ".join(sorted(tags)) if tags else None
-            e.updated_at = local_now()
-            affected += 1
-
-    if affected > 0:
-        if not safe_commit("api_bulk_entries", {"action": action, "count": affected}):
-            return jsonify({"error": "Database error during bulk operation"}), 500
-    else:
-        db.session.rollback()
-
-    return jsonify({"success": True, "affected": affected})
+    result = apply_bulk_time_entry_actions(
+        ids_int, action, value, user_id=current_user.id, is_admin=current_user.is_admin
+    )
+    if not result.get("success"):
+        return jsonify({"error": result.get("error", "Bulk operation failed")}), result.get("http_status", 400)
+    return jsonify({"success": True, "affected": result.get("affected", 0)})
 
 
 @api_bp.route("/api/calendar/events")

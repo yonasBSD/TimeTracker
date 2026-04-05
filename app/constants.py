@@ -180,6 +180,9 @@ class WebhookEvent(Enum):
     INTEGRATION_DELETED = "integration.deleted"
     INTEGRATION_SYNCED = "integration.synced"
     INTEGRATION_ERROR = "integration.error"
+    API_TOKEN_CREATED = "api_token.created"
+    API_TOKEN_ROTATED = "api_token.rotated"
+    API_TOKEN_REVOKED = "api_token.revoked"
 
 
 # Notification types
