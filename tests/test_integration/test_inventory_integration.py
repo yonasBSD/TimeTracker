@@ -114,7 +114,8 @@ class TestQuoteInventoryIntegration:
         assert quote is not None
 
         # Check quote item has stock_item_id
-        quote_item = quote.items.first()
+        assert len(quote.items) >= 1
+        quote_item = quote.items[0]
         assert quote_item is not None
         assert quote_item.stock_item_id == test_stock_item.id
         assert quote_item.warehouse_id == test_warehouse.id

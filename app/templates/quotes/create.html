@@ -56,7 +56,8 @@
             </div>
             
             <!-- Items header (desktop) -->
-            <div class="hidden md:grid md:grid-cols-12 gap-3 mb-2 px-3 text-xs font-semibold text-text-muted-light dark:text-text-muted-dark uppercase">
+            <div class="hidden md:grid md:grid-cols-[repeat(13,minmax(0,1fr))] gap-3 mb-2 px-3 text-xs font-semibold text-text-muted-light dark:text-text-muted-dark uppercase">
+                <div class="md:col-span-1 text-center">#</div>
                 <div class="md:col-span-2">{{ _('Stock Item') }}</div>
                 <div class="md:col-span-2">{{ _('Warehouse') }}</div>
                 <div class="md:col-span-2">{{ _('Description') }}</div>
@@ -209,6 +210,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const itemsContainer = document.getElementById('quote-items');
     const addItemBtn = document.getElementById('add-item');
     let itemIndex = 0;
+
+    function refreshQuoteItemReorderControls() {
+        const rows = Array.from(itemsContainer.querySelectorAll('.quote-item-row'));
+        rows.forEach((row, i) => {
+            const up = row.querySelector('.quote-item-move-up');
+            const down = row.querySelector('.quote-item-move-down');
+            if (up) up.disabled = i === 0;
+            if (down) down.disabled = i === rows.length - 1;
+        });
+    }
+    function moveQuoteItemRowUp(row) {
+        const prev = row.previousElementSibling;
+        if (prev && prev.classList.contains('quote-item-row')) {
+            itemsContainer.insertBefore(row, prev);
+            refreshQuoteItemReorderControls();
+        }
+    }
+    function moveQuoteItemRowDown(row) {
+        const next = row.nextElementSibling;
+        if (next && next.classList.contains('quote-item-row')) {
+            itemsContainer.insertBefore(next, row);
+            refreshQuoteItemReorderControls();
+        }
+    }
+    function wireQuoteItemReorderButtons(row) {
+        row.querySelector('.quote-item-move-up')?.addEventListener('click', function() {
+            moveQuoteItemRowUp(row);
+        });
+        row.querySelector('.quote-item-move-down')?.addEventListener('click', function() {
+            moveQuoteItemRowDown(row);
+        });
+    }
     
     // Stock items and warehouses data
     const stockItems = {{ stock_items_json | safe if stock_items_json else '[]' }};
@@ -249,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add new item row
     function addItemRow(item = null) {
         const row = document.createElement('div');
-        row.className = 'grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20 quote-item-row hover:shadow-sm transition';
+        row.className = 'grid grid-cols-1 md:grid-cols-[repeat(13,minmax(0,1fr))] gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20 quote-item-row hover:shadow-sm transition';
         
         // Build stock items dropdown
         let stockItemsHtml = '<option value="">{{ _("None") }}</option>';
@@ -276,11 +309,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const placeholderUnit = '{{ _("Unit") }}';
         const placeholderPrice = '{{ _("Price") }}';
         const removeTitle = '{{ _("Remove item") }}';
+        const moveUpTitle = '{{ _("Move up") }}';
+        const moveDownTitle = '{{ _("Move down") }}';
+        const reorderBtnClass = 'w-full px-2 py-1 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed';
         
         row.innerHTML = 
             '<input type="hidden" name="item_id[]" value="' + (item ? item.id : '') + '">' +
             '<input type="hidden" name="item_stock_item_id[]" value="">' +
             '<input type="hidden" name="item_warehouse_id[]" value="">' +
+            '<div class="md:col-span-1 flex flex-col gap-1 items-stretch justify-center min-w-0">' +
+            '<button type="button" class="quote-item-move-up ' + reorderBtnClass + '" title="' + moveUpTitle + '" aria-label="' + moveUpTitle + '"><i class="fas fa-chevron-up"></i></button>' +
+            '<button type="button" class="quote-item-move-down ' + reorderBtnClass + '" title="' + moveDownTitle + '" aria-label="' + moveDownTitle + '"><i class="fas fa-chevron-down"></i></button>' +
+            '</div>' +
             '<select class="md:col-span-2 form-input item-stock-select text-sm">' + stockItemsHtml + '</select>' +
             '<select class="md:col-span-2 form-input item-warehouse-select text-sm">' + warehousesHtml + '</select>' +
             '<input type="text" name="item_description[]" placeholder="' + placeholderDesc + '" value="' + (item ? (item.description || '').replace(/"/g, '&quot;') : '') + '" class="md:col-span-2 form-input item-description" data-calc-trigger>' +
@@ -321,8 +361,10 @@ document.addEventListener('DOMContentLoaded', function() {
         row.querySelector('.remove-item').addEventListener('click', function() {
             row.remove();
             calculateTotals();
+            refreshQuoteItemReorderControls();
         });
         
+        wireQuoteItemReorderButtons(row);
         // Add calculation triggers
         row.querySelectorAll('[data-calc-trigger]').forEach(input => {
             input.addEventListener('input', calculateTotals);
@@ -331,6 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setupStockItemHandlers();
         itemIndex++;
         calculateTotals();
+        refreshQuoteItemReorderControls();
     }
     
     // Calculate totals
@@ -370,6 +413,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add initial empty row
     addItemRow();
+    refreshQuoteItemReorderControls();
     
     // Calculate on tax rate change
     document.getElementById('tax_rate')?.addEventListener('input', calculateTotals);
