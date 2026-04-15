@@ -1,12 +1,24 @@
+# Crowdin CLI / GitHub Action configuration.
+# Project: https://crowdin.com/project/drytrix-timetracker
+# See docs/CONTRIBUTING_TRANSLATIONS.md → Crowdin setup.
+#
+# Secrets (never commit real values):
+#   CROWDIN_PROJECT_ID   – numeric project ID from Crowdin → Project Settings → Details
+#   CROWDIN_PERSONAL_TOKEN – Account Settings → API → New token (scope: Project; Manager on this project)
+
 project_id_env: CROWDIN_PROJECT_ID
 api_token_env: CROWDIN_PERSONAL_TOKEN
 base_path: .
-base_url: 'https://api.crowdin.com'
-preserve_hierarchy: 1
+base_url: https://api.crowdin.com
+
+preserve_hierarchy: true
+
 files:
   - source: /translations/en/LC_MESSAGES/messages.po
     translation: /translations/%two_letters_code%/LC_MESSAGES/%original_file_name%
+    # Minor edits to English source strings keep existing translations as unapproved instead of wiping them
     update_option: update_as_unapproved
+    # Crowdin often uses "nb" for Norwegian Bokmål; this app uses locale folder "no" (see app/config.py).
     languages_mapping:
       two_letters_code:
-        nb: 'no'
+        "nb": "no"

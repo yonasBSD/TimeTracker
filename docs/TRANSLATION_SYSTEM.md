@@ -255,7 +255,7 @@ Potential improvements:
 
 1. Add more languages (Spanish, Portuguese, Japanese, etc.)
 2. Right-to-left (RTL) language support (Arabic, Hebrew)
-3. User-contributed translations via [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md) (issues, spreadsheet, or a hosted platform such as Weblate/Crowdin)
+3. User-contributed translations via [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md) (issues, spreadsheet, [Crowdin — Drytrix TimeTracker](https://crowdin.com/project/drytrix-timetracker), or Weblate)
 4. Automatic language detection improvement
 5. Translation coverage reporting
 
@@ -264,7 +264,7 @@ Potential improvements:
 For questions or issues with translations:
 
 1. Check this documentation
-2. **Contributors without Git:** see [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md) (issue template, spreadsheet option, maintainer workflow, and optional [Crowdin](https://crowdin.com/) using root [`crowdin.yml`](../crowdin.yml) and the **Crowdin sync** GitHub Action)
+2. **Contributors without Git:** see [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md) (issue template, spreadsheet option, maintainer workflow, and [Crowdin — Drytrix TimeTracker](https://crowdin.com/project/drytrix-timetracker) using root [`crowdin.yml`](../crowdin.yml) and the **Crowdin sync** GitHub Action)
 3. Review `app/__init__.py` locale selector
 4. Inspect browser network requests to `/i18n/set-language`
 5. Check application logs for translation compilation errors

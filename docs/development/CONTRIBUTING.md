@@ -52,7 +52,7 @@ This project and everyone participating in it is governed by our [Code of Conduc
 
 ### Translations (no Git required)
 
-Contributors who only want to fix wording can use the **Translation improvement** GitHub issue template or follow [CONTRIBUTING_TRANSLATIONS.md](../CONTRIBUTING_TRANSLATIONS.md) (spreadsheet option, maintainer workflow, optional Crowdin using [`crowdin.yml`](../../crowdin.yml) and the **Crowdin sync** workflow). Developers adding new `_('...')` strings should run `pybabel extract` / `update` as described there.
+Contributors who only want to fix wording can use the **Translation improvement** GitHub issue template, work in **[Crowdin (Drytrix TimeTracker)](https://crowdin.com/project/drytrix-timetracker)**, or follow [CONTRIBUTING_TRANSLATIONS.md](../CONTRIBUTING_TRANSLATIONS.md) (spreadsheet option, maintainer workflow, [`crowdin.yml`](../../crowdin.yml), **Crowdin sync** workflow). Developers adding new `_('...')` strings should run `pybabel extract` / `update` as described there.
 
 ## Development Setup
 
