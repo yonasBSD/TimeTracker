@@ -1,0 +1,63 @@
+name: Translation improvement
+description: Suggest a correction or better wording for interface text in a specific language (no Git required).
+title: "[i18n] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve translations. Before submitting, skim **Rules for translators** in `docs/CONTRIBUTING_TRANSLATIONS.md` in this repository (placeholders, context, what not to change).
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      description: Locale code for the translation you are improving.
+      options:
+        - nl (Nederlands)
+        - de (Deutsch)
+        - fr (Français)
+        - it (Italiano)
+        - fi (Suomi)
+        - es (Español)
+        - no (Norsk)
+        - ar (العربية)
+        - he (עברית)
+        - en (English)
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Where did you see this?
+      description: Page name, menu path, or URL path (e.g. Dashboard, Settings, /login).
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_text
+    attributes:
+      label: Current text (as shown in the app)
+      description: Copy the exact wording from the UI in the language you selected.
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested_text
+    attributes:
+      label: Suggested text
+      description: Your improved translation. Keep any %(name)s-style placeholders identical to the current text if present.
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes (optional)
+      description: Why this reads better, grammar fix, formal vs informal tone, screenshot description, etc.
+
+  - type: markdown
+    attributes:
+      value: |
+        **Optional:** Attach a screenshot in a follow-up comment if the form does not allow images.

@@ -14,6 +14,8 @@ def test_create_quote_redirect_then_view_returns_200(admin_authenticated_client,
             "title": "Regression Quote 583",
             "tax_rate": "0",
             "currency_code": "EUR",
+            # Triggers Valid until block + expired badge on view (issue #583 used undefined now()).
+            "valid_until": "2020-01-01",
         },
         follow_redirects=False,
     )

@@ -63,8 +63,9 @@
                 </button>
             </div>
             <div class="hidden md:grid md:grid-cols-12 gap-3 mb-2 px-3 text-xs font-semibold text-text-muted-light dark:text-text-muted-dark uppercase">
+                <div class="md:col-span-1 text-center">{{ _('Order') }}</div>
                 <div class="md:col-span-2">{{ _('Line type') }}</div>
-                <div class="md:col-span-4 item-stock-header">{{ _('Stock') }} / {{ _('Warehouse') }}</div>
+                <div class="md:col-span-3 item-stock-header">{{ _('Stock') }} / {{ _('Warehouse') }}</div>
                 <div class="md:col-span-2">{{ _('Description') }}</div>
                 <div class="md:col-span-1">{{ _('Qty') }}</div>
                 <div class="md:col-span-1">{{ _('Unit') }}</div>
@@ -77,13 +78,17 @@
                     <input type="hidden" name="item_id[]" value="{{ item.id }}">
                     <input type="hidden" name="item_stock_item_id[]" value="{{ item.stock_item_id if item.stock_item_id else '' }}">
                     <input type="hidden" name="item_warehouse_id[]" value="{{ item.warehouse_id if item.warehouse_id else '' }}">
+                    <div class="quote-line-reorder md:col-span-1 flex flex-row md:flex-col gap-1 items-center justify-center min-w-0 self-center">
+                        <button type="button" class="quote-line-move-up p-1.5 rounded border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark hover:bg-gray-100 dark:hover:bg-gray-700 text-text-muted-light dark:text-text-muted-dark disabled:opacity-40 disabled:pointer-events-none" title="{{ _('Move up') }}" aria-label="{{ _('Move up') }}"><i class="fas fa-chevron-up text-xs"></i></button>
+                        <button type="button" class="quote-line-move-down p-1.5 rounded border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark hover:bg-gray-100 dark:hover:bg-gray-700 text-text-muted-light dark:text-text-muted-dark disabled:opacity-40 disabled:pointer-events-none" title="{{ _('Move down') }}" aria-label="{{ _('Move down') }}"><i class="fas fa-chevron-down text-xs"></i></button>
+                    </div>
                     <div class="md:col-span-2 min-w-0">
                         <select name="item_line_source[]" class="form-input item-line-source text-sm" title="{{ _('Line type') }}">
                             <option value="manual" {% if not item.stock_item_id %}selected{% endif %}>{{ _('Manual entry') }}</option>
                             <option value="stock" {% if item.stock_item_id %}selected{% endif %}>{{ _('From stock') }}</option>
                         </select>
                     </div>
-                    <div class="item-stock-cols md:col-span-4 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-3 {% if not item.stock_item_id %}hidden{% endif %}">
+                    <div class="item-stock-cols md:col-span-3 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-3 {% if not item.stock_item_id %}hidden{% endif %}">
                         <select class="form-input item-stock-select text-sm" title="{{ _('Select Stock Item') }}">
                             <option value="">{{ _('None') }}</option>
                             {% for stock_item in stock_items %}
@@ -97,7 +102,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="item-desc-wrap md:col-span-2 min-w-0 {% if not item.stock_item_id %}md:col-span-6{% endif %}">
+                    <div class="item-desc-wrap min-w-0 {% if item.stock_item_id %}md:col-span-2{% else %}md:col-span-5{% endif %}">
                         <input type="text" name="item_description[]" placeholder="{{ _('Item description') }}" value="{{ item.description }}" class="w-full form-input item-description" data-calc-trigger>
                     </div>
                     <input type="number" name="item_quantity[]" placeholder="{{ _('Qty') }}" value="{{ item.quantity }}" step="0.01" min="0" class="md:col-span-1 min-w-0 form-input item-quantity" data-calc-trigger>
@@ -133,8 +138,9 @@
                 </button>
             </div>
             <div class="hidden md:grid md:grid-cols-12 gap-3 mb-2 px-3 text-xs font-semibold text-text-muted-light dark:text-text-muted-dark uppercase">
+                <div class="md:col-span-1 text-center">{{ _('Order') }}</div>
                 <div class="md:col-span-2">{{ _('Title') }}</div>
-                <div class="md:col-span-3">{{ _('Description') }}</div>
+                <div class="md:col-span-2">{{ _('Description') }}</div>
                 <div class="md:col-span-2">{{ _('Category') }}</div>
                 <div class="md:col-span-2">{{ _('Amount') }}</div>
                 <div class="md:col-span-2">{{ _('Date') }}</div>
@@ -144,8 +150,12 @@
                 {% for item in quote.items if (item.line_kind or 'item') == 'expense' %}
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/50 quote-expense-row min-w-0 hover:shadow-sm transition">
                     <input type="hidden" name="qe_id[]" value="{{ item.id }}">
+                    <div class="quote-line-reorder md:col-span-1 flex flex-row md:flex-col gap-1 items-center justify-center min-w-0 self-center">
+                        <button type="button" class="quote-line-move-up p-1.5 rounded border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark hover:bg-gray-100 dark:hover:bg-gray-700 text-text-muted-light dark:text-text-muted-dark disabled:opacity-40 disabled:pointer-events-none" title="{{ _('Move up') }}" aria-label="{{ _('Move up') }}"><i class="fas fa-chevron-up text-xs"></i></button>
+                        <button type="button" class="quote-line-move-down p-1.5 rounded border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark hover:bg-gray-100 dark:hover:bg-gray-700 text-text-muted-light dark:text-text-muted-dark disabled:opacity-40 disabled:pointer-events-none" title="{{ _('Move down') }}" aria-label="{{ _('Move down') }}"><i class="fas fa-chevron-down text-xs"></i></button>
+                    </div>
                     <div class="md:col-span-2 min-w-0"><input type="text" name="qe_title[]" class="form-input" placeholder="{{ _('Title') }}" value="{{ item.display_name or '' }}" data-calc-trigger></div>
-                    <div class="md:col-span-3 min-w-0"><input type="text" name="qe_description[]" class="form-input" placeholder="{{ _('Description') }}" value="{{ item.description }}" data-calc-trigger></div>
+                    <div class="md:col-span-2 min-w-0"><input type="text" name="qe_description[]" class="form-input" placeholder="{{ _('Description') }}" value="{{ item.description }}" data-calc-trigger></div>
                     <div class="md:col-span-2 min-w-0">
                         <select name="qe_category[]" class="form-input">
                             <option value="travel" {% if item.category == 'travel' %}selected{% endif %}>{{ _('Travel') }}</option>
@@ -185,7 +195,8 @@
                 </button>
             </div>
             <div class="hidden md:grid md:grid-cols-12 gap-3 mb-2 px-3 text-xs font-semibold text-text-muted-light dark:text-text-muted-dark uppercase">
-                <div class="md:col-span-2">{{ _('Name') }}</div>
+                <div class="md:col-span-1 text-center">{{ _('Order') }}</div>
+                <div class="md:col-span-1">{{ _('Name') }}</div>
                 <div class="md:col-span-2">{{ _('Description') }}</div>
                 <div class="md:col-span-2">{{ _('Category') }}</div>
                 <div class="md:col-span-2">{{ _('Qty') }}</div>
@@ -197,7 +208,11 @@
                 {% for item in quote.items if (item.line_kind or 'item') == 'good' %}
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/50 quote-good-row min-w-0 hover:shadow-sm transition">
                     <input type="hidden" name="qg_id[]" value="{{ item.id }}">
-                    <div class="md:col-span-2 min-w-0"><input type="text" name="qg_name[]" class="form-input" placeholder="{{ _('Name') }}" value="{{ item.display_name or '' }}" data-calc-trigger></div>
+                    <div class="quote-line-reorder md:col-span-1 flex flex-row md:flex-col gap-1 items-center justify-center min-w-0 self-center">
+                        <button type="button" class="quote-line-move-up p-1.5 rounded border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark hover:bg-gray-100 dark:hover:bg-gray-700 text-text-muted-light dark:text-text-muted-dark disabled:opacity-40 disabled:pointer-events-none" title="{{ _('Move up') }}" aria-label="{{ _('Move up') }}"><i class="fas fa-chevron-up text-xs"></i></button>
+                        <button type="button" class="quote-line-move-down p-1.5 rounded border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark hover:bg-gray-100 dark:hover:bg-gray-700 text-text-muted-light dark:text-text-muted-dark disabled:opacity-40 disabled:pointer-events-none" title="{{ _('Move down') }}" aria-label="{{ _('Move down') }}"><i class="fas fa-chevron-down text-xs"></i></button>
+                    </div>
+                    <div class="md:col-span-1 min-w-0"><input type="text" name="qg_name[]" class="form-input" placeholder="{{ _('Name') }}" value="{{ item.display_name or '' }}" data-calc-trigger></div>
                     <div class="md:col-span-2 min-w-0"><input type="text" name="qg_description[]" class="form-input" placeholder="{{ _('Description') }}" value="{{ item.description }}" data-calc-trigger></div>
                     <div class="md:col-span-2 min-w-0">
                         <select name="qg_category[]" class="form-input">

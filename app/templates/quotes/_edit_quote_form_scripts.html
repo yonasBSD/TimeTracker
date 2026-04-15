@@ -10,6 +10,54 @@ document.addEventListener('DOMContentLoaded', function() {
     const stockItems = {{ stock_items_json | safe if stock_items_json else '[]' }};
     const warehouses = {{ warehouses_json | safe if warehouses_json else '[]' }};
 
+    function reorderButtonsHtml() {
+        return (
+            '<div class="quote-line-reorder md:col-span-1 flex flex-row md:flex-col gap-1 items-center justify-center min-w-0 self-center">' +
+            '<button type="button" class="quote-line-move-up p-1.5 rounded border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark hover:bg-gray-100 dark:hover:bg-gray-700 text-text-muted-light dark:text-text-muted-dark disabled:opacity-40 disabled:pointer-events-none" title="{{ _("Move up") }}" aria-label="{{ _("Move up") }}"><i class="fas fa-chevron-up text-xs"></i></button>' +
+            '<button type="button" class="quote-line-move-down p-1.5 rounded border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark hover:bg-gray-100 dark:hover:bg-gray-700 text-text-muted-light dark:text-text-muted-dark disabled:opacity-40 disabled:pointer-events-none" title="{{ _("Move down") }}" aria-label="{{ _("Move down") }}"><i class="fas fa-chevron-down text-xs"></i></button></div>'
+        );
+    }
+
+    function refreshReorderStates(parent, rowSelector) {
+        if (!parent) return;
+        const rows = parent.querySelectorAll(rowSelector);
+        rows.forEach(function(r, i) {
+            const up = r.querySelector('.quote-line-move-up');
+            const down = r.querySelector('.quote-line-move-down');
+            if (up) up.disabled = i === 0;
+            if (down) down.disabled = i === rows.length - 1;
+        });
+    }
+
+    function moveRowInSection(row, delta) {
+        const parent = row.parentElement;
+        if (!parent) return;
+        var sel = null;
+        if (row.classList.contains('quote-item-row')) sel = '.quote-item-row';
+        else if (row.classList.contains('quote-expense-row')) sel = '.quote-expense-row';
+        else if (row.classList.contains('quote-good-row')) sel = '.quote-good-row';
+        else return;
+        const rows = Array.from(parent.querySelectorAll(sel));
+        const idx = rows.indexOf(row);
+        if (idx < 0) return;
+        const newIdx = idx + delta;
+        if (newIdx < 0 || newIdx >= rows.length) return;
+        const ref = rows[newIdx];
+        if (delta < 0) parent.insertBefore(row, ref);
+        else parent.insertBefore(row, ref.nextSibling);
+        refreshReorderStates(parent, sel);
+        calculateTotals();
+    }
+
+    function wireReorderButtons(row) {
+        row.querySelector('.quote-line-move-up')?.addEventListener('click', function() {
+            moveRowInSection(row, -1);
+        });
+        row.querySelector('.quote-line-move-down')?.addEventListener('click', function() {
+            moveRowInSection(row, 1);
+        });
+    }
+
     function stockOptionsHtml(selectedId) {
         let h = '<option value="">{{ _("None") }}</option>';
         if (stockItems && Array.isArray(stockItems)) {
@@ -40,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!stockCols || !descWrap) return;
         if (stockMode) {
             stockCols.classList.remove('hidden');
-            descWrap.classList.remove('md:col-span-6');
+            descWrap.classList.remove('md:col-span-5');
             descWrap.classList.add('md:col-span-2');
         } else {
             stockCols.classList.add('hidden');
@@ -53,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (ss) ss.value = '';
             if (ws) ws.value = '';
             descWrap.classList.remove('md:col-span-2');
-            descWrap.classList.add('md:col-span-6');
+            descWrap.classList.add('md:col-span-5');
         }
     }
 
@@ -94,12 +142,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         row.querySelector('.remove-item')?.addEventListener('click', function() {
             row.remove();
+            if (itemsContainer) refreshReorderStates(itemsContainer, '.quote-item-row');
             calculateTotals();
         });
+        wireReorderButtons(row);
         row.querySelectorAll('[data-calc-trigger]').forEach(function(el) {
             el.addEventListener('input', calculateTotals);
         });
         applyItemRowLayout(row);
+        if (itemsContainer) refreshReorderStates(itemsContainer, '.quote-item-row');
     }
 
     function addItemRow() {
@@ -109,14 +160,15 @@ document.addEventListener('DOMContentLoaded', function() {
             '<input type="hidden" name="item_id[]" value="">' +
             '<input type="hidden" name="item_stock_item_id[]" value="">' +
             '<input type="hidden" name="item_warehouse_id[]" value="">' +
+            reorderButtonsHtml() +
             '<div class="md:col-span-2 min-w-0">' +
             '<select name="item_line_source[]" class="form-input item-line-source text-sm">' +
             '<option value="manual" selected>{{ _("Manual entry") }}</option>' +
             '<option value="stock">{{ _("From stock") }}</option></select></div>' +
-            '<div class="item-stock-cols md:col-span-4 min-w-0 hidden grid grid-cols-1 md:grid-cols-2 gap-3">' +
+            '<div class="item-stock-cols md:col-span-3 min-w-0 hidden grid grid-cols-1 md:grid-cols-2 gap-3">' +
             '<select class="form-input item-stock-select text-sm">' + stockOptionsHtml() + '</select>' +
             '<select class="form-input item-warehouse-select text-sm">' + warehouseOptionsHtml() + '</select></div>' +
-            '<div class="item-desc-wrap md:col-span-6 min-w-0">' +
+            '<div class="item-desc-wrap md:col-span-5 min-w-0">' +
             '<input type="text" name="item_description[]" class="w-full form-input item-description" placeholder="{{ _("Item description") }}" data-calc-trigger></div>' +
             '<input type="number" name="item_quantity[]" value="1" step="0.01" min="0" class="md:col-span-1 min-w-0 form-input item-quantity" data-calc-trigger>' +
             '<input type="text" name="item_unit[]" class="md:col-span-1 min-w-0 form-input item-unit" placeholder="{{ _("Unit") }}">' +
@@ -142,8 +194,9 @@ document.addEventListener('DOMContentLoaded', function() {
         row.className = 'grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/50 quote-expense-row min-w-0 hover:shadow-sm transition';
         row.innerHTML =
             '<input type="hidden" name="qe_id[]" value="">' +
+            reorderButtonsHtml() +
             '<div class="md:col-span-2 min-w-0"><input type="text" name="qe_title[]" class="form-input" placeholder="{{ _("Title") }}" data-calc-trigger></div>' +
-            '<div class="md:col-span-3 min-w-0"><input type="text" name="qe_description[]" class="form-input" placeholder="{{ _("Description") }}" data-calc-trigger></div>' +
+            '<div class="md:col-span-2 min-w-0"><input type="text" name="qe_description[]" class="form-input" placeholder="{{ _("Description") }}" data-calc-trigger></div>' +
             '<div class="md:col-span-2 min-w-0"><select name="qe_category[]" class="form-input">' + qeCategoryOptions + '</select></div>' +
             '<div class="md:col-span-2 min-w-0"><input type="number" name="qe_amount[]" class="form-input qe-amount" step="0.01" min="0" placeholder="0" data-calc-trigger></div>' +
             '<div class="md:col-span-2 min-w-0"><input type="date" name="qe_date[]" class="form-input user-date-input text-sm"></div>' +
@@ -152,11 +205,14 @@ document.addEventListener('DOMContentLoaded', function() {
         expensesContainer.appendChild(row);
         row.querySelector('.remove-quote-expense')?.addEventListener('click', function() {
             row.remove();
+            if (expensesContainer) refreshReorderStates(expensesContainer, '.quote-expense-row');
             calculateTotals();
         });
+        wireReorderButtons(row);
         row.querySelectorAll('[data-calc-trigger]').forEach(function(el) {
             el.addEventListener('input', calculateTotals);
         });
+        if (expensesContainer) refreshReorderStates(expensesContainer, '.quote-expense-row');
         calculateTotals();
     }
 
@@ -172,7 +228,8 @@ document.addEventListener('DOMContentLoaded', function() {
         row.className = 'grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/50 quote-good-row min-w-0 hover:shadow-sm transition';
         row.innerHTML =
             '<input type="hidden" name="qg_id[]" value="">' +
-            '<div class="md:col-span-2 min-w-0"><input type="text" name="qg_name[]" class="form-input" placeholder="{{ _("Name") }}" data-calc-trigger></div>' +
+            reorderButtonsHtml() +
+            '<div class="md:col-span-1 min-w-0"><input type="text" name="qg_name[]" class="form-input" placeholder="{{ _("Name") }}" data-calc-trigger></div>' +
             '<div class="md:col-span-2 min-w-0"><input type="text" name="qg_description[]" class="form-input" placeholder="{{ _("Description") }}" data-calc-trigger></div>' +
             '<div class="md:col-span-2 min-w-0"><select name="qg_category[]" class="form-input">' + qgCategoryOptions + '</select></div>' +
             '<div class="md:col-span-2 min-w-0"><input type="number" name="qg_quantity[]" class="form-input qg-quantity" value="1" step="0.01" min="0" data-calc-trigger></div>' +
@@ -183,11 +240,14 @@ document.addEventListener('DOMContentLoaded', function() {
         goodsContainer.appendChild(row);
         row.querySelector('.remove-quote-good')?.addEventListener('click', function() {
             row.remove();
+            if (goodsContainer) refreshReorderStates(goodsContainer, '.quote-good-row');
             calculateTotals();
         });
+        wireReorderButtons(row);
         row.querySelectorAll('[data-calc-trigger]').forEach(function(el) {
             el.addEventListener('input', calculateTotals);
         });
+        if (goodsContainer) refreshReorderStates(goodsContainer, '.quote-good-row');
         calculateTotals();
     }
 
@@ -248,8 +308,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.quote-expense-row').forEach(function(row) {
         row.querySelector('.remove-quote-expense')?.addEventListener('click', function() {
             row.remove();
+            if (expensesContainer) refreshReorderStates(expensesContainer, '.quote-expense-row');
             calculateTotals();
         });
+        wireReorderButtons(row);
         row.querySelectorAll('[data-calc-trigger]').forEach(function(el) {
             el.addEventListener('input', calculateTotals);
         });
@@ -257,12 +319,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.quote-good-row').forEach(function(row) {
         row.querySelector('.remove-quote-good')?.addEventListener('click', function() {
             row.remove();
+            if (goodsContainer) refreshReorderStates(goodsContainer, '.quote-good-row');
             calculateTotals();
         });
+        wireReorderButtons(row);
         row.querySelectorAll('[data-calc-trigger]').forEach(function(el) {
             el.addEventListener('input', calculateTotals);
         });
     });
+
+    if (itemsContainer) refreshReorderStates(itemsContainer, '.quote-item-row');
+    if (expensesContainer) refreshReorderStates(expensesContainer, '.quote-expense-row');
+    if (goodsContainer) refreshReorderStates(goodsContainer, '.quote-good-row');
 
     document.getElementById('tax_rate')?.addEventListener('input', calculateTotals);
     calculateTotals();

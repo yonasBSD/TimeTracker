@@ -5,6 +5,7 @@ Thank you for your interest in contributing to TimeTracker. This page gives you 
 ## How to Contribute
 
 - **Report bugs** — Use the [GitHub issue tracker](https://github.com/drytrix/TimeTracker/issues). Include steps to reproduce, expected vs actual behavior, and your environment (OS, deployment method, version).
+- **Improve translations (no Git)** — Use the **Translation improvement** issue template, or read [docs/CONTRIBUTING_TRANSLATIONS.md](docs/CONTRIBUTING_TRANSLATIONS.md) for spreadsheet / maintainer workflow options.
 - **Suggest features** — Open a [feature request](https://github.com/drytrix/TimeTracker/issues/new?template=feature_request.md) with a clear description and use case.
 - **Submit code** — Fork the repo, create a branch, make your changes, add tests, and open a pull request. Follow the [full contributing guidelines](docs/development/CONTRIBUTING.md) for setup, coding standards, and PR process.
 

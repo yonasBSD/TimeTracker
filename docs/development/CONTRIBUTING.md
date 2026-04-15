@@ -50,6 +50,10 @@ This project and everyone participating in it is governed by our [Code of Conduc
 - Push to the branch (`git push origin feature/amazing-feature`)
 - Open a Pull Request
 
+### Translations (no Git required)
+
+Contributors who only want to fix wording can use the **Translation improvement** GitHub issue template or follow [CONTRIBUTING_TRANSLATIONS.md](../CONTRIBUTING_TRANSLATIONS.md) (spreadsheet option, maintainer workflow). Developers adding new `_('...')` strings should run `pybabel extract` / `update` as described there.
+
 ## Development Setup
 
 ### Prerequisites
