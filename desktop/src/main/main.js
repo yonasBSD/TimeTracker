@@ -211,12 +211,28 @@ ipcMain.on('splash:ready', () => {
   }
 });
 
-// Prevent navigation to external URLs
+// Prevent navigation to external URLs (file: uses opaque origin "null", not "file://")
 app.on('web-contents-created', (event, contents) => {
   contents.on('will-navigate', (event, navigationUrl) => {
-    const parsedUrl = new URL(navigationUrl);
-    if (parsedUrl.origin !== 'file://') {
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(navigationUrl);
+    } catch {
       event.preventDefault();
+      return;
     }
+    const protocol = parsedUrl.protocol;
+    if (
+      protocol === 'file:' ||
+      protocol === 'about:' ||
+      protocol === 'devtools:'
+    ) {
+      return;
+    }
+    if (protocol === 'http:' || protocol === 'https:') {
+      event.preventDefault();
+      return;
+    }
+    event.preventDefault();
   });
 });

@@ -58,6 +58,6 @@ This document tracks frontend modernization phases and how to run quality checks
 |------|-----------|
 | Web base layout | `app/templates/base.html`, `app/static/base-init.js`, `app/static/pwa-enhancements.js` |
 | Web search/IDs | `app/templates/*/list.html` (unique filter search IDs), `app/static/enhanced-search.js` |
-| Desktop renderer | `desktop/src/renderer/js/app.js`, `desktop/src/renderer/js/state.js`, `desktop/src/renderer/js/ui/notifications.js`, `desktop/src/renderer/js/bundle.js` |
+| Desktop renderer | `desktop/src/renderer/js/app.js` (esbuild entry; import shared modules such as `utils/helpers.js` from here), `desktop/src/renderer/js/state.js`, `desktop/src/renderer/js/ui/notifications.js`, `desktop/src/renderer/js/bundle.js` (run `npm run build:renderer` after renderer changes) |
 | Mobile finance | `mobile/lib/presentation/screens/finance_workforce_screen.dart`, `mobile/lib/presentation/providers/finance_workforce_providers.dart` |
 | Mobile home | `mobile/lib/presentation/screens/home_screen.dart` (IndexedStack for tabs) |

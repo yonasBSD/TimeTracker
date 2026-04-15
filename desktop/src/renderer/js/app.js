@@ -1,4 +1,5 @@
 // Main application logic
+require('./utils/helpers');
 const { storeGet, storeSet, storeDelete, storeClear } = window.config || {};
 const ApiClient = require('./api/client');
 const StorageService = require('./storage/storage');

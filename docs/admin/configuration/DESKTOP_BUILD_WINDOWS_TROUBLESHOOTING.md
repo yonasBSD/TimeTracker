@@ -143,6 +143,16 @@ If you're hitting path length limits:
    - Cleaner, more reliable than npm install
    - Build script already uses this
 
+## App window stuck on loading or shows blank content
+
+If the installer or executable starts but the main window never leaves the loading state, shows a blank page, or behaves as if navigation is stuck (often reported on Windows 11):
+
+1. **Update to the latest build** from the project releases or rebuild from the current `develop` branch. Older builds could mishandle `file:` URL navigation in Electron or ship an incomplete renderer bundle.
+2. **Rebuild the renderer** when building from source: from the `desktop` folder run `npm install` then `npm run build:renderer`, then `npm run build:win` (or your usual build command). The packaged app expects an up-to-date `src/renderer/js/bundle.js`.
+3. **Confirm the server URL** on the login screen and try again after a full quit and restart.
+
+If the problem persists after a clean rebuild, open an issue with your app version, Windows build, and any DevTools console output (run `npm run dev` for a local build with DevTools).
+
 ## Additional Resources
 
 - [npm Troubleshooting Guide](https://docs.npmjs.com/common-errors)

@@ -67,11 +67,17 @@ For detailed instructions, see [Windows Code Signing Guide](../../docs/WINDOWS_C
 
 ## Development
 
+### Renderer bundle
+
+The UI is bundled from [`src/renderer/js/app.js`](src/renderer/js/app.js) into [`src/renderer/js/bundle.js`](src/renderer/js/bundle.js) with esbuild (`npm run build:renderer`). Anything the app needs at runtime (including [`src/renderer/js/utils/helpers.js`](src/renderer/js/utils/helpers.js), which sets `window.Helpers`) must be imported from `app.js` so it is included in the bundle. After changing renderer source files, run `npm run build:renderer` before packaging or committing an updated `bundle.js`.
+
 ### Run in Development Mode
 
 ```bash
 npm start
 ```
+
+(`npm start` runs `build:renderer` first, then launches Electron.)
 
 ### Run with DevTools
 
@@ -172,6 +178,11 @@ The connection is automatically checked every 30 seconds.
 - Ensure you have write permissions in the app's data directory
 - Check that electron-store is working properly
 - Try clearing settings and re-entering them
+
+**Window stuck on loading, blank content, or unstable navigation (especially Windows):**
+- Use the latest release or rebuild from source; older builds could mis-handle `file:` navigation in the main process or ship a renderer bundle without helpers loaded.
+- From source, run `npm install` and `npm run build:renderer`, then `npm start` or rebuild the installer.
+- See [Desktop build Windows troubleshooting](../../docs/admin/configuration/DESKTOP_BUILD_WINDOWS_TROUBLESHOOTING.md) for environment-specific build issues.
 
 For more details, see [Desktop Settings Guide](../../docs/DESKTOP_SETTINGS.md).
 

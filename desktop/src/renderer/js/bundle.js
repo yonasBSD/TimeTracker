@@ -23,6 +23,83 @@
   };
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
+  // src/renderer/js/utils/helpers.js
+  var require_helpers = __commonJS({
+    "src/renderer/js/utils/helpers.js"(exports, module) {
+      function formatDuration2(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor(seconds % 3600 / 60);
+        const secs = seconds % 60;
+        if (hours > 0) {
+          return `${hours}h ${minutes}m`;
+        }
+        return `${minutes}m ${secs}s`;
+      }
+      function formatDurationLong2(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor(seconds % 3600 / 60);
+        const secs = seconds % 60;
+        return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+      }
+      function formatDate(date) {
+        if (typeof date === "string") {
+          date = new Date(date);
+        }
+        return date.toLocaleDateString();
+      }
+      function formatDateTime2(date) {
+        if (typeof date === "string") {
+          date = new Date(date);
+        }
+        return date.toLocaleString();
+      }
+      function parseISODate(dateString) {
+        return new Date(dateString);
+      }
+      function isValidUrl2(string) {
+        try {
+          const url = new URL(string);
+          return url.protocol === "http:" || url.protocol === "https:";
+        } catch (_) {
+          return false;
+        }
+      }
+      function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      }
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = {
+          formatDuration: formatDuration2,
+          formatDurationLong: formatDurationLong2,
+          formatDate,
+          formatDateTime: formatDateTime2,
+          parseISODate,
+          isValidUrl: isValidUrl2,
+          debounce
+        };
+      }
+      if (typeof window !== "undefined") {
+        window.Helpers = {
+          formatDuration: formatDuration2,
+          formatDurationLong: formatDurationLong2,
+          formatDate,
+          formatDateTime: formatDateTime2,
+          parseISODate,
+          isValidUrl: isValidUrl2,
+          debounce
+        };
+      }
+    }
+  });
+
   // node_modules/axios/dist/browser/axios.cjs
   var require_axios = __commonJS({
     "node_modules/axios/dist/browser/axios.cjs"(exports, module) {
@@ -2751,6 +2828,9 @@
           if (reason) data.reason = reason;
           return await this.client.post(`/api/v1/timesheet-periods/${periodId}/reject`, data);
         }
+        async deleteTimesheetPeriod(periodId) {
+          return await this.client.delete(`/api/v1/timesheet-periods/${periodId}`);
+        }
         async getLeaveTypes() {
           return await this.client.get("/api/v1/time-off/leave-types");
         }
@@ -2786,6 +2866,9 @@
           const data = {};
           if (comment) data.comment = comment;
           return await this.client.post(`/api/v1/time-off/requests/${requestId}/reject`, data);
+        }
+        async deleteTimeOffRequest(requestId) {
+          return await this.client.delete(`/api/v1/time-off/requests/${requestId}`);
         }
       };
       if (typeof module !== "undefined" && module.exports) {
@@ -7730,6 +7813,7 @@
   });
 
   // src/renderer/js/app.js
+  require_helpers();
   var { storeGet, storeSet, storeDelete, storeClear } = window.config || {};
   var ApiClient = require_client();
   var StorageService = require_storage();
@@ -7793,11 +7877,12 @@
       const role = String(user.role || "").toLowerCase();
       const roleCanApprove = ["admin", "owner", "manager", "approver"].includes(role);
       state.currentUserProfile = {
+        id: user.id,
         is_admin: Boolean(user.is_admin),
         can_approve: Boolean(user.is_admin) || roleCanApprove
       };
     } catch (_) {
-      state.currentUserProfile = { is_admin: false, can_approve: false };
+      state.currentUserProfile = { id: null, is_admin: false, can_approve: false };
     }
   }
   function updateConnectionStatus(status) {
@@ -8485,8 +8570,9 @@
       </div>
       <div class="entry-actions">
         ${String(period.status || "").toLowerCase() === "draft" ? `<button class="btn btn-sm btn-primary" onclick="submitTimesheetPeriodAction(${period.id})">Submit</button>` : ""}
-        ${String(period.status || "").toLowerCase() === "submitted" && currentUserProfile.can_approve ? `<button class="btn btn-sm btn-primary" onclick="reviewTimesheetPeriodAction(${period.id}, true)">Approve</button>` : ""}
-        ${String(period.status || "").toLowerCase() === "submitted" && currentUserProfile.can_approve ? `<button class="btn btn-sm btn-danger" onclick="reviewTimesheetPeriodAction(${period.id}, false)">Reject</button>` : ""}
+        ${String(period.status || "").toLowerCase() === "submitted" && state.currentUserProfile.can_approve ? `<button class="btn btn-sm btn-primary" onclick="reviewTimesheetPeriodAction(${period.id}, true)">Approve</button>` : ""}
+        ${String(period.status || "").toLowerCase() === "submitted" && state.currentUserProfile.can_approve ? `<button class="btn btn-sm btn-danger" onclick="reviewTimesheetPeriodAction(${period.id}, false)">Reject</button>` : ""}
+        ${["draft", "rejected"].includes(String(period.status || "").toLowerCase()) ? `<button class="btn btn-sm btn-danger" onclick="deleteTimesheetPeriodAction(${period.id})">Delete</button>` : ""}
       </div>
     </div>
   `).join("");
@@ -8534,7 +8620,7 @@
       const leaveType = req.leave_type_name || "Leave";
       const status = req.status || "";
       const pending = String(status).toLowerCase() === "submitted";
-      const canReview = pending && currentUserProfile.can_approve;
+      const canReview = pending && state.currentUserProfile.can_approve;
       return `
       <div class="entry-item">
         <div class="entry-info">
@@ -8545,6 +8631,7 @@
           <div class="entry-time">${status}</div>
           ${canReview ? `<button class="btn btn-sm btn-primary" onclick="reviewTimeOffRequestAction(${req.id}, true)">Approve</button>` : ""}
           ${canReview ? `<button class="btn btn-sm btn-danger" onclick="reviewTimeOffRequestAction(${req.id}, false)">Reject</button>` : ""}
+          ${["draft", "submitted", "cancelled"].includes(String(status).toLowerCase()) && (req.user_id === state.currentUserProfile.id || state.currentUserProfile.can_approve) ? `<button class="btn btn-sm btn-danger" onclick="deleteTimeOffRequestAction(${req.id})">Delete</button>` : ""}
         </div>
       </div>
     `;
