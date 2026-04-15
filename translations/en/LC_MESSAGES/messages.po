@@ -1,18 +1,22 @@
-
 msgid ""
 msgstr ""
-"Project-Id-Version:  TimeTracker\n"
+"Project-Id-Version: drytrix-timetracker\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-02-08 08:45+0100\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"PO-Revision-Date: 2026-04-15 06:21\n"
+"Last-Translator: \n"
 "Language: en\n"
-"Language-Team: en <LL@li.org>\n"
+"Language-Team: English\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
+"X-Crowdin-Project: drytrix-timetracker\n"
+"X-Crowdin-Project-ID: 889734\n"
+"X-Crowdin-Language: en\n"
+"X-Crowdin-File: /translations/en/LC_MESSAGES/messages.po\n"
+"X-Crowdin-File-ID: 10\n"
 
 #: app/__init__.py:865 app/__init__.py:897
 msgid "Your session expired or the page was open too long. Please try again."
@@ -31,9 +35,7 @@ msgid "User already exists"
 msgstr ""
 
 #: app/routes/admin.py:748 app/routes/admin.py:817
-msgid ""
-"Default 'user' role not found. Please run 'flask seed_permissions_cmd' "
-"first."
+msgid "Default 'user' role not found. Please run 'flask seed_permissions_cmd' first."
 msgstr ""
 
 #: app/routes/admin.py:766
@@ -113,15 +115,11 @@ msgstr ""
 
 #: app/routes/admin.py:1051
 #, python-format
-msgid ""
-"Cannot disable '%(module)s' because the following modules depend on it: "
-"%(dependents)s"
+msgid "Cannot disable '%(module)s' because the following modules depend on it: %(dependents)s"
 msgstr ""
 
 #: app/routes/admin.py:1073
-msgid ""
-"Could not update module visibility due to a database error. Please check "
-"server logs."
+msgid "Could not update module visibility due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/admin.py:1082
@@ -134,9 +132,7 @@ msgid "Invalid timezone: %(timezone)s"
 msgstr ""
 
 #: app/routes/admin.py:1246
-msgid ""
-"Could not update settings due to a database error. Please check server "
-"logs."
+msgid "Could not update settings due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/admin.py:1264
@@ -168,9 +164,7 @@ msgid "PDF layout updated successfully"
 msgstr ""
 
 #: app/routes/admin.py:1442 app/routes/admin.py:1713
-msgid ""
-"PDF layout saved but template JSON verification failed. Please check the "
-"template."
+msgid "PDF layout saved but template JSON verification failed. Please check the template."
 msgstr ""
 
 #: app/routes/admin.py:1560 app/routes/admin.py:1810
@@ -244,10 +238,7 @@ msgid "Could not save logo due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/admin.py:3308
-msgid ""
-"Company logo uploaded successfully! You can see it in the \"Current "
-"Company Logo\" section above. It will appear on invoices and PDF "
-"documents."
+msgid "Company logo uploaded successfully! You can see it in the \"Current Company Logo\" section above. It will appear on invoices and PDF documents."
 msgstr ""
 
 #: app/routes/admin.py:3313
@@ -259,9 +250,7 @@ msgid "Could not remove logo due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/admin.py:3339
-msgid ""
-"Company logo removed successfully. Upload a new logo in the section below"
-" if needed."
+msgid "Company logo removed successfully. Upload a new logo in the section below if needed."
 msgstr ""
 
 #: app/routes/admin.py:3341
@@ -400,9 +389,7 @@ msgstr ""
 
 #: app/routes/admin.py:3868
 #, python-format
-msgid ""
-"⚠ Scope \"%(scope)s\" may not be supported by provider (supported: "
-"%(supported)s)"
+msgid "⚠ Scope \"%(scope)s\" may not be supported by provider (supported: %(supported)s)"
 msgstr ""
 
 #: app/routes/admin.py:3878
@@ -417,9 +404,7 @@ msgstr ""
 
 #: app/routes/admin.py:3901
 #, python-format
-msgid ""
-"⚠ Configured %(claim_type)s claim \"%(claim_name)s\" not in supported "
-"claims list (may still work)"
+msgid "⚠ Configured %(claim_type)s claim \"%(claim_name)s\" not in supported claims list (may still work)"
 msgstr ""
 
 #: app/routes/admin.py:3908
@@ -499,9 +484,7 @@ msgid "Password is required to create an account."
 msgstr ""
 
 #: app/routes/auth.py:158
-msgid ""
-"Could not create your account due to a database error. Please try again "
-"later."
+msgid "Could not create your account due to a database error. Please try again later."
 msgstr ""
 
 #: app/routes/auth.py:173 app/routes/auth.py:1011
@@ -529,9 +512,7 @@ msgid "Invalid username or password"
 msgstr ""
 
 #: app/routes/auth.py:246
-msgid ""
-"No password is set for your account. Please enter a password to set one "
-"and log in."
+msgid "No password is set for your account. Please enter a password to set one and log in."
 msgstr ""
 
 #: app/routes/auth.py:275
@@ -606,16 +587,12 @@ msgstr ""
 
 #: app/routes/auth.py:710
 #, python-format
-msgid ""
-"Failed to connect to Single Sign-On provider. Please contact an "
-"administrator. Error: %(error)s"
+msgid "Failed to connect to Single Sign-On provider. Please contact an administrator. Error: %(error)s"
 msgstr ""
 
 #: app/routes/auth.py:723
 #, python-format
-msgid ""
-"Cannot connect to Single Sign-On provider. DNS resolution may be failing."
-" Please contact an administrator. Error: %(error)s"
+msgid "Cannot connect to Single Sign-On provider. DNS resolution may be failing. Please contact an administrator. Error: %(error)s"
 msgstr ""
 
 #: app/routes/auth.py:731 app/routes/auth.py:774
@@ -631,9 +608,7 @@ msgid "SSO failed. If this repeats, check session cookie and proxy configuration
 msgstr ""
 
 #: app/routes/auth.py:953
-msgid ""
-"Authentication failed: missing issuer or subject claim. Please check OIDC"
-" configuration."
+msgid "Authentication failed: missing issuer or subject claim. Please check OIDC configuration."
 msgstr ""
 
 #: app/routes/auth.py:980
@@ -775,9 +750,7 @@ msgid "403 Forbidden"
 msgstr ""
 
 #: app/routes/client_portal.py:49
-msgid ""
-"You don't have permission to access this resource. Client portal access "
-"may not be enabled for your account."
+msgid "You don't have permission to access this resource. Client portal access may not be enabled for your account."
 msgstr ""
 
 #: app/routes/client_portal.py:51
@@ -815,9 +788,7 @@ msgid "500 Internal Server Error"
 msgstr ""
 
 #: app/routes/client_portal.py:87
-msgid ""
-"An unexpected error occurred. Please try again later or contact support "
-"if the problem persists."
+msgid "An unexpected error occurred. Please try again later or contact support if the problem persists."
 msgstr ""
 
 #: app/routes/client_portal.py:160
@@ -958,9 +929,7 @@ msgid "This invoice is already paid."
 msgstr ""
 
 #: app/routes/client_portal.py:981
-msgid ""
-"Online payment is not currently available. Please contact us for payment "
-"instructions."
+msgid "Online payment is not currently available. Please contact us for payment instructions."
 msgstr ""
 
 #: app/routes/client_portal.py:988 app/routes/payment_gateways.py:120
@@ -1095,15 +1064,11 @@ msgid "Password setup email sent successfully to %(email)s"
 msgstr ""
 
 #: app/routes/clients.py:715
-msgid ""
-"Email server is not configured. Please configure email settings in Admin "
-"→ Email Configuration or set MAIL_SERVER environment variable."
+msgid "Email server is not configured. Please configure email settings in Admin → Email Configuration or set MAIL_SERVER environment variable."
 msgstr ""
 
 #: app/routes/clients.py:722
-msgid ""
-"Failed to send password setup email. Please check email configuration and"
-" server logs for details."
+msgid "Failed to send password setup email. Please check email configuration and server logs for details."
 msgstr ""
 
 #: app/routes/clients.py:728
@@ -1132,15 +1097,11 @@ msgid "You do not have permission to delete clients"
 msgstr ""
 
 #: app/routes/clients.py:807
-msgid ""
-"Cannot delete client with existing projects. Please delete all projects "
-"first."
+msgid "Cannot delete client with existing projects. Please delete all projects first."
 msgstr ""
 
 #: app/routes/clients.py:813
-msgid ""
-"Cannot delete client with existing invoices. Please delete all invoices "
-"first before deleting the client."
+msgid "Cannot delete client with existing invoices. Please delete all invoices first before deleting the client."
 msgstr ""
 
 #: app/routes/clients.py:827
@@ -1152,9 +1113,7 @@ msgid "No clients selected for deletion"
 msgstr ""
 
 #: app/routes/clients.py:911
-msgid ""
-"Could not delete clients due to a database error. Please check server "
-"logs."
+msgid "Could not delete clients due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/clients.py:932
@@ -1175,9 +1134,7 @@ msgid "Invalid status"
 msgstr ""
 
 #: app/routes/clients.py:985
-msgid ""
-"Could not update client status due to a database error. Please check "
-"server logs."
+msgid "Could not update client status due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/clients.py:1002
@@ -1204,15 +1161,11 @@ msgstr ""
 #: app/routes/clients.py:1239 app/routes/clients.py:1254
 #: app/routes/comments.py:335 app/routes/projects.py:1932
 #: app/routes/projects.py:1947 app/routes/quotes.py:820
-msgid ""
-"Could not upload attachment due to a database error. Please check server "
-"logs."
+msgid "Could not upload attachment due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/clients.py:1251 app/routes/projects.py:1944
-msgid ""
-"The attachments feature requires a database migration. Please run: flask "
-"db upgrade"
+msgid "The attachments feature requires a database migration. Please run: flask db upgrade"
 msgstr ""
 
 #: app/routes/clients.py:1276 app/routes/comments.py:352
@@ -1228,9 +1181,7 @@ msgstr ""
 
 #: app/routes/clients.py:1326 app/routes/projects.py:2020
 #: app/routes/quotes.py:902
-msgid ""
-"Could not delete attachment due to a database error. Please check server "
-"logs."
+msgid "Could not delete attachment due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/clients.py:1336 app/routes/comments.py:400
@@ -1407,9 +1358,7 @@ msgstr ""
 
 #: app/routes/custom_field_definitions.py:177
 #, python-format
-msgid ""
-"Custom field definition deleted successfully. The field was removed from "
-"%(count)d client(s)."
+msgid "Custom field definition deleted successfully. The field was removed from %(count)d client(s)."
 msgstr ""
 
 #: app/routes/custom_field_definitions.py:181
@@ -1625,9 +1574,7 @@ msgid "No expenses selected for deletion"
 msgstr ""
 
 #: app/routes/expenses.py:748
-msgid ""
-"Could not delete expenses due to a database error. Please check server "
-"logs."
+msgid "Could not delete expenses due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/expenses.py:753
@@ -1731,9 +1678,7 @@ msgid "Invalid file type. Allowed types: png, jpg, jpeg, gif, pdf"
 msgstr ""
 
 #: app/routes/expenses.py:1319
-msgid ""
-"Receipt scanned successfully! You can now create an expense with the "
-"extracted data."
+msgid "Receipt scanned successfully! You can now create an expense with the extracted data."
 msgstr ""
 
 #: app/routes/expenses.py:1324
@@ -1765,15 +1710,11 @@ msgid "Could not initialize connector."
 msgstr ""
 
 #: app/routes/integrations.py:146
-msgid ""
-"Google Calendar OAuth credentials need to be configured first. "
-"Redirecting to setup..."
+msgid "Google Calendar OAuth credentials need to be configured first. Redirecting to setup..."
 msgstr ""
 
 #: app/routes/integrations.py:150
-msgid ""
-"Google Calendar integration needs to be configured by an administrator "
-"first."
+msgid "Google Calendar integration needs to be configured by an administrator first."
 msgstr ""
 
 #: app/routes/integrations.py:152
@@ -1781,9 +1722,7 @@ msgid "OAuth credentials not configured. Please configure them first."
 msgstr ""
 
 #: app/routes/integrations.py:155
-msgid ""
-"Integration not configured. Please ask an administrator to set up OAuth "
-"credentials."
+msgid "Integration not configured. Please ask an administrator to set up OAuth credentials."
 msgstr ""
 
 #: app/routes/integrations.py:171
@@ -1852,9 +1791,7 @@ msgid "Integration credentials updated successfully."
 msgstr ""
 
 #: app/routes/integrations.py:453
-msgid ""
-"Users can now connect their Google Calendar. They will be automatically "
-"redirected to Google for authorization."
+msgid "Users can now connect their Google Calendar. They will be automatically redirected to Google for authorization."
 msgstr ""
 
 #: app/routes/integrations.py:458
@@ -2242,9 +2179,7 @@ msgid "Error updating warehouse: %(error)s"
 msgstr ""
 
 #: app/routes/inventory.py:729
-msgid ""
-"Cannot delete warehouse with existing stock. Please transfer or remove "
-"all stock first."
+msgid "Cannot delete warehouse with existing stock. Please transfer or remove all stock first."
 msgstr ""
 
 #: app/routes/inventory.py:737
@@ -2307,16 +2242,12 @@ msgstr ""
 #: app/routes/inventory.py:963 app/routes/inventory.py:1041
 #: app/routes/inventory.py:1052
 #, python-format
-msgid ""
-"Devaluation cost (%(devalued)s) cannot be greater than original cost "
-"(%(original)s)"
+msgid "Devaluation cost (%(devalued)s) cannot be greater than original cost (%(original)s)"
 msgstr ""
 
 #: app/routes/inventory.py:974
 #, python-format
-msgid ""
-"Insufficient stock to devalue. Available: %(available)s, Requested: "
-"%(requested)s"
+msgid "Insufficient stock to devalue. Available: %(available)s, Requested: %(requested)s"
 msgstr ""
 
 #: app/routes/inventory.py:989
@@ -2341,9 +2272,7 @@ msgstr ""
 
 #: app/routes/inventory.py:1063
 #, python-format
-msgid ""
-"Insufficient stock to waste. Available: %(available)s, Requested: "
-"%(requested)s"
+msgid "Insufficient stock to waste. Available: %(available)s, Requested: %(requested)s"
 msgstr ""
 
 #: app/routes/inventory.py:1086
@@ -2580,9 +2509,7 @@ msgid "Selected project not found"
 msgstr ""
 
 #: app/routes/invoices.py:169
-msgid ""
-"Could not create invoice due to a database error. Please check server "
-"logs."
+msgid "Could not create invoice due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/invoices.py:217
@@ -2602,15 +2529,11 @@ msgid "Sender Scheme ID is missing in Admin → Settings → Peppol e-Invoicing.
 msgstr ""
 
 #: app/routes/invoices.py:272
-msgid ""
-"Client Peppol Endpoint ID is missing. Add peppol_endpoint_id to the "
-"client's custom fields."
+msgid "Client Peppol Endpoint ID is missing. Add peppol_endpoint_id to the client's custom fields."
 msgstr ""
 
 #: app/routes/invoices.py:274
-msgid ""
-"Client Peppol Scheme ID is missing. Add peppol_scheme_id to the client's "
-"custom fields."
+msgid "Client Peppol Scheme ID is missing. Add peppol_scheme_id to the client's custom fields."
 msgstr ""
 
 #: app/routes/invoices.py:276
@@ -2627,9 +2550,7 @@ msgid "Warning: Could not reserve stock for item %(item)s: %(error)s"
 msgstr ""
 
 #: app/routes/invoices.py:497
-msgid ""
-"Could not update invoice due to a database error. Please check server "
-"logs."
+msgid "Could not update invoice due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/invoices.py:504
@@ -2646,9 +2567,7 @@ msgid "You do not have permission to delete this invoice"
 msgstr ""
 
 #: app/routes/invoices.py:645
-msgid ""
-"Could not delete invoice due to a database error. Please check server "
-"logs."
+msgid "Could not delete invoice due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/invoices.py:659
@@ -2656,9 +2575,7 @@ msgid "No invoices selected for deletion"
 msgstr ""
 
 #: app/routes/invoices.py:691
-msgid ""
-"Could not delete invoices due to a database error. Please check server "
-"logs."
+msgid "Could not delete invoices due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/invoices.py:713
@@ -2674,9 +2591,7 @@ msgid "No time entries, costs, expenses, or extra goods selected"
 msgstr ""
 
 #: app/routes/invoices.py:894
-msgid ""
-"Could not generate items due to a database error. Please check server "
-"logs."
+msgid "Could not generate items due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/invoices.py:905
@@ -2713,15 +2628,11 @@ msgid "You do not have permission to duplicate this invoice"
 msgstr ""
 
 #: app/routes/invoices.py:1209
-msgid ""
-"Could not duplicate invoice due to a database error. Please check server "
-"logs."
+msgid "Could not duplicate invoice due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/invoices.py:1240
-msgid ""
-"Could not finalize duplicated invoice due to a database error. Please "
-"check server logs."
+msgid "Could not finalize duplicated invoice due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/invoices.py:1454
@@ -2879,9 +2790,7 @@ msgid "Kiosk mode is not enabled. Please contact an administrator."
 msgstr ""
 
 #: app/routes/kiosk.py:136
-msgid ""
-"No password is set for this account. Please set a password in your "
-"profile first."
+msgid "No password is set for this account. Please set a password in your profile first."
 msgstr ""
 
 #: app/routes/kiosk.py:175
@@ -3026,9 +2935,7 @@ msgid "No mileage entries selected for deletion"
 msgstr ""
 
 #: app/routes/mileage.py:411
-msgid ""
-"Could not delete mileage entries due to a database error. Please check "
-"server logs."
+msgid "Could not delete mileage entries due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/mileage.py:421
@@ -3267,9 +3174,7 @@ msgid "Invalid gateway fee amount"
 msgstr ""
 
 #: app/routes/payments.py:276
-msgid ""
-"Could not create payment due to a database error. Please check server "
-"logs."
+msgid "Could not create payment due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/payments.py:323
@@ -3277,9 +3182,7 @@ msgid "You do not have permission to edit this payment"
 msgstr ""
 
 #: app/routes/payments.py:405
-msgid ""
-"Could not update payment due to a database error. Please check server "
-"logs."
+msgid "Could not update payment due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/payments.py:415
@@ -3291,9 +3194,7 @@ msgid "You do not have permission to delete this payment"
 msgstr ""
 
 #: app/routes/payments.py:451
-msgid ""
-"Could not delete payment due to a database error. Please check server "
-"logs."
+msgid "Could not delete payment due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/payments.py:457
@@ -3305,9 +3206,7 @@ msgid "No payments selected for deletion"
 msgstr ""
 
 #: app/routes/payments.py:514
-msgid ""
-"Could not delete payments due to a database error. Please check server "
-"logs."
+msgid "Could not delete payments due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/payments.py:536
@@ -3371,9 +3270,7 @@ msgid "No per diem claims selected for deletion"
 msgstr ""
 
 #: app/routes/per_diem.py:413
-msgid ""
-"Could not delete per diem claims due to a database error. Please check "
-"server logs."
+msgid "Could not delete per diem claims due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/per_diem.py:421
@@ -3454,9 +3351,7 @@ msgstr ""
 
 #: app/routes/per_diem.py:708
 #, python-format
-msgid ""
-"Cannot delete rate: It is being used by %(count)d per diem claim(s). "
-"Deactivate it instead."
+msgid "Cannot delete rate: It is being used by %(count)d per diem claim(s). Deactivate it instead."
 msgstr ""
 
 #: app/routes/per_diem.py:718
@@ -3633,9 +3528,7 @@ msgid "Cannot delete project with existing time entries"
 msgstr ""
 
 #: app/routes/projects.py:1114
-msgid ""
-"Could not delete project due to a database error. Please check server "
-"logs."
+msgid "Could not delete project due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/projects.py:1127
@@ -3647,9 +3540,7 @@ msgid "No projects selected for deletion"
 msgstr ""
 
 #: app/routes/projects.py:1172
-msgid ""
-"Could not delete projects due to a database error. Please check server "
-"logs."
+msgid "Could not delete projects due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/projects.py:1186
@@ -3665,9 +3556,7 @@ msgid "No projects selected"
 msgstr ""
 
 #: app/routes/projects.py:1268
-msgid ""
-"Could not update project status due to a database error. Please check "
-"server logs."
+msgid "Could not update project status due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/projects.py:1285
@@ -3751,9 +3640,7 @@ msgid "Invalid unit price format"
 msgstr ""
 
 #: app/routes/projects.py:1722
-msgid ""
-"Could not add extra good due to a database error. Please check server "
-"logs."
+msgid "Could not add extra good due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/projects.py:1725
@@ -3769,9 +3656,7 @@ msgid "You do not have permission to edit this extra good"
 msgstr ""
 
 #: app/routes/projects.py:1793
-msgid ""
-"Could not update extra good due to a database error. Please check server "
-"logs."
+msgid "Could not update extra good due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/projects.py:1796
@@ -3787,9 +3672,7 @@ msgid "Cannot delete extra good that has been added to an invoice"
 msgstr ""
 
 #: app/routes/projects.py:1827
-msgid ""
-"Could not delete extra good due to a database error. Please check server "
-"logs."
+msgid "Could not delete extra good due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/projects_refactored_example.py:186
@@ -3831,9 +3714,7 @@ msgid "Cannot request approval: %(error)s"
 msgstr ""
 
 #: app/routes/quotes.py:939
-msgid ""
-"Could not request approval due to a database error. Please check server "
-"logs."
+msgid "Could not request approval due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/quotes.py:955
@@ -3867,9 +3748,7 @@ msgid "Quote approval rejected"
 msgstr ""
 
 #: app/routes/quotes.py:1115
-msgid ""
-"Could not create template due to a database error. Please check server "
-"logs."
+msgid "Could not create template due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/quotes.py:1121
@@ -3925,15 +3804,11 @@ msgid "You do not have permission to duplicate this quote"
 msgstr ""
 
 #: app/routes/quotes.py:1374
-msgid ""
-"Could not duplicate quote due to a database error. Please check server "
-"logs."
+msgid "Could not duplicate quote due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/quotes.py:1391
-msgid ""
-"Could not finalize duplicated quote due to a database error. Please check"
-" server logs."
+msgid "Could not finalize duplicated quote due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/quotes.py:1394
@@ -4024,9 +3899,7 @@ msgid "Selected project or client not found"
 msgstr ""
 
 #: app/routes/recurring_invoices.py:139
-msgid ""
-"Could not create recurring invoice due to a database error. Please check "
-"server logs."
+msgid "Could not create recurring invoice due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/recurring_invoices.py:175
@@ -4038,9 +3911,7 @@ msgid "You do not have permission to edit this recurring invoice"
 msgstr ""
 
 #: app/routes/recurring_invoices.py:218
-msgid ""
-"Could not update recurring invoice due to a database error. Please check "
-"server logs."
+msgid "Could not update recurring invoice due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/recurring_invoices.py:226
@@ -4052,9 +3923,7 @@ msgid "You do not have permission to delete this recurring invoice"
 msgstr ""
 
 #: app/routes/recurring_invoices.py:259
-msgid ""
-"Could not delete recurring invoice due to a database error. Please check "
-"server logs."
+msgid "Could not delete recurring invoice due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/recurring_tasks.py:62
@@ -4332,9 +4201,7 @@ msgid "Either a project or a client is required"
 msgstr ""
 
 #: app/routes/timer.py:93 app/routes/timer.py:356 app/routes/timer.py:1783
-msgid ""
-"Cannot start timer for an archived project. Please unarchive the project "
-"first."
+msgid "Cannot start timer for an archived project. Please unarchive the project first."
 msgstr ""
 
 #: app/routes/timer.py:97 app/routes/timer.py:360 app/routes/timer.py:1786
@@ -4395,9 +4262,7 @@ msgid "Cannot stop timer: %(error)s"
 msgstr ""
 
 #: app/routes/timer.py:522
-msgid ""
-"Could not stop timer due to an error. Please try again or contact support"
-" if the problem persists."
+msgid "Could not stop timer due to an error. Please try again or contact support if the problem persists."
 msgstr ""
 
 #: app/routes/timer.py:558
@@ -4471,9 +4336,7 @@ msgid "Skipped %(count)d time entry/entries (no permission or active timer)"
 msgstr ""
 
 #: app/routes/timer.py:1077 app/templates/timer/manual_entry.html:459
-msgid ""
-"Please provide either start/end date+time or a worked time duration "
-"(HH:MM)."
+msgid "Please provide either start/end date+time or a worked time duration (HH:MM)."
 msgstr ""
 
 #: app/routes/timer.py:1101
@@ -4499,9 +4362,7 @@ msgid "All fields are required"
 msgstr ""
 
 #: app/routes/timer.py:1393
-msgid ""
-"Cannot create time entries for an archived project. Please unarchive the "
-"project first."
+msgid "Cannot create time entries for an archived project. Please unarchive the project first."
 msgstr ""
 
 #: app/routes/timer.py:1401
@@ -4529,9 +4390,7 @@ msgid "No valid dates found in the selected range"
 msgstr ""
 
 #: app/routes/timer.py:1557
-msgid ""
-"Could not create bulk entries due to a database error. Please check "
-"server logs."
+msgid "Could not create bulk entries due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/timer.py:1576
@@ -4580,9 +4439,7 @@ msgid "Invalid paid status"
 msgstr ""
 
 #: app/routes/timer.py:2744
-msgid ""
-"Could not update time entries due to a database error. Please check "
-"server logs."
+msgid "Could not update time entries due to a database error. Please check server logs."
 msgstr ""
 
 #: app/routes/timer.py:2748
@@ -4688,9 +4545,7 @@ msgid "Please enter a valid target hours (greater than 0)"
 msgstr ""
 
 #: app/routes/weekly_goals.py:99
-msgid ""
-"A goal already exists for this week. Please edit the existing goal "
-"instead."
+msgid "A goal already exists for this week. Please edit the existing goal instead."
 msgstr ""
 
 #: app/routes/weekly_goals.py:114
@@ -6310,9 +6165,7 @@ msgid "Client Lock (optional)"
 msgstr ""
 
 #: app/templates/admin/modules.html:42
-msgid ""
-"If set, all client selectors across the app will auto-select this client "
-"and prevent changes."
+msgid "If set, all client selectors across the app will auto-select this client and prevent changes."
 msgstr ""
 
 #: app/templates/admin/modules.html:45
@@ -6328,10 +6181,7 @@ msgid "Module Visibility"
 msgstr ""
 
 #: app/templates/admin/modules.html:61
-msgid ""
-"Disable modules to hide them from all users. Disabled modules will not "
-"appear in the sidebar. Core modules (Dashboard, Projects, Timer, etc.) "
-"are always enabled and cannot be disabled."
+msgid "Disable modules to hide them from all users. Disabled modules will not appear in the sidebar. Core modules (Dashboard, Projects, Timer, etc.) are always enabled and cannot be disabled."
 msgstr ""
 
 #: app/templates/admin/modules.html:66 app/templates/admin/modules.html:168
@@ -6399,9 +6249,7 @@ msgid "Depends on:"
 msgstr ""
 
 #: app/templates/admin/modules.html:240
-msgid ""
-"Disabling \"Reports\" hides the whole Reports submenu including Report "
-"Builder and Scheduled Reports."
+msgid "Disabling \"Reports\" hides the whole Reports submenu including Report Builder and Scheduled Reports."
 msgstr ""
 
 #: app/templates/admin/modules.html:244 app/templates/auth/edit_profile.html:78
@@ -6428,15 +6276,11 @@ msgid "All modules are enabled by default."
 msgstr ""
 
 #: app/templates/admin/modules.html:262
-msgid ""
-"Core modules cannot be disabled as they are required for the application "
-"to function."
+msgid "Core modules cannot be disabled as they are required for the application to function."
 msgstr ""
 
 #: app/templates/admin/modules.html:263
-msgid ""
-"Disabling a module affects all users system-wide. Disabled modules will "
-"not appear in the navigation sidebar."
+msgid "Disabling a module affects all users system-wide. Disabled modules will not appear in the navigation sidebar."
 msgstr ""
 
 #: app/templates/admin/modules.html:477
@@ -6977,9 +6821,7 @@ msgid "OIDC Issuer URL"
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:64
-msgid ""
-"The base URL of your OIDC provider (e.g., https://auth.example.com or "
-"https://login.microsoftonline.com/tenant-id/v2.0)"
+msgid "The base URL of your OIDC provider (e.g., https://auth.example.com or https://login.microsoftonline.com/tenant-id/v2.0)"
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:77
@@ -7016,9 +6858,7 @@ msgid "SSO and local password authentication"
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:107
-msgid ""
-"Choose whether to allow only OIDC login or both OIDC and local password "
-"authentication"
+msgid "Choose whether to allow only OIDC login or both OIDC and local password authentication"
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:115
@@ -7028,9 +6868,7 @@ msgid "Step 2: Test Connection"
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:120
-msgid ""
-"Click \"Test Connection\" to verify DNS resolution and metadata endpoint "
-"accessibility."
+msgid "Click \"Test Connection\" to verify DNS resolution and metadata endpoint accessibility."
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:137
@@ -7102,9 +6940,7 @@ msgid "Post-Logout Redirect URI"
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:258
-msgid ""
-"URL to redirect to after logout (optional, only if your provider supports"
-" end_session_endpoint)"
+msgid "URL to redirect to after logout (optional, only if your provider supports end_session_endpoint)"
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:266
@@ -7112,9 +6948,7 @@ msgid "Step 5: Generate Configuration"
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:271
-msgid ""
-"Click \"Generate Configuration\" to create environment variable "
-"configuration."
+msgid "Click \"Generate Configuration\" to create environment variable configuration."
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:275
@@ -7136,9 +6970,7 @@ msgid "Docker Compose"
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:300
-msgid ""
-"Copy the configuration above and add it to your environment variables or "
-"Docker Compose file, then restart the application."
+msgid "Copy the configuration above and add it to your environment variables or Docker Compose file, then restart the application."
 msgstr ""
 
 #: app/templates/admin/oidc_setup_wizard.html:309
@@ -7243,15 +7075,11 @@ msgid "Local"
 msgstr ""
 
 #: app/templates/admin/oidc_user_detail.html:45
-msgid ""
-"This user was created or linked via OIDC. The issuer and subject are used"
-" to uniquely identify the user across login sessions."
+msgid "This user was created or linked via OIDC. The issuer and subject are used to uniquely identify the user across login sessions."
 msgstr ""
 
 #: app/templates/admin/oidc_user_detail.html:49
-msgid ""
-"This user has no OIDC information. They may have been created manually or"
-" via self-registration without OIDC."
+msgid "This user has no OIDC information. They may have been created manually or via self-registration without OIDC."
 msgstr ""
 
 #: app/templates/admin/oidc_user_detail.html:57
@@ -7308,10 +7136,7 @@ msgid "How to use:"
 msgstr ""
 
 #: app/templates/admin/quote_pdf_layout.html:1473
-msgid ""
-"Click elements from the left sidebar to add them to the canvas. Click "
-"elements to select and customize them in the properties panel. Use the "
-"alignment tools and keyboard shortcuts for faster editing."
+msgid "Click elements from the left sidebar to add them to the canvas. Click elements to select and customize them in the properties panel. Use the alignment tools and keyboard shortcuts for faster editing."
 msgstr ""
 
 #: app/templates/admin/quote_pdf_layout.html:1476
@@ -8049,15 +7874,11 @@ msgid "Failed to load preview. Please try again."
 msgstr ""
 
 #: app/templates/admin/quote_pdf_layout.html:4595
-msgid ""
-"Changing page size will reload the preview with the template for that "
-"size. Continue?"
+msgid "Changing page size will reload the preview with the template for that size. Continue?"
 msgstr ""
 
 #: app/templates/admin/quote_pdf_layout.html:4650
-msgid ""
-"Preview functionality is currently unavailable. Please check the browser "
-"console for errors."
+msgid "Preview functionality is currently unavailable. Please check the browser console for errors."
 msgstr ""
 
 #: app/templates/admin/quote_pdf_layout.html:5912
@@ -8132,9 +7953,7 @@ msgid "1-20 letters only"
 msgstr ""
 
 #: app/templates/admin/salesman_email_mappings.html:80
-msgid ""
-"The salesman initial from client custom fields (e.g., MM for Max "
-"Mustermann)"
+msgid "The salesman initial from client custom fields (e.g., MM for Max Mustermann)"
 msgstr ""
 
 #: app/templates/admin/salesman_email_mappings.html:92
@@ -8210,9 +8029,7 @@ msgid "Enable Kiosk Mode"
 msgstr ""
 
 #: app/templates/admin/settings.html:274
-msgid ""
-"Kiosk mode provides a simplified interface for warehouse operations with "
-"barcode scanning and time tracking. Access at"
+msgid "Kiosk mode provides a simplified interface for warehouse operations with barcode scanning and time tracking. Access at"
 msgstr ""
 
 #: app/templates/admin/settings.html:279
@@ -8341,9 +8158,7 @@ msgstr ""
 
 #: app/templates/admin/users.html:104
 #, python-brace-format
-msgid ""
-"Cannot delete user \"{name}\" because they have {count} time entries. "
-"Users with existing time entries cannot be deleted."
+msgid "Cannot delete user \"{name}\" because they have {count} time entries. Users with existing time entries cannot be deleted."
 msgstr ""
 
 #: app/templates/admin/users.html:107
@@ -8352,9 +8167,7 @@ msgstr ""
 
 #: app/templates/admin/users.html:119
 #, python-brace-format
-msgid ""
-"Are you sure you want to delete user \"{name}\"? This action cannot be "
-"undone."
+msgid "Are you sure you want to delete user \"{name}\"? This action cannot be undone."
 msgstr ""
 
 #: app/templates/admin/users.html:122
@@ -8400,9 +8213,7 @@ msgid "e.g., debtor_number"
 msgstr ""
 
 #: app/templates/admin/custom_field_definitions/form.html:26
-msgid ""
-"Unique identifier for this field (letters, numbers, and underscores "
-"only). Cannot be changed after creation."
+msgid "Unique identifier for this field (letters, numbers, and underscores only). Cannot be changed after creation."
 msgstr ""
 
 #: app/templates/admin/custom_field_definitions/form.html:30
@@ -8484,10 +8295,7 @@ msgid "How Custom Field Definitions Work"
 msgstr ""
 
 #: app/templates/admin/custom_field_definitions/list.html:91
-msgid ""
-"Custom field definitions allow you to create global fields that can be "
-"used across all clients. This eliminates the need to recreate the same "
-"custom fields for each client."
+msgid "Custom field definitions allow you to create global fields that can be used across all clients. This eliminates the need to recreate the same custom fields for each client."
 msgstr ""
 
 #: app/templates/admin/custom_field_definitions/list.html:92
@@ -8516,9 +8324,7 @@ msgid "Example:"
 msgstr ""
 
 #: app/templates/admin/custom_field_definitions/list.html:101
-msgid ""
-"Create a field definition with key \"debtor_number\" and label \"Debtor "
-"Number\""
+msgid "Create a field definition with key \"debtor_number\" and label \"Debtor Number\""
 msgstr ""
 
 #: app/templates/admin/custom_field_definitions/list.html:102
@@ -8530,18 +8336,12 @@ msgid "When creating or editing a client, this field will automatically appear"
 msgstr ""
 
 #: app/templates/admin/custom_field_definitions/list.html:104
-msgid ""
-"Create a link template to make the value clickable (e.g., "
-"https://erp.example.com/customer/%value%)"
+msgid "Create a link template to make the value clickable (e.g., https://erp.example.com/customer/%value%)"
 msgstr ""
 
 #: app/templates/admin/custom_field_definitions/list.html:119
 #, python-format
-msgid ""
-"Warning: %(count)d client(s) have a value for this custom field. Deleting"
-" this field definition will remove the field value from all %(count)d "
-"client(s). Are you sure you want to delete the custom field definition "
-"\"%(label)s\"?"
+msgid "Warning: %(count)d client(s) have a value for this custom field. Deleting this field definition will remove the field value from all %(count)d client(s). Are you sure you want to delete the custom field definition \"%(label)s\"?"
 msgstr ""
 
 #: app/templates/admin/custom_field_definitions/list.html:123
@@ -8643,9 +8443,7 @@ msgid "Integration Setup"
 msgstr ""
 
 #: app/templates/admin/integrations/list.html:21
-msgid ""
-"Configure OAuth credentials for each integration. Global integrations are"
-" shared across all users."
+msgid "Configure OAuth credentials for each integration. Global integrations are shared across all users."
 msgstr ""
 
 #: app/templates/admin/integrations/list.html:34
@@ -8704,9 +8502,7 @@ msgid "(shown after generating API key)"
 msgstr ""
 
 #: app/templates/admin/integrations/setup.html:62
-msgid ""
-"After saving API Key and Secret, you can connect Trello using OAuth flow."
-" The token will be generated automatically during connection."
+msgid "After saving API Key and Secret, you can connect Trello using OAuth flow. The token will be generated automatically during connection."
 msgstr ""
 
 #: app/templates/admin/integrations/setup.html:72
@@ -8734,9 +8530,7 @@ msgstr ""
 #: app/templates/integrations/manage.html:134
 #: app/templates/integrations/wizard_microsoft_teams.html:25
 #: app/templates/integrations/wizard_outlook_calendar.html:25
-msgid ""
-"Leave empty to use \"common\" (multi-tenant). Enter your Azure AD tenant "
-"ID for single-tenant apps."
+msgid "Leave empty to use \"common\" (multi-tenant). Enter your Azure AD tenant ID for single-tenant apps."
 msgstr ""
 
 #: app/templates/admin/integrations/setup.html:117
@@ -8748,9 +8542,7 @@ msgstr ""
 #: app/templates/admin/integrations/setup.html:127
 #: app/templates/integrations/manage.html:152
 #: app/templates/integrations/wizard_gitlab.html:18
-msgid ""
-"URL of your GitLab instance. Use \"https://gitlab.com\" for GitLab.com or"
-" your self-hosted GitLab URL."
+msgid "URL of your GitLab instance. Use \"https://gitlab.com\" for GitLab.com or your self-hosted GitLab URL."
 msgstr ""
 
 #: app/templates/admin/integrations/setup.html:134
@@ -8776,9 +8568,7 @@ msgstr ""
 
 #: app/templates/admin/integrations/setup.html:147
 #: app/templates/integrations/manage.html:173
-msgid ""
-"After you save these credentials, users can click \"Connect Google "
-"Calendar\""
+msgid "After you save these credentials, users can click \"Connect Google Calendar\""
 msgstr ""
 
 #: app/templates/admin/integrations/setup.html:148
@@ -8807,22 +8597,15 @@ msgid "How Google Calendar Works"
 msgstr ""
 
 #: app/templates/admin/integrations/setup.html:174
-msgid ""
-"After you save the OAuth credentials above, users can connect their "
-"Google Calendar by clicking \"Connect Google Calendar\" on the "
-"Integrations page."
+msgid "After you save the OAuth credentials above, users can connect their Google Calendar by clicking \"Connect Google Calendar\" on the Integrations page."
 msgstr ""
 
 #: app/templates/admin/integrations/setup.html:178
-msgid ""
-"They will be automatically redirected to Google to authorize access - no "
-"manual credential entry needed!"
+msgid "They will be automatically redirected to Google to authorize access - no manual credential entry needed!"
 msgstr ""
 
 #: app/templates/admin/integrations/setup.html:182
-msgid ""
-"Each user connects their own Google Calendar account (per-user "
-"integration)."
+msgid "Each user connects their own Google Calendar account (per-user integration)."
 msgstr ""
 
 #: app/templates/admin/integrations/setup.html:188
@@ -8890,10 +8673,7 @@ msgstr ""
 
 #: app/templates/admin/link_templates/form.html:37
 #, python-brace-format
-msgid ""
-"URL with {value} or %value% placeholder. Examples: "
-"https://erp.example.com/customer/{value} or "
-"https://erp.example.com/customer/%value%"
+msgid "URL with {value} or %value% placeholder. Examples: https://erp.example.com/customer/{value} or https://erp.example.com/customer/%value%"
 msgstr ""
 
 #: app/templates/admin/link_templates/form.html:44
@@ -8956,9 +8736,7 @@ msgid "How Link Templates Work"
 msgstr ""
 
 #: app/templates/admin/link_templates/list.html:95
-msgid ""
-"Link templates allow you to create quick links to external systems (like "
-"ERP systems) using values from client custom fields."
+msgid "Link templates allow you to create quick links to external systems (like ERP systems) using values from client custom fields."
 msgstr ""
 
 #: app/templates/admin/link_templates/list.html:98
@@ -8974,9 +8752,7 @@ msgid "Set the field key to \"debtor_number\""
 msgstr ""
 
 #: app/templates/admin/link_templates/list.html:101
-msgid ""
-"When viewing the client, a link will appear that opens the ERP system "
-"with the correct customer ID"
+msgid "When viewing the client, a link will appear that opens the ERP system with the correct customer ID"
 msgstr ""
 
 #: app/templates/admin/link_templates/list.html:103
@@ -9017,10 +8793,7 @@ msgid "About Permissions"
 msgstr ""
 
 #: app/templates/admin/permissions/list.html:55
-msgid ""
-"Permissions define what actions users can perform in the system. These "
-"permissions are assigned to roles, and roles are assigned to users. This "
-"provides a flexible and granular access control system."
+msgid "Permissions define what actions users can perform in the system. These permissions are assigned to roles, and roles are assigned to users. This provides a flexible and granular access control system."
 msgstr ""
 
 #: app/templates/admin/roles/form.html:17
@@ -9065,9 +8838,7 @@ msgid "Module visibility"
 msgstr ""
 
 #: app/templates/admin/roles/form.html:101
-msgid ""
-"Select which modules should be hidden for this role. Hidden modules will "
-"not appear in the navigation and cannot be accessed directly."
+msgid "Select which modules should be hidden for this role. Hidden modules will not appear in the navigation and cannot be accessed directly."
 msgstr ""
 
 #: app/templates/admin/roles/form.html:124
@@ -9181,10 +8952,7 @@ msgid "About Roles & Permissions"
 msgstr ""
 
 #: app/templates/admin/roles/list.html:204
-msgid ""
-"Roles are collections of permissions that can be assigned to users. "
-"System roles are predefined and cannot be deleted or renamed, but custom "
-"roles can be created for your specific needs."
+msgid "Roles are collections of permissions that can be assigned to users. System roles are predefined and cannot be deleted or renamed, but custom roles can be created for your specific needs."
 msgstr ""
 
 #: app/templates/admin/roles/list.html:211
@@ -9259,9 +9027,7 @@ msgid "Assign Roles"
 msgstr ""
 
 #: app/templates/admin/users/roles.html:22
-msgid ""
-"Select the roles this user should have. Users inherit all permissions "
-"from their assigned roles."
+msgid "Select the roles this user should have. Users inherit all permissions from their assigned roles."
 msgstr ""
 
 #: app/templates/admin/users/roles.html:54
@@ -10878,9 +10644,7 @@ msgid "No Activity"
 msgstr ""
 
 #: app/templates/client_portal/activity_feed.html:82
-msgid ""
-"No recent activity to display. Activity will appear here as projects are "
-"updated and time entries are logged."
+msgid "No recent activity to display. Activity will appear here as projects are updated and time entries are logged."
 msgstr ""
 
 #: app/templates/client_portal/approvals.html:9
@@ -11089,9 +10853,7 @@ msgid "No Documents"
 msgstr ""
 
 #: app/templates/client_portal/documents.html:82
-msgid ""
-"No documents have been shared with you yet. Documents will appear here "
-"once they are uploaded and made visible to clients."
+msgid "No documents have been shared with you yet. Documents will appear here once they are uploaded and made visible to clients."
 msgstr ""
 
 #: app/templates/client_portal/error.html:18
@@ -11116,9 +10878,7 @@ msgid "Go Back"
 msgstr ""
 
 #: app/templates/client_portal/error.html:69
-msgid ""
-"If you believe you should have access to the client portal, please "
-"contact your administrator or use the login link above."
+msgid "If you believe you should have access to the client portal, please contact your administrator or use the login link above."
 msgstr ""
 
 #: app/templates/client_portal/invoice_detail.html:16
@@ -11255,15 +11015,11 @@ msgid "No overdue invoices"
 msgstr ""
 
 #: app/templates/client_portal/invoices.html:164
-msgid ""
-"There are no invoices available at this time. Invoices will appear here "
-"once they are created."
+msgid "There are no invoices available at this time. Invoices will appear here once they are created."
 msgstr ""
 
 #: app/templates/client_portal/invoices.html:166
-msgid ""
-"There are no invoices matching this filter. Try selecting a different "
-"status."
+msgid "There are no invoices matching this filter. Try selecting a different status."
 msgstr ""
 
 #: app/templates/client_portal/invoices.html:173
@@ -11490,9 +11246,7 @@ msgid "You have no unread notifications. All caught up!"
 msgstr ""
 
 #: app/templates/client_portal/notifications.html:145
-msgid ""
-"You have no notifications yet. Notifications will appear here when there "
-"are updates to your projects or invoices."
+msgid "You have no notifications yet. Notifications will appear here when there are updates to your projects or invoices."
 msgstr ""
 
 #: app/templates/client_portal/project_comments.html:4
@@ -11545,9 +11299,7 @@ msgid "View Time Entries"
 msgstr ""
 
 #: app/templates/client_portal/projects.html:101
-msgid ""
-"There are no projects available at this time. Projects will appear here "
-"once they are created and assigned to your account."
+msgid "There are no projects available at this time. Projects will appear here once they are created and assigned to your account."
 msgstr ""
 
 #: app/templates/client_portal/quote_detail.html:16
@@ -11704,15 +11456,11 @@ msgid "Total hours"
 msgstr ""
 
 #: app/templates/client_portal/time_entries.html:170
-msgid ""
-"No time entries match your current filters. Try adjusting your filter "
-"criteria."
+msgid "No time entries match your current filters. Try adjusting your filter criteria."
 msgstr ""
 
 #: app/templates/client_portal/time_entries.html:172
-msgid ""
-"There are no time entries available at this time. Time entries will "
-"appear here once they are logged for your projects."
+msgid "There are no time entries available at this time. Time entries will appear here once they are logged for your projects."
 msgstr ""
 
 #: app/templates/client_portal/time_entries.html:179
@@ -11759,9 +11507,7 @@ msgid "e.g. 75.00"
 msgstr ""
 
 #: app/templates/clients/create.html:28 app/templates/clients/edit.html:28
-msgid ""
-"This rate will be automatically filled when creating projects for this "
-"client"
+msgid "This rate will be automatically filled when creating projects for this client"
 msgstr ""
 
 #: app/templates/clients/create.html:35 app/templates/projects/create.html:53
@@ -11837,9 +11583,7 @@ msgid "Choose a clear, descriptive name for the client organization."
 msgstr ""
 
 #: app/templates/clients/create.html:127
-msgid ""
-"Set the standard hourly rate for this client. This will automatically "
-"populate when creating new projects."
+msgid "Set the standard hourly rate for this client. This will automatically populate when creating new projects."
 msgstr ""
 
 #: app/templates/clients/create.html:130 app/templates/contacts/view.html:25
@@ -11856,9 +11600,7 @@ msgid "Prepaid Hours"
 msgstr ""
 
 #: app/templates/clients/create.html:135
-msgid ""
-"Configure monthly included hours and the reset day if this client has a "
-"retainer or prepaid bundle."
+msgid "Configure monthly included hours and the reset day if this client has a retainer or prepaid bundle."
 msgstr ""
 
 #: app/templates/clients/create.html:139
@@ -11871,9 +11613,7 @@ msgid "Edit Client"
 msgstr ""
 
 #: app/templates/clients/edit.html:106
-msgid ""
-"Enable portal access for this client. Clients can log in with their own "
-"credentials to view projects, invoices, and time entries."
+msgid "Enable portal access for this client. Clients can log in with their own credentials to view projects, invoices, and time entries."
 msgstr ""
 
 #: app/templates/clients/edit.html:111
@@ -11928,9 +11668,7 @@ msgid "Send an email to %(email)s with a link to set their portal password."
 msgstr ""
 
 #: app/templates/clients/edit.html:165
-msgid ""
-"Email address is required to send password setup email. Please set the "
-"client email address above."
+msgid "Email address is required to send password setup email. Please set the client email address above."
 msgstr ""
 
 #: app/templates/clients/edit.html:174
@@ -12149,9 +11887,7 @@ msgid "Mark Important"
 msgstr ""
 
 #: app/templates/clients/view.html:511
-msgid ""
-"No notes yet. Add a note to keep track of important information about "
-"this client."
+msgid "No notes yet. Add a note to keep track of important information about this client."
 msgstr ""
 
 #: app/templates/clients/view.html:560
@@ -12871,9 +12607,7 @@ msgid "Import/Export"
 msgstr ""
 
 #: app/templates/import_export/index.html:14
-msgid ""
-"Import data from other time trackers or export your data for GDPR "
-"compliance and backups"
+msgid "Import data from other time trackers or export your data for GDPR compliance and backups"
 msgstr ""
 
 #: app/templates/import_export/index.html:24
@@ -12923,9 +12657,7 @@ msgid "e.g., debtor_number, erp_id"
 msgstr ""
 
 #: app/templates/import_export/index.html:75
-msgid ""
-"Example: Enter \"debtor_number\" to detect duplicates by debtor number "
-"only (not by name)"
+msgid "Example: Enter \"debtor_number\" to detect duplicates by debtor number only (not by name)"
 msgstr ""
 
 #: app/templates/import_export/index.html:85
@@ -13039,9 +12771,7 @@ msgid "ActivityWatch Setup"
 msgstr ""
 
 #: app/templates/integrations/activitywatch_setup.html:15
-msgid ""
-"Import window and web activity from ActivityWatch (aw-server) as "
-"automatic time entries"
+msgid "Import window and web activity from ActivityWatch (aw-server) as automatic time entries"
 msgstr ""
 
 #: app/templates/integrations/activitywatch_setup.html:25
@@ -13054,9 +12784,7 @@ msgid "ActivityWatch Server URL"
 msgstr ""
 
 #: app/templates/integrations/activitywatch_setup.html:39
-msgid ""
-"Base URL of your aw-server (no trailing slash). aw-server must be running"
-" and reachable from this server."
+msgid "Base URL of your aw-server (no trailing slash). aw-server must be running and reachable from this server."
 msgstr ""
 
 #: app/templates/integrations/activitywatch_setup.html:40
@@ -13079,9 +12807,7 @@ msgid "No project (import without project)"
 msgstr ""
 
 #: app/templates/integrations/activitywatch_setup.html:66
-msgid ""
-"Assign imported activity events to this project. Leave empty to import "
-"without a project."
+msgid "Assign imported activity events to this project. Leave empty to import without a project."
 msgstr ""
 
 #: app/templates/integrations/activitywatch_setup.html:72
@@ -13113,9 +12839,7 @@ msgid "Bucket IDs"
 msgstr ""
 
 #: app/templates/integrations/activitywatch_setup.html:108
-msgid ""
-"Comma-separated or JSON array. Leave empty to use all aw-watcher-window_*"
-" and aw-watcher-web_* buckets."
+msgid "Comma-separated or JSON array. Leave empty to use all aw-watcher-window_* and aw-watcher-web_* buckets."
 msgstr ""
 
 #: app/templates/integrations/activitywatch_setup.html:119
@@ -13124,9 +12848,7 @@ msgid "Enable automatic sync"
 msgstr ""
 
 #: app/templates/integrations/activitywatch_setup.html:122
-msgid ""
-"Automatically sync activity on a schedule. You can also trigger manual "
-"syncs."
+msgid "Automatically sync activity on a schedule. You can also trigger manual syncs."
 msgstr ""
 
 #: app/templates/integrations/activitywatch_setup.html:128
@@ -13177,9 +12899,7 @@ msgid "Test & Sync"
 msgstr ""
 
 #: app/templates/integrations/activitywatch_setup.html:158
-msgid ""
-"After saving, you can test the connection and run a sync from the "
-"integration page."
+msgid "After saving, you can test the connection and run a sync from the integration page."
 msgstr ""
 
 #: app/templates/integrations/caldav_setup.html:4
@@ -13188,9 +12908,7 @@ msgid "CalDAV Calendar Setup"
 msgstr ""
 
 #: app/templates/integrations/caldav_setup.html:15
-msgid ""
-"Connect to a CalDAV server (e.g., Zimbra) to import calendar events as "
-"time entries"
+msgid "Connect to a CalDAV server (e.g., Zimbra) to import calendar events as time entries"
 msgstr ""
 
 #: app/templates/integrations/caldav_setup.html:29
@@ -13218,9 +12936,7 @@ msgid "optional if server URL is provided"
 msgstr ""
 
 #: app/templates/integrations/caldav_setup.html:54
-msgid ""
-"Direct URL to your calendar collection. If provided, server URL is only "
-"used for discovery."
+msgid "Direct URL to your calendar collection. If provided, server URL is only used for discovery."
 msgstr ""
 
 #: app/templates/integrations/caldav_setup.html:60
@@ -13259,15 +12975,11 @@ msgid "Uncheck only if using a self-signed certificate."
 msgstr ""
 
 #: app/templates/integrations/caldav_setup.html:145
-msgid ""
-"Calendar events will be imported as time entries. If a project is "
-"selected, events will be assigned to that project."
+msgid "Calendar events will be imported as time entries. If a project is selected, events will be assigned to that project."
 msgstr ""
 
 #: app/templates/integrations/caldav_setup.html:146
-msgid ""
-"If an event title contains a project name, that project will be used "
-"instead."
+msgid "If an event title contains a project name, that project will be used instead."
 msgstr ""
 
 #: app/templates/integrations/caldav_setup.html:147
@@ -13279,21 +12991,15 @@ msgid "How many days back to import events from (default: 90)."
 msgstr ""
 
 #: app/templates/integrations/caldav_setup.html:189
-msgid ""
-"Automatically sync calendar events every hour. You can still trigger "
-"manual syncs."
+msgid "Automatically sync calendar events every hour. You can still trigger manual syncs."
 msgstr ""
 
 #: app/templates/integrations/caldav_setup.html:212
-msgid ""
-"After saving, you can test the connection and discover available "
-"calendars."
+msgid "After saving, you can test the connection and discover available calendars."
 msgstr ""
 
 #: app/templates/integrations/list.html:20
-msgid ""
-"Connect your Time Tracker with external services. Configure integrations "
-"below to sync data, automate workflows, and enhance productivity."
+msgid "Connect your Time Tracker with external services. Configure integrations below to sync data, automate workflows, and enhance productivity."
 msgstr ""
 
 #: app/templates/integrations/list.html:34
@@ -13301,9 +13007,7 @@ msgid "OIDC / Single Sign-On"
 msgstr ""
 
 #: app/templates/integrations/list.html:36
-msgid ""
-"Configure OpenID Connect authentication for Single Sign-On (SSO) with "
-"your identity provider"
+msgid "Configure OpenID Connect authentication for Single Sign-On (SSO) with your identity provider"
 msgstr ""
 
 #: app/templates/integrations/list.html:91
@@ -13358,9 +13062,7 @@ msgid "CalDAV Authentication"
 msgstr ""
 
 #: app/templates/integrations/manage.html:200
-msgid ""
-"CalDAV uses username and password authentication (not OAuth). Update your"
-" credentials below."
+msgid "CalDAV uses username and password authentication (not OAuth). Update your credentials below."
 msgstr ""
 
 #: app/templates/integrations/manage.html:255
@@ -13412,9 +13114,7 @@ msgid "Last Error"
 msgstr ""
 
 #: app/templates/integrations/manage.html:617
-msgid ""
-"CalDAV uses username/password authentication. Click below to set up your "
-"CalDAV connection."
+msgid "CalDAV uses username/password authentication. Click below to set up your CalDAV connection."
 msgstr ""
 
 #: app/templates/integrations/manage.html:620
@@ -13422,9 +13122,7 @@ msgid "Setup CalDAV Integration"
 msgstr ""
 
 #: app/templates/integrations/manage.html:627
-msgid ""
-"ActivityWatch imports window and web activity from your local aw-server. "
-"Click below to configure."
+msgid "ActivityWatch imports window and web activity from your local aw-server. Click below to configure."
 msgstr ""
 
 #: app/templates/integrations/manage.html:630
@@ -13440,9 +13138,7 @@ msgid "Connect Trello"
 msgstr ""
 
 #: app/templates/integrations/manage.html:655
-msgid ""
-"Please configure Trello API key and token in the OAuth Credentials Setup "
-"section above."
+msgid "Please configure Trello API key and token in the OAuth Credentials Setup section above."
 msgstr ""
 
 #: app/templates/integrations/manage.html:667
@@ -13455,15 +13151,11 @@ msgid "OAuth credentials need to be configured by an administrator first."
 msgstr ""
 
 #: app/templates/integrations/manage.html:680
-msgid ""
-"Connect your Google Calendar account. You will be redirected to Google "
-"for authorization."
+msgid "Connect your Google Calendar account. You will be redirected to Google for authorization."
 msgstr ""
 
 #: app/templates/integrations/manage.html:682
-msgid ""
-"Connect this integration. You will be redirected to the provider for "
-"authorization."
+msgid "Connect this integration. You will be redirected to the provider for authorization."
 msgstr ""
 
 #: app/templates/integrations/view.html:11
@@ -13495,15 +13187,11 @@ msgid "Configure ActivityWatch"
 msgstr ""
 
 #: app/templates/integrations/view.html:141
-msgid ""
-"Are you sure you want to reset this integration? This will remove all "
-"credentials and configuration."
+msgid "Are you sure you want to reset this integration? This will remove all credentials and configuration."
 msgstr ""
 
 #: app/templates/integrations/view.html:147
-msgid ""
-"Are you sure you want to delete this integration? This action cannot be "
-"undone."
+msgid "Are you sure you want to delete this integration? This action cannot be undone."
 msgstr ""
 
 #: app/templates/integrations/view.html:155
@@ -13572,9 +13260,7 @@ msgid "Project GIDs"
 msgstr ""
 
 #: app/templates/integrations/wizard_asana.html:76
-msgid ""
-"Comma-separated list of specific project GIDs to sync. Leave empty to "
-"sync all projects in the workspace."
+msgid "Comma-separated list of specific project GIDs to sync. Leave empty to sync all projects in the workspace."
 msgstr ""
 
 #: app/templates/integrations/wizard_asana.html:84
@@ -13698,9 +13384,7 @@ msgid "Step 2: Repository Selection"
 msgstr ""
 
 #: app/templates/integrations/wizard_github.html:57
-msgid ""
-"Comma-separated list of repositories (e.g., \"octocat/Hello-World\"). "
-"Leave empty to sync all accessible repositories."
+msgid "Comma-separated list of repositories (e.g., \"octocat/Hello-World\"). Leave empty to sync all accessible repositories."
 msgstr ""
 
 #: app/templates/integrations/wizard_github.html:66
@@ -13763,9 +13447,7 @@ msgid "Enter webhook secret"
 msgstr ""
 
 #: app/templates/integrations/wizard_github.html:150
-msgid ""
-"Secret token for verifying webhook signatures. Configure this in your "
-"GitHub repository webhook settings."
+msgid "Secret token for verifying webhook signatures. Configure this in your GitHub repository webhook settings."
 msgstr ""
 
 #: app/templates/integrations/wizard_github.html:161
@@ -13804,9 +13486,7 @@ msgid "Step 2: OAuth Setup"
 msgstr ""
 
 #: app/templates/integrations/wizard_gitlab.html:40
-msgid ""
-"Configure OAuth credentials. Create an application in GitLab Settings → "
-"Applications."
+msgid "Configure OAuth credentials. Create an application in GitLab Settings → Applications."
 msgstr ""
 
 #: app/templates/integrations/wizard_gitlab.html:46
@@ -13818,9 +13498,7 @@ msgid "GitLab OAuth Client Secret"
 msgstr ""
 
 #: app/templates/integrations/wizard_gitlab.html:66
-msgid ""
-"Add this URL as an authorized redirect URI in your GitLab application "
-"settings:"
+msgid "Add this URL as an authorized redirect URI in your GitLab application settings:"
 msgstr ""
 
 #: app/templates/integrations/wizard_gitlab.html:77
@@ -13832,9 +13510,7 @@ msgid "Repository IDs"
 msgstr ""
 
 #: app/templates/integrations/wizard_gitlab.html:88
-msgid ""
-"Comma-separated list of GitLab project IDs to sync. Leave empty to sync "
-"all accessible projects."
+msgid "Comma-separated list of GitLab project IDs to sync. Leave empty to sync all accessible projects."
 msgstr ""
 
 #: app/templates/integrations/wizard_gitlab.html:101
@@ -13874,9 +13550,7 @@ msgid "Step 1: OAuth Setup & Basic Configuration"
 msgstr ""
 
 #: app/templates/integrations/wizard_jira.html:12
-msgid ""
-"First, configure OAuth credentials for Jira. You can get these from "
-"Atlassian Developer Console."
+msgid "First, configure OAuth credentials for Jira. You can get these from Atlassian Developer Console."
 msgstr ""
 
 #: app/templates/integrations/wizard_jira.html:18
@@ -13900,15 +13574,11 @@ msgid "Your Jira Cloud or Server URL (e.g., https://your-domain.atlassian.net)"
 msgstr ""
 
 #: app/templates/integrations/wizard_jira.html:55
-msgid ""
-"Add this URL as an authorized redirect URI in your Jira OAuth app "
-"settings:"
+msgid "Add this URL as an authorized redirect URI in your Jira OAuth app settings:"
 msgstr ""
 
 #: app/templates/integrations/wizard_jira.html:71
-msgid ""
-"Click \"Test Connection\" to verify that Jira is accessible and OAuth "
-"credentials are correct."
+msgid "Click \"Test Connection\" to verify that Jira is accessible and OAuth credentials are correct."
 msgstr ""
 
 #: app/templates/integrations/wizard_jira.html:86
@@ -13916,9 +13586,7 @@ msgid "JQL Query"
 msgstr ""
 
 #: app/templates/integrations/wizard_jira.html:92
-msgid ""
-"Jira Query Language query to filter issues to sync. Leave empty to sync "
-"all assigned issues."
+msgid "Jira Query Language query to filter issues to sync. Leave empty to sync all assigned issues."
 msgstr ""
 
 #: app/templates/integrations/wizard_jira.html:103
@@ -13946,9 +13614,7 @@ msgid "Automatically create projects in TimeTracker from Jira projects"
 msgstr ""
 
 #: app/templates/integrations/wizard_jira.html:208
-msgid ""
-"Review your configuration below. Click \"Finish\" to save and complete "
-"the setup."
+msgid "Review your configuration below. Click \"Finish\" to save and complete the setup."
 msgstr ""
 
 #: app/templates/integrations/wizard_jira.html:213
@@ -13971,9 +13637,7 @@ msgstr ""
 
 #: app/templates/integrations/wizard_microsoft_teams.html:12
 #: app/templates/integrations/wizard_outlook_calendar.html:12
-msgid ""
-"Enter your Azure AD tenant ID. Use \"common\" for multi-tenant apps or "
-"leave empty for default."
+msgid "Enter your Azure AD tenant ID. Use \"common\" for multi-tenant apps or leave empty for default."
 msgstr ""
 
 #: app/templates/integrations/wizard_microsoft_teams.html:40
@@ -14004,9 +13668,7 @@ msgid "Outlook Calendar OAuth Client Secret"
 msgstr ""
 
 #: app/templates/integrations/wizard_outlook_calendar.html:78
-msgid ""
-"Review your configuration and click \"Finish\" to save. After saving, "
-"users can connect their Outlook Calendar accounts."
+msgid "Review your configuration and click \"Finish\" to save. After saving, users can connect their Outlook Calendar accounts."
 msgstr ""
 
 #: app/templates/integrations/wizard_quickbooks.html:6
@@ -14027,9 +13689,7 @@ msgid "QuickBooks OAuth Client Secret"
 msgstr ""
 
 #: app/templates/integrations/wizard_quickbooks.html:38
-msgid ""
-"After saving OAuth credentials, you will need to connect your QuickBooks "
-"account via OAuth."
+msgid "After saving OAuth credentials, you will need to connect your QuickBooks account via OAuth."
 msgstr ""
 
 #: app/templates/integrations/wizard_quickbooks.html:46
@@ -14098,9 +13758,7 @@ msgid "Account Mappings"
 msgstr ""
 
 #: app/templates/integrations/wizard_quickbooks.html:180
-msgid ""
-"Map TimeTracker expense category IDs to QuickBooks account IDs (JSON "
-"format)"
+msgid "Map TimeTracker expense category IDs to QuickBooks account IDs (JSON format)"
 msgstr ""
 
 #: app/templates/integrations/wizard_quickbooks.html:196
@@ -14128,9 +13786,7 @@ msgid "Generate a token after creating the API key"
 msgstr ""
 
 #: app/templates/integrations/wizard_trello.html:48
-msgid ""
-"Click \"Test Connection\" to verify that your Trello API credentials are "
-"correct."
+msgid "Click \"Test Connection\" to verify that your Trello API credentials are correct."
 msgstr ""
 
 #: app/templates/integrations/wizard_trello.html:67
@@ -14398,9 +14054,7 @@ msgid "Devaluation"
 msgstr ""
 
 #: app/templates/inventory/movements/form.html:40
-msgid ""
-"You can apply devaluation below to record returned or wasted items at a "
-"reduced cost."
+msgid "You can apply devaluation below to record returned or wasted items at a reduced cost."
 msgstr ""
 
 #: app/templates/inventory/movements/form.html:72
@@ -14761,9 +14415,7 @@ msgid "No movements found."
 msgstr ""
 
 #: app/templates/inventory/reports/turnover.html:37
-msgid ""
-"Turnover rate indicates how many times inventory is sold and replaced in "
-"a year. Higher rates indicate faster-moving items."
+msgid "Turnover rate indicates how many times inventory is sold and replaced in a year. Higher rates indicate faster-moving items."
 msgstr ""
 
 #: app/templates/inventory/reports/turnover.html:46
@@ -14978,9 +14630,7 @@ msgid "Stock Breakdown by Valuation"
 msgstr ""
 
 #: app/templates/inventory/stock_items/view.html:164
-msgid ""
-"Detailed breakdown showing remaining stock with different devaluation "
-"rates"
+msgid "Detailed breakdown showing remaining stock with different devaluation rates"
 msgstr ""
 
 #: app/templates/inventory/stock_items/view.html:198
@@ -15210,9 +14860,7 @@ msgid "Select Approvers"
 msgstr ""
 
 #: app/templates/invoice_approvals/request.html:20
-msgid ""
-"Select one or more users who need to approve this invoice. Approvals will"
-" be processed in order."
+msgid "Select one or more users who need to approve this invoice. Approvals will be processed in order."
 msgstr ""
 
 #: app/templates/invoice_approvals/request.html:39
@@ -15599,9 +15247,7 @@ msgid "Generate from Time, Costs & Goods"
 msgstr ""
 
 #: app/templates/invoices/generate_from_time.html:7
-msgid ""
-"Select unbilled time entries, project costs, and extra goods to add to "
-"this invoice"
+msgid "Select unbilled time entries, project costs, and extra goods to add to this invoice"
 msgstr ""
 
 #: app/templates/invoices/generate_from_time.html:9
@@ -15760,9 +15406,7 @@ msgid "Are you sure you want to delete invoice"
 msgstr ""
 
 #: app/templates/invoices/list.html:166 app/templates/invoices/view.html:380
-msgid ""
-"All invoice items, extra goods, and payment records associated with this "
-"invoice will be permanently deleted."
+msgid "All invoice items, extra goods, and payment records associated with this invoice will be permanently deleted."
 msgstr ""
 
 #: app/templates/invoices/pdf_default.html:54 app/utils/pdf_generator.py:1033
@@ -16036,21 +15680,15 @@ msgid "Drag and drop rows to reorder columns"
 msgstr ""
 
 #: app/templates/kanban/columns.html:127
-msgid ""
-"System columns (todo, in_progress, done) cannot be deleted but can be "
-"customized"
+msgid "System columns (todo, in_progress, done) cannot be deleted but can be customized"
 msgstr ""
 
 #: app/templates/kanban/columns.html:128
-msgid ""
-"Columns marked as \"Complete\" will mark tasks as completed when dragged "
-"to that column"
+msgid "Columns marked as \"Complete\" will mark tasks as completed when dragged to that column"
 msgstr ""
 
 #: app/templates/kanban/columns.html:129
-msgid ""
-"Inactive columns are hidden from the kanban board but tasks with that "
-"status remain accessible"
+msgid "Inactive columns are hidden from the kanban board but tasks with that status remain accessible"
 msgstr ""
 
 #: app/templates/kanban/columns.html:141
@@ -16066,9 +15704,7 @@ msgid "Key:"
 msgstr ""
 
 #: app/templates/kanban/columns.html:157
-msgid ""
-"Note: Tasks with this status will remain accessible but the column will "
-"no longer appear on the kanban board."
+msgid "Note: Tasks with this status will remain accessible but the column will no longer appear on the kanban board."
 msgstr ""
 
 #: app/templates/kanban/columns.html:167
@@ -16120,9 +15756,7 @@ msgid "e.g., in_review, blocked, testing"
 msgstr ""
 
 #: app/templates/kanban/create_column.html:34
-msgid ""
-"Unique identifier (lowercase, no spaces, use underscores). Auto-generated"
-" from label if empty."
+msgid "Unique identifier (lowercase, no spaces, use underscores). Auto-generated from label if empty."
 msgstr ""
 
 #: app/templates/kanban/create_column.html:41
@@ -16130,9 +15764,7 @@ msgid "Global (for all projects)"
 msgstr ""
 
 #: app/templates/kanban/create_column.html:46
-msgid ""
-"Select a project to create project-specific columns, or leave as Global "
-"for all projects"
+msgid "Select a project to create project-specific columns, or leave as Global for all projects"
 msgstr ""
 
 #: app/templates/kanban/create_column.html:52
@@ -16210,9 +15842,7 @@ msgid "Note:"
 msgstr ""
 
 #: app/templates/kanban/create_column.html:97
-msgid ""
-"The column will be added at the end of the board. You can reorder columns"
-" later from the management page."
+msgid "The column will be added at the end of the board. You can reorder columns later from the management page."
 msgstr ""
 
 #: app/templates/kanban/edit_column.html:2
@@ -16255,9 +15885,7 @@ msgid "System Column:"
 msgstr ""
 
 #: app/templates/kanban/edit_column.html:100
-msgid ""
-"This is a system column. You can customize its appearance but cannot "
-"delete it."
+msgid "This is a system column. You can customize its appearance but cannot delete it."
 msgstr ""
 
 #: app/templates/kiosk/base.html:112
@@ -16558,10 +16186,7 @@ msgid "Professional time tracking and project management"
 msgstr ""
 
 #: app/templates/main/about.html:24
-msgid ""
-"A comprehensive web-based time tracking application built with Flask, "
-"featuring project management, client organization, task management, "
-"invoicing, and advanced analytics."
+msgid "A comprehensive web-based time tracking application built with Flask, featuring project management, client organization, task management, invoicing, and advanced analytics."
 msgstr ""
 
 #: app/templates/main/about.html:35 app/templates/main/help.html:32
@@ -16790,10 +16415,7 @@ msgid "Support TimeTracker Development"
 msgstr ""
 
 #: app/templates/main/about.html:201
-msgid ""
-"TimeTracker is free and open-source. Your support helps fund server "
-"costs, new features, security updates, and keeps the project alive. Every"
-" contribution makes a difference!"
+msgid "TimeTracker is free and open-source. Your support helps fund server costs, new features, security updates, and keeps the project alive. Every contribution makes a difference!"
 msgstr ""
 
 #: app/templates/main/about.html:208 app/templates/main/dashboard.html:455
@@ -16959,9 +16581,7 @@ msgid "Support TimeTracker"
 msgstr ""
 
 #: app/templates/main/dashboard.html:422
-msgid ""
-"Your support helps fund server costs, new features, and keeps TimeTracker"
-" free for everyone."
+msgid "Your support helps fund server costs, new features, and keeps TimeTracker free for everyone."
 msgstr ""
 
 #: app/templates/main/dashboard.html:430
@@ -17006,9 +16626,7 @@ msgid "Task (optional)"
 msgstr ""
 
 #: app/templates/main/dashboard.html:527
-msgid ""
-"Select a project first to load tasks, or choose \"Create new task...\" to"
-" add one"
+msgid "Select a project first to load tasks, or choose \"Create new task...\" to add one"
 msgstr ""
 
 #: app/templates/main/dashboard.html:531
@@ -17053,9 +16671,7 @@ msgstr ""
 
 #: app/templates/main/dashboard.html:1201
 #: app/templates/timer/manual_entry.html:812
-msgid ""
-"No valid image files selected. Please select PNG, JPG, GIF, or WebP "
-"images."
+msgid "No valid image files selected. Please select PNG, JPG, GIF, or WebP images."
 msgstr ""
 
 #: app/templates/main/dashboard.html:1213
@@ -17104,9 +16720,7 @@ msgid "Why Your Support Matters"
 msgstr ""
 
 #: app/templates/main/donate.html:42
-msgid ""
-"TimeTracker is a free, open-source project built with passion and "
-"dedication. Your donations directly support:"
+msgid "TimeTracker is a free, open-source project built with passion and dedication. Your donations directly support:"
 msgstr ""
 
 #: app/templates/main/donate.html:49
@@ -17130,9 +16744,7 @@ msgid "Security & Maintenance"
 msgstr ""
 
 #: app/templates/main/donate.html:71
-msgid ""
-"Regular security updates, dependency maintenance, and performance "
-"optimization"
+msgid "Regular security updates, dependency maintenance, and performance optimization"
 msgstr ""
 
 #: app/templates/main/donate.html:79
@@ -17140,9 +16752,7 @@ msgid "Internationalization"
 msgstr ""
 
 #: app/templates/main/donate.html:81
-msgid ""
-"Translation support, localization, and making TimeTracker accessible "
-"worldwide"
+msgid "Translation support, localization, and making TimeTracker accessible worldwide"
 msgstr ""
 
 #: app/templates/main/donate.html:94
@@ -17166,9 +16776,7 @@ msgid "How to Support"
 msgstr ""
 
 #: app/templates/main/donate.html:137
-msgid ""
-"Every contribution, no matter the size, makes a difference. Your support "
-"helps ensure TimeTracker remains free and continues to evolve."
+msgid "Every contribution, no matter the size, makes a difference. Your support helps ensure TimeTracker remains free and continues to evolve."
 msgstr ""
 
 #: app/templates/main/donate.html:147
@@ -17176,9 +16784,7 @@ msgid "Support on Buy Me a Coffee"
 msgstr ""
 
 #: app/templates/main/donate.html:153
-msgid ""
-"You'll be redirected to Buy Me a Coffee where you can choose your "
-"contribution amount"
+msgid "You'll be redirected to Buy Me a Coffee where you can choose your contribution amount"
 msgstr ""
 
 #: app/templates/main/donate.html:161
@@ -17327,9 +16933,7 @@ msgid "Pro Tip:"
 msgstr ""
 
 #: app/templates/main/help.html:95
-msgid ""
-"Use the mobile-friendly interface to track time on the go. The timer "
-"continues running even if you close your browser!"
+msgid "Use the mobile-friendly interface to track time on the go. The timer continues running even if you close your browser!"
 msgstr ""
 
 #: app/templates/main/help.html:105
@@ -17401,9 +17005,7 @@ msgid "Manual Time Entry"
 msgstr ""
 
 #: app/templates/main/help.html:137
-msgid ""
-"Create time entries manually when you need to record time spent away from"
-" the computer or adjust existing entries."
+msgid "Create time entries manually when you need to record time spent away from the computer or adjust existing entries."
 msgstr ""
 
 #: app/templates/main/help.html:140
@@ -17451,9 +17053,7 @@ msgid "Bulk Entry"
 msgstr ""
 
 #: app/templates/main/help.html:163
-msgid ""
-"Create multiple time entries for consecutive days with the same project "
-"and duration. Perfect for regular work patterns."
+msgid "Create multiple time entries for consecutive days with the same project and duration. Perfect for regular work patterns."
 msgstr ""
 
 #: app/templates/main/help.html:166
@@ -17461,15 +17061,11 @@ msgid "Templates"
 msgstr ""
 
 #: app/templates/main/help.html:167
-msgid ""
-"Save frequently used time entries as templates for quick reuse. Saves "
-"project, task, and notes."
+msgid "Save frequently used time entries as templates for quick reuse. Saves project, task, and notes."
 msgstr ""
 
 #: app/templates/main/help.html:171
-msgid ""
-"Visualize your time entries on a calendar. Drag-and-drop to reschedule or"
-" click dates to add entries."
+msgid "Visualize your time entries on a calendar. Drag-and-drop to reschedule or click dates to add entries."
 msgstr ""
 
 #: app/templates/main/help.html:182
@@ -17554,9 +17150,7 @@ msgid "Use billing references for external tracking"
 msgstr ""
 
 #: app/templates/main/help.html:226
-msgid ""
-"The client management system helps organize your work by client "
-"organizations, preventing errors and streamlining project creation."
+msgid "The client management system helps organize your work by client organizations, preventing errors and streamlining project creation."
 msgstr ""
 
 #: app/templates/main/help.html:229
@@ -17628,9 +17222,7 @@ msgid "Estimated billing amounts"
 msgstr ""
 
 #: app/templates/main/help.html:269
-msgid ""
-"Break down projects into manageable tasks with detailed tracking and "
-"progress monitoring."
+msgid "Break down projects into manageable tasks with detailed tracking and progress monitoring."
 msgstr ""
 
 #: app/templates/main/help.html:272
@@ -17774,9 +17366,7 @@ msgid "```code blocks```, tables, images"
 msgstr ""
 
 #: app/templates/main/help.html:336
-msgid ""
-"Visualize your workflow with a drag-and-drop Kanban board for intuitive "
-"task management."
+msgid "Visualize your workflow with a drag-and-drop Kanban board for intuitive task management."
 msgstr ""
 
 #: app/templates/main/help.html:339
@@ -17820,9 +17410,7 @@ msgid "Use filters to focus on specific work"
 msgstr ""
 
 #: app/templates/main/help.html:359
-msgid ""
-"The Kanban board is perfect for sprint planning and daily standups. Each "
-"column represents a stage in your workflow!"
+msgid "The Kanban board is perfect for sprint planning and daily standups. Each column represents a stage in your workflow!"
 msgstr ""
 
 #: app/templates/main/help.html:365
@@ -17830,9 +17418,7 @@ msgid "Expense Tracking"
 msgstr ""
 
 #: app/templates/main/help.html:366
-msgid ""
-"Track business expenses, manage receipts, and handle reimbursements "
-"efficiently."
+msgid "Track business expenses, manage receipts, and handle reimbursements efficiently."
 msgstr ""
 
 #: app/templates/main/help.html:369
@@ -18056,16 +17642,11 @@ msgid "Mobile-optimized charts"
 msgstr ""
 
 #: app/templates/main/help.html:504
-msgid ""
-"Use Saved Filters to quickly access your most common report views. Save "
-"filters for weekly reviews, monthly billing, or specific project "
-"tracking!"
+msgid "Use Saved Filters to quickly access your most common report views. Save filters for weekly reviews, monthly billing, or specific project tracking!"
 msgstr ""
 
 #: app/templates/main/help.html:511
-msgid ""
-"Boost your efficiency with keyboard shortcuts, command palette, and "
-"automation features."
+msgid "Boost your efficiency with keyboard shortcuts, command palette, and automation features."
 msgstr ""
 
 #: app/templates/main/help.html:514
@@ -18105,9 +17686,7 @@ msgid "Keyboard Shortcuts"
 msgstr ""
 
 #: app/templates/main/help.html:539
-msgid ""
-"Navigate faster with keyboard-driven commands. Press Shift+? to see all "
-"shortcuts."
+msgid "Navigate faster with keyboard-driven commands. Press Shift+? to see all shortcuts."
 msgstr ""
 
 #: app/templates/main/help.html:542
@@ -18115,9 +17694,7 @@ msgid "Global Search"
 msgstr ""
 
 #: app/templates/main/help.html:543
-msgid ""
-"Quickly find projects, tasks, clients, and time entries from anywhere in "
-"the app."
+msgid "Quickly find projects, tasks, clients, and time entries from anywhere in the app."
 msgstr ""
 
 #: app/templates/main/help.html:546
@@ -18125,9 +17702,7 @@ msgid "Email Notifications"
 msgstr ""
 
 #: app/templates/main/help.html:547
-msgid ""
-"Get notified about task assignments, overdue invoices, and weekly "
-"summaries via email."
+msgid "Get notified about task assignments, overdue invoices, and weekly summaries via email."
 msgstr ""
 
 #: app/templates/main/help.html:555
@@ -18383,12 +17958,7 @@ msgid "What happens if I forget to stop my timer?"
 msgstr ""
 
 #: app/templates/main/help.html:691
-msgid ""
-"The timer will continue running until you stop it manually. You can see "
-"your active timer on the dashboard and timer page. The timer persists "
-"even if you close your browser or restart your device. If idle detection "
-"is enabled, the timer may pause automatically after the configured "
-"timeout period."
+msgid "The timer will continue running until you stop it manually. You can see your active timer on the dashboard and timer page. The timer persists even if you close your browser or restart your device. If idle detection is enabled, the timer may pause automatically after the configured timeout period."
 msgstr ""
 
 #: app/templates/main/help.html:694
@@ -18396,11 +17966,7 @@ msgid "Can I edit time entries after they're created?"
 msgstr ""
 
 #: app/templates/main/help.html:695
-msgid ""
-"Yes, you can edit any time entry by clicking the edit button in the time "
-"entry list. You can modify the project, start/end times, notes, tags, "
-"billable status, and task assignment. Admins can edit all time entries, "
-"while regular users can only edit their own entries."
+msgid "Yes, you can edit any time entry by clicking the edit button in the time entry list. You can modify the project, start/end times, notes, tags, billable status, and task assignment. Admins can edit all time entries, while regular users can only edit their own entries."
 msgstr ""
 
 #: app/templates/main/help.html:698
@@ -18408,11 +17974,7 @@ msgid "How do I track time for multiple projects?"
 msgstr ""
 
 #: app/templates/main/help.html:699
-msgid ""
-"By default, you can only have one active timer at a time. To switch "
-"projects, stop your current timer and start a new one for the different "
-"project. Alternatively, you can create manual time entries for past work "
-"or configure the system to allow multiple active timers (admin setting)."
+msgid "By default, you can only have one active timer at a time. To switch projects, stop your current timer and start a new one for the different project. Alternatively, you can create manual time entries for past work or configure the system to allow multiple active timers (admin setting)."
 msgstr ""
 
 #: app/templates/main/help.html:702
@@ -18420,12 +17982,7 @@ msgid "How do I export my time data?"
 msgstr ""
 
 #: app/templates/main/help.html:703
-msgid ""
-"Go to the Reports page and use the \"Export CSV\" feature. You can apply "
-"filters to export specific data, or export all time entries. The CSV file"
-" includes all time entry details and can be opened in Excel or other "
-"spreadsheet applications. You can also configure the delimiter for "
-"different regional standards."
+msgid "Go to the Reports page and use the \"Export CSV\" feature. You can apply filters to export specific data, or export all time entries. The CSV file includes all time entry details and can be opened in Excel or other spreadsheet applications. You can also configure the delimiter for different regional standards."
 msgstr ""
 
 #: app/templates/main/help.html:706
@@ -18433,13 +17990,7 @@ msgid "What's the difference between billable and non-billable time?"
 msgstr ""
 
 #: app/templates/main/help.html:707
-msgid ""
-"Billable time is tracked for client billing purposes and can have an "
-"hourly rate associated with it. Non-billable time is for internal work "
-"that doesn't get charged to clients. You can mark individual time entries"
-" as billable or non-billable, and projects can have default billable "
-"settings. This distinction is crucial for accurate invoicing and "
-"profitability analysis."
+msgid "Billable time is tracked for client billing purposes and can have an hourly rate associated with it. Non-billable time is for internal work that doesn't get charged to clients. You can mark individual time entries as billable or non-billable, and projects can have default billable settings. This distinction is crucial for accurate invoicing and profitability analysis."
 msgstr ""
 
 #: app/templates/main/help.html:710
@@ -18447,12 +17998,7 @@ msgid "How do I create an invoice from my time entries?"
 msgstr ""
 
 #: app/templates/main/help.html:711
-msgid ""
-"Navigate to Invoices → Create Invoice, set up the client and project "
-"details, then use \"Generate from Time Entries\" to automatically create "
-"invoice items from your tracked time. You can filter by date range and "
-"project, and the system will group time entries intelligently. Review the"
-" generated items and export as a professional PDF."
+msgid "Navigate to Invoices → Create Invoice, set up the client and project details, then use \"Generate from Time Entries\" to automatically create invoice items from your tracked time. You can filter by date range and project, and the system will group time entries intelligently. Review the generated items and export as a professional PDF."
 msgstr ""
 
 #: app/templates/main/help.html:714
@@ -18460,11 +18006,7 @@ msgid "Can I use TimeTracker on my mobile device?"
 msgstr ""
 
 #: app/templates/main/help.html:715
-msgid ""
-"Yes! TimeTracker is fully responsive and works great on mobile devices. "
-"You can install it as a Progressive Web App (PWA) for a native-like "
-"experience. The mobile interface includes a bottom tab bar for easy "
-"navigation and touch-optimized controls for time tracking on the go."
+msgid "Yes! TimeTracker is fully responsive and works great on mobile devices. You can install it as a Progressive Web App (PWA) for a native-like experience. The mobile interface includes a bottom tab bar for easy navigation and touch-optimized controls for time tracking on the go."
 msgstr ""
 
 #: app/templates/main/help.html:718
@@ -18472,12 +18014,7 @@ msgid "How do I use the command palette and keyboard shortcuts?"
 msgstr ""
 
 #: app/templates/main/help.html:719
-msgid ""
-"Press the question mark key (?) to open the command palette. From there, "
-"you can type to search for any action or navigation target. Use keyboard "
-"sequences like \"g d\" for Dashboard, \"g p\" for Projects, or \"n e\" "
-"for New Entry. Press Shift+? to see all available shortcuts. Press Ctrl+K"
-" (or Cmd+K on Mac) for quick search."
+msgid "Press the question mark key (?) to open the command palette. From there, you can type to search for any action or navigation target. Use keyboard sequences like \"g d\" for Dashboard, \"g p\" for Projects, or \"n e\" for New Entry. Press Shift+? to see all available shortcuts. Press Ctrl+K (or Cmd+K on Mac) for quick search."
 msgstr ""
 
 #: app/templates/main/help.html:722
@@ -18485,12 +18022,7 @@ msgid "How do I create bulk time entries for multiple days?"
 msgstr ""
 
 #: app/templates/main/help.html:723
-msgid ""
-"Navigate to Work → Bulk Time Entry. Select your project, choose a date "
-"range, set your daily start and end times, and optionally skip weekends. "
-"The system will create identical time entries for each day in the range. "
-"This is perfect for logging regular work patterns or filling in past time"
-" when you worked consistent hours."
+msgid "Navigate to Work → Bulk Time Entry. Select your project, choose a date range, set your daily start and end times, and optionally skip weekends. The system will create identical time entries for each day in the range. This is perfect for logging regular work patterns or filling in past time when you worked consistent hours."
 msgstr ""
 
 #: app/templates/main/help.html:726
@@ -18498,12 +18030,7 @@ msgid "What are time entry templates and how do I use them?"
 msgstr ""
 
 #: app/templates/main/help.html:727
-msgid ""
-"Time entry templates let you save frequently used time entry "
-"configurations. When creating a manual time entry, check \"Save as "
-"Template\" to save the project, task, and notes. Later, when creating new"
-" entries, you can select a template to quickly fill in these details. "
-"Templates are personal and only visible to you."
+msgid "Time entry templates let you save frequently used time entry configurations. When creating a manual time entry, check \"Save as Template\" to save the project, task, and notes. Later, when creating new entries, you can select a template to quickly fill in these details. Templates are personal and only visible to you."
 msgstr ""
 
 #: app/templates/main/help.html:730
@@ -18511,12 +18038,7 @@ msgid "How do I track expenses and add them to invoices?"
 msgstr ""
 
 #: app/templates/main/help.html:731
-msgid ""
-"Go to Expenses → New Expense to record business expenses. Upload receipt "
-"images, categorize the expense, and mark it as billable if needed. When "
-"creating invoices, you can include these expenses as line items. Expenses"
-" support approval workflows, reimbursement tracking, and can be linked to"
-" specific projects."
+msgid "Go to Expenses → New Expense to record business expenses. Upload receipt images, categorize the expense, and mark it as billable if needed. When creating invoices, you can include these expenses as line items. Expenses support approval workflows, reimbursement tracking, and can be linked to specific projects."
 msgstr ""
 
 #: app/templates/main/help.html:734
@@ -18524,12 +18046,7 @@ msgid "Can I use Markdown in descriptions?"
 msgstr ""
 
 #: app/templates/main/help.html:735
-msgid ""
-"Yes! Project and task descriptions support full Markdown formatting. You "
-"can use bold, italic, headings, lists, links, code blocks, tables, and "
-"images. This allows you to create rich, well-formatted documentation "
-"directly in your projects and tasks. The Markdown editor includes a "
-"preview mode and supports dark theme."
+msgid "Yes! Project and task descriptions support full Markdown formatting. You can use bold, italic, headings, lists, links, code blocks, tables, and images. This allows you to create rich, well-formatted documentation directly in your projects and tasks. The Markdown editor includes a preview mode and supports dark theme."
 msgstr ""
 
 #: app/templates/main/help.html:738
@@ -18537,9 +18054,7 @@ msgid "Where can I get additional help?"
 msgstr ""
 
 #: app/templates/main/help.html:742
-msgid ""
-"This help page covers most common questions and features. For complete "
-"documentation:"
+msgid "This help page covers most common questions and features. For complete documentation:"
 msgstr ""
 
 #: app/templates/main/help.html:744
@@ -18563,9 +18078,7 @@ msgid "Report issues and request features on"
 msgstr ""
 
 #: app/templates/main/help.html:757
-msgid ""
-"As an admin, you can access additional system information and diagnostics"
-" in the"
+msgid "As an admin, you can access additional system information and diagnostics in the"
 msgstr ""
 
 #: app/templates/main/help.html:757
@@ -18635,9 +18148,7 @@ msgid "End"
 msgstr ""
 
 #: app/templates/main/search.html:75
-msgid ""
-"Are you sure you want to delete this time entry? This action cannot be "
-"undone."
+msgid "Are you sure you want to delete this time entry? This action cannot be undone."
 msgstr ""
 
 #: app/templates/main/search.html:115
@@ -19029,9 +18540,7 @@ msgid "No Templates Found"
 msgstr ""
 
 #: app/templates/project_templates/list.html:125
-msgid ""
-"Create your first project template to quickly set up new projects with "
-"pre-configured settings and tasks."
+msgid "Create your first project template to quickly set up new projects with pre-configured settings and tasks."
 msgstr ""
 
 #: app/templates/project_templates/view.html:3
@@ -19203,15 +18712,11 @@ msgid "Create new client"
 msgstr ""
 
 #: app/templates/projects/create.html:56
-msgid ""
-"Provide detailed information about the project, objectives, and "
-"deliverables..."
+msgid "Provide detailed information about the project, objectives, and deliverables..."
 msgstr ""
 
 #: app/templates/projects/create.html:59
-msgid ""
-"Optional: Add context, objectives, or specific requirements for the "
-"project"
+msgid "Optional: Add context, objectives, or specific requirements for the project"
 msgstr ""
 
 #: app/templates/projects/create.html:68
@@ -19252,9 +18757,7 @@ msgid "Gantt color"
 msgstr ""
 
 #: app/templates/projects/create.html:102 app/templates/projects/edit.html:93
-msgid ""
-"Optional: Color for this project on the Gantt chart. Pick or enter a hex "
-"code (e.g. #3b82f6)."
+msgid "Optional: Color for this project on the Gantt chart. Pick or enter a hex code (e.g. #3b82f6)."
 msgstr ""
 
 #: app/templates/projects/create.html:109 app/templates/projects/edit.html:100
@@ -19608,9 +19111,7 @@ msgid "Back to Quote"
 msgstr ""
 
 #: app/templates/quotes/accept.html:42
-msgid ""
-"Accepting this quote will create a new project with the budget from the "
-"quote."
+msgid "Accepting this quote will create a new project with the budget from the quote."
 msgstr ""
 
 #: app/templates/quotes/accept.html:50
@@ -20067,9 +19568,7 @@ msgid "No recurring tasks"
 msgstr ""
 
 #: app/templates/recurring_tasks/list.html:102
-msgid ""
-"Create recurring task templates to automatically generate tasks on a "
-"schedule."
+msgid "Create recurring task templates to automatically generate tasks on a schedule."
 msgstr ""
 
 #: app/templates/reports/builder.html:4
@@ -20262,9 +19761,7 @@ msgid "No data found"
 msgstr ""
 
 #: app/templates/reports/custom_view.html:55
-msgid ""
-"This report has no data matching the current filters. Try adjusting your "
-"date range or filters."
+msgid "This report has no data matching the current filters. Try adjusting your date range or filters."
 msgstr ""
 
 #: app/templates/reports/custom_view.html:76
@@ -20280,9 +19777,7 @@ msgid "No components configured"
 msgstr ""
 
 #: app/templates/reports/custom_view.html:98
-msgid ""
-"This report has no components configured. Please edit the report to add "
-"components."
+msgid "This report has no components configured. Please edit the report to add components."
 msgstr ""
 
 #: app/templates/reports/export_form.html:165
@@ -20359,9 +19854,7 @@ msgid "Manage automated report delivery via email"
 msgstr ""
 
 #: app/templates/reports/index.html:418
-msgid ""
-"You need to create a saved report view first. Please create one from the "
-"reports page."
+msgid "You need to create a saved report view first. Please create one from the reports page."
 msgstr ""
 
 #: app/templates/reports/index.html:430
@@ -20493,15 +19986,11 @@ msgid "email1@example.com, email2@example.com"
 msgstr ""
 
 #: app/templates/reports/schedule_form.html:36
-msgid ""
-"Enter one or more email addresses separated by commas. These recipients "
-"will receive the scheduled report via email."
+msgid "Enter one or more email addresses separated by commas. These recipients will receive the scheduled report via email."
 msgstr ""
 
 #: app/templates/reports/schedule_form.html:39
-msgid ""
-"When using Mapping or Template, these are used as fallback if no address "
-"is found for a value."
+msgid "When using Mapping or Template, these are used as fallback if no address is found for a value."
 msgstr ""
 
 #: app/templates/reports/schedule_form.html:46
@@ -20517,9 +20006,7 @@ msgid "Use previous calendar month as date range"
 msgstr ""
 
 #: app/templates/reports/schedule_form.html:59
-msgid ""
-"For monthly runs: report will use the first and last day of the previous "
-"month."
+msgid "For monthly runs: report will use the first and last day of the previous month."
 msgstr ""
 
 #: app/templates/reports/schedule_form.html:63
@@ -20539,9 +20026,7 @@ msgid "Split report by custom field value"
 msgstr ""
 
 #: app/templates/reports/schedule_form.html:80
-msgid ""
-"The custom field name to iterate over (e.g., \"salesman\"). A separate "
-"report will be generated for each unique value."
+msgid "The custom field name to iterate over (e.g., \"salesman\"). A separate report will be generated for each unique value."
 msgstr ""
 
 #: app/templates/reports/schedule_form.html:83
@@ -20566,10 +20051,7 @@ msgstr ""
 
 #: app/templates/reports/schedule_form.html:93
 #, python-brace-format
-msgid ""
-"Use {value} for the value (e.g. KF); {value}@test.de yields KF@test.de. "
-"Use {value_lower} for lowercase, e.g. {value_lower}@test.de yields "
-"kf@test.de."
+msgid "Use {value} for the value (e.g. KF); {value}@test.de yields KF@test.de. Use {value_lower} for lowercase, e.g. {value_lower}@test.de yields kf@test.de."
 msgstr ""
 
 #: app/templates/reports/scheduled.html:26
@@ -20739,9 +20221,7 @@ msgid "Integration Setup (Optional)"
 msgstr ""
 
 #: app/templates/setup/initial_setup.html:83
-msgid ""
-"Configure OAuth credentials now to enable calendar and other "
-"integrations. You can also configure these later in Admin → Settings."
+msgid "Configure OAuth credentials now to enable calendar and other integrations. You can also configure these later in Admin → Settings."
 msgstr ""
 
 #: app/templates/setup/initial_setup.html:89
@@ -20946,9 +20426,7 @@ msgid "View Full Details"
 msgstr ""
 
 #: app/templates/tasks/create.html:15
-msgid ""
-"Add a new task to your project to break down work into manageable "
-"components"
+msgid "Add a new task to your project to break down work into manageable components"
 msgstr ""
 
 #: app/templates/tasks/create.html:17 app/templates/tasks/edit.html:295
@@ -20966,9 +20444,7 @@ msgstr ""
 
 #: app/templates/tasks/create.html:40 app/templates/tasks/edit.html:59
 #: app/templates/tasks/edit.html:520
-msgid ""
-"Provide detailed information about the task, requirements, and any "
-"specific instructions..."
+msgid "Provide detailed information about the task, requirements, and any specific instructions..."
 msgstr ""
 
 #: app/templates/tasks/create.html:43 app/templates/tasks/edit.html:62
@@ -21003,9 +20479,7 @@ msgid "Optional: Assign this task to a team member"
 msgstr ""
 
 #: app/templates/tasks/create.html:125 app/templates/tasks/edit.html:146
-msgid ""
-"Optional: Color for this task on the Gantt chart. If unset, the project "
-"color is used. Pick or enter a hex code (e.g. #3b82f6)."
+msgid "Optional: Color for this task on the Gantt chart. If unset, the project color is used. Pick or enter a hex code (e.g. #3b82f6)."
 msgstr ""
 
 #: app/templates/tasks/create.html:140
@@ -21169,9 +20643,7 @@ msgstr ""
 
 #: app/templates/tasks/list.html:229
 #, python-brace-format
-msgid ""
-"Cannot delete task \"{name}\" because it has time entries. Please delete "
-"the time entries first."
+msgid "Cannot delete task \"{name}\" because it has time entries. Please delete the time entries first."
 msgstr ""
 
 #: app/templates/tasks/list.html:412 app/templates/tasks/view.html:39
@@ -21475,9 +20947,7 @@ msgid "Worked Time"
 msgstr ""
 
 #: app/templates/timer/manual_entry.html:98
-msgid ""
-"Optional: enter HH:MM for duration. You can combine with Start Date/Time "
-"to log time on a specific day."
+msgid "Optional: enter HH:MM for duration. You can combine with Start Date/Time to log time on a specific day."
 msgstr ""
 
 #: app/templates/timer/manual_entry.html:113
@@ -21701,9 +21171,7 @@ msgid "Time Rounding Preferences"
 msgstr ""
 
 #: app/templates/user/settings.html:147
-msgid ""
-"Configure how your time entries are rounded. This affects how durations "
-"are calculated when you stop timers."
+msgid "Configure how your time entries are rounded. This affects how durations are calculated when you stop timers."
 msgstr ""
 
 #: app/templates/user/settings.html:157
@@ -21731,9 +21199,7 @@ msgid "Overtime Settings"
 msgstr ""
 
 #: app/templates/user/settings.html:209
-msgid ""
-"Set your standard working hours per day. Any time worked beyond this will"
-" be counted as overtime."
+msgid "Set your standard working hours per day. Any time worked beyond this will be counted as overtime."
 msgstr ""
 
 #: app/templates/user/settings.html:215
@@ -21749,9 +21215,7 @@ msgid "How it works"
 msgstr ""
 
 #: app/templates/user/settings.html:233
-msgid ""
-"If you work more than your standard hours in a day, the extra time will "
-"be tracked as overtime in reports and analytics."
+msgid "If you work more than your standard hours in a day, the extra time will be tracked as overtime in reports and analytics."
 msgstr ""
 
 #: app/templates/user/settings.html
@@ -21779,8 +21243,7 @@ msgid "e.g. 20 for a part-time week, 40 for full-time"
 msgstr ""
 
 #: app/templates/user/settings.html
-msgid ""
-"Overtime is calculated per week: any hours beyond your standard hours per week count as overtime. Suited for contracts based on weekly hours."
+msgid "Overtime is calculated per week: any hours beyond your standard hours per week count as overtime. Suited for contracts based on weekly hours."
 msgstr ""
 
 #: app/routes/user.py
@@ -21832,9 +21295,7 @@ msgid "Support visibility"
 msgstr ""
 
 #: app/templates/user/settings.html:306
-msgid ""
-"You can hide donate and support buttons and the support banner by "
-"entering a valid code."
+msgid "You can hide donate and support buttons and the support banner by entering a valid code."
 msgstr ""
 
 #: app/templates/user/settings.html:311
@@ -21931,9 +21392,7 @@ msgstr ""
 
 #: app/templates/weekly_goals/create.html:74
 #: app/templates/weekly_goals/edit.html:74
-msgid ""
-"If checked, the goal will only count Monday through Friday. Week ends on "
-"Friday instead of Sunday."
+msgid "If checked, the goal will only count Monday through Friday. Week ends on Friday instead of Sunday."
 msgstr ""
 
 #: app/templates/weekly_goals/create.html:88
@@ -21966,9 +21425,7 @@ msgid "Typical full-time: 40 hours per week (8 hours/day, 5 days)"
 msgstr ""
 
 #: app/templates/weekly_goals/create.html:151
-msgid ""
-"Use \"Exclude weekends\" for a 5-day work week (Monday-Friday) instead of"
-" 7 days"
+msgid "Use \"Exclude weekends\" for a 5-day work week (Monday-Friday) instead of 7 days"
 msgstr ""
 
 #: app/templates/weekly_goals/edit.html:3
