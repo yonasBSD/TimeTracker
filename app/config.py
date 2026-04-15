@@ -227,6 +227,14 @@ class Config:
         github_run_number = os.getenv("GITHUB_RUN_NUMBER")
         APP_VERSION = f"dev-{github_run_number}" if github_run_number else "3.1.0"
 
+    # GitHub release check (admin update notification). GITHUB_RELEASES_TOKEN is optional; never log it.
+    VERSION_CHECK_GITHUB_REPO = os.getenv("VERSION_CHECK_GITHUB_REPO", "DRYTRIX/TimeTracker").strip()
+    VERSION_CHECK_GITHUB_CACHE_TTL = int(os.getenv("VERSION_CHECK_GITHUB_CACHE_TTL", "43200"))  # 12h
+    VERSION_CHECK_GITHUB_STALE_TTL = int(os.getenv("VERSION_CHECK_GITHUB_STALE_TTL", "604800"))  # 7d
+    VERSION_CHECK_HTTP_TIMEOUT = int(os.getenv("VERSION_CHECK_HTTP_TIMEOUT", "10"))
+    GITHUB_RELEASES_TOKEN = os.getenv("GITHUB_RELEASES_TOKEN", "").strip() or None
+    ENABLE_PRE_RELEASE_NOTIFICATIONS = os.getenv("ENABLE_PRE_RELEASE_NOTIFICATIONS", "false").lower() == "true"
+
 
 class DevelopmentConfig(Config):
     """Development configuration"""

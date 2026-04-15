@@ -201,6 +201,54 @@ GET /api/v1/health
 
 Check if the API is operational. No authentication required.
 
+### Admin version check (web JSON under `/api`)
+
+These routes live on the **legacy session JSON blueprint** (same prefix style as `/api/health` in the app). They are **admin-only** (`User.is_admin`, including RBAC admin roles).
+
+**Authentication:** browser **session cookie** (same-origin `fetch` after login) **or** an **API token** (`Authorization: Bearer tt_…` or `X-API-Key`). No dedicated scope is required; the server checks that the authenticated user is an administrator.
+
+#### Check installed version against latest GitHub release
+
+```
+GET /api/version/check
+```
+
+Compares the running instance version to the latest published release on GitHub (see [Version management — admin update notification](../admin/deployment/VERSION_MANAGEMENT.md#admin-github-update-notification) for configuration and caching). Returns `update_available: false` when the current install is not a comparable semantic version (for example some `dev-*` tags), when GitHub cannot be reached and no stale cache exists, or when the user has dismissed this release version.
+
+**Responses:** `401` if unauthenticated, `403` if not admin.
+
+**Example (Bearer):**
+
+```bash
+curl -s -H "Authorization: Bearer YOUR_API_TOKEN" \
+     https://your-domain.com/api/version/check
+```
+
+**Response (200):**
+
+```json
+{
+  "update_available": true,
+  "current_version": "4.0.0",
+  "latest_version": "4.1.0",
+  "release_notes": "…",
+  "published_at": "2026-04-01T10:00:00Z",
+  "release_url": "https://github.com/DRYTRIX/TimeTracker/releases/tag/v4.1.0"
+}
+```
+
+#### Dismiss update prompt for a release version
+
+```
+POST /api/version/dismiss
+```
+
+**Body (JSON):** `{ "latest_version": "4.1.0" }` (with or without a leading `v`; stored normalized).
+
+Persists `dismissed_release_version` for the current user so `GET /api/version/check` returns `update_available: false` until a newer release appears. Returns `{ "ok": true }` on success, `400` if `latest_version` is missing or not a valid semantic version string.
+
+The web UI also mirrors dismissal in `localStorage` (`tt_dismissed_release_version`) as a client-side fallback; the database remains authoritative for `update_available`.
+
 ### Search
 
 #### Global Search

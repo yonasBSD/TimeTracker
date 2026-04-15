@@ -174,9 +174,14 @@ def register_context_processors(app):
                 user_stats = {}
                 support_banner_suppressed = False
 
+        is_admin_user = bool(
+            getattr(current_user, "is_authenticated", False) and getattr(current_user, "is_admin", False)
+        )
+
         return {
             "app_name": "Time Tracker",
             "app_version": version_value,
+            "is_admin_user": is_admin_user,
             "timezone": timezone_name,
             "timezone_offset": get_timezone_offset_for_timezone(timezone_name),
             "user_timezone": user_timezone,

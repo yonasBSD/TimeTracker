@@ -23,6 +23,8 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     theme_preference = db.Column(db.String(10), default=None, nullable=True)  # 'light' | 'dark' | None=system
     preferred_language = db.Column(db.String(8), default=None, nullable=True)  # e.g., 'en', 'de'
+    # Admin update popup: normalized semver of last "don't show again" GitHub release
+    dismissed_release_version = db.Column(db.String(64), nullable=True)
     oidc_sub = db.Column(db.String(255), nullable=True)
     oidc_issuer = db.Column(db.String(255), nullable=True)
     avatar_filename = db.Column(db.String(255), nullable=True)
