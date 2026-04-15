@@ -118,7 +118,12 @@ def search_clients(query: str) -> List[Client]:
 
     return (
         Client.query.filter(
-            or_(Client.name.ilike(search_term), Client.email.ilike(search_term), Client.company.ilike(search_term))
+            or_(
+                Client.name.ilike(search_term),
+                Client.email.ilike(search_term),
+                Client.description.ilike(search_term),
+                Client.contact_person.ilike(search_term),
+            )
         )
         .order_by(Client.name)
         .all()

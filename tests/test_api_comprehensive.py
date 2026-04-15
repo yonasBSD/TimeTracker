@@ -144,27 +144,25 @@ def test_get_invoice_details(authenticated_client, invoice):
 @pytest.mark.api
 @pytest.mark.integration
 def test_get_time_report(authenticated_client):
-    """Test getting time report."""
-    response = authenticated_client.get(
-        "/api/reports/time",
-        query_string={
-            "start_date": (datetime.utcnow() - timedelta(days=7)).strftime("%Y-%m-%d"),
-            "end_date": datetime.utcnow().strftime("%Y-%m-%d"),
-        },
-    )
+    """Test hours-by-day analytics (replaces removed /api/reports/time)."""
+    response = authenticated_client.get("/api/analytics/hours-by-day", query_string={"days": 7})
 
-    # Should return report or appropriate error
-    assert response.status_code in [200, 404, 500]
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "labels" in data
+    assert "datasets" in data
 
 
 @pytest.mark.api
 @pytest.mark.integration
 def test_get_project_report(authenticated_client, project):
-    """Test getting project report."""
-    response = authenticated_client.get(f"/api/reports/projects/{project.id}")
+    """Test hours-by-project analytics (replaces removed /api/reports/projects/<id>)."""
+    response = authenticated_client.get("/api/analytics/hours-by-project", query_string={"days": 7})
 
-    # Should return report or appropriate error
-    assert response.status_code in [200, 404]
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "labels" in data
+    assert "datasets" in data
 
 
 # ============================================================================

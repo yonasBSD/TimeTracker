@@ -38,6 +38,8 @@ def get_version_from_setup():
     This function reads setup.py at runtime to get the current version.
     All other code should reference this function, not define versions themselves.
 
+    Override at runtime with TIMETRACKER_VERSION or APP_VERSION (e.g. CI/containers).
+
     This function tries multiple paths to find setup.py to work correctly
     in both production and development modes.
 
@@ -46,6 +48,10 @@ def get_version_from_setup():
     """
     import os
     import re
+
+    env_version = (os.environ.get("TIMETRACKER_VERSION") or os.environ.get("APP_VERSION") or "").strip()
+    if env_version:
+        return env_version
 
     # Try multiple possible paths to setup.py
     possible_paths = []

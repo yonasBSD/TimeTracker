@@ -22,8 +22,8 @@ def out_of_scope_entities(app, user):
             name=f"Other {marker} Corp",
             email="other-zeta@example.com",
             default_hourly_rate=Decimal("80.00"),
-            status="active",
         )
+        other_client.status = "active"
         db.session.add(other_client)
         db.session.flush()
         other_project = Project(
@@ -37,9 +37,9 @@ def out_of_scope_entities(app, user):
         db.session.add(other_project)
         db.session.flush()
         other_task = Task(
-            name=f"{marker} Hidden Task",
+            other_project.id,
+            f"{marker} Hidden Task",
             description="out of scope task",
-            project_id=other_project.id,
             priority="medium",
             created_by=user.id,
             status="todo",
@@ -306,15 +306,15 @@ class TestV1SearchAPI:
         entry_results = [r for r in data["results"] if r["type"] == "entry"]
         assert any(r["id"] == entry.id for r in entry_results)
 
-    def test_search_clients(self, api_client, client):
-        """Test searching for clients"""
-        response = api_client.get("/api/v1/search", query_string={"q": client.name[:3]})
+    def test_search_clients(self, api_client, test_client):
+        """Test searching for clients (test_client is the Client model fixture, not the HTTP client)."""
+        response = api_client.get("/api/v1/search", query_string={"q": test_client.name[:3]})
 
         assert response.status_code == 200
         data = response.get_json()
         client_results = [r for r in data["results"] if r["type"] == "client"]
         assert len(client_results) > 0
-        assert any(r["id"] == client.id for r in client_results)
+        assert any(r["id"] == test_client.id for r in client_results)
 
     def test_search_tasks(self, api_client, task):
         """Test searching for tasks"""

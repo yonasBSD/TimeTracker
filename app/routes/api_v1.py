@@ -67,6 +67,7 @@ from app.utils.api_responses import (
     validation_error_response,
 )
 from app.utils.error_handling import safe_log
+from app.utils.scope_filter import apply_client_scope, apply_project_scope
 from app.utils.timezone import get_app_timezone, parse_local_datetime, utc_to_local
 
 api_v1_bp = Blueprint("api_v1", __name__, url_prefix="/api/v1")
@@ -4508,7 +4509,6 @@ def search():
 
     # Get authenticated user from API token
     user = g.api_user
-    from app.utils.scope_filter import apply_client_scope, apply_project_scope
 
     # Search projects (scoped for subcontractors)
     if "project" in search_types:
@@ -4567,7 +4567,8 @@ def search():
                 or_(
                     Client.name.ilike(search_pattern),
                     Client.email.ilike(search_pattern),
-                    Client.company.ilike(search_pattern),
+                    Client.description.ilike(search_pattern),
+                    Client.contact_person.ilike(search_pattern),
                 )
             )
             clients_query = apply_client_scope(Client, clients_query, user)
@@ -4580,7 +4581,7 @@ def search():
                         "category": "client",
                         "id": client.id,
                         "title": client.name,
-                        "description": client.company or client.email or "",
+                        "description": (client.description or client.contact_person or client.email or ""),
                         "url": f"/clients/{client.id}",
                         "badge": "Client",
                     }

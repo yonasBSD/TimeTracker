@@ -65,7 +65,6 @@ class ClientService:
             phone=phone,
             address=address,
             default_hourly_rate=default_hourly_rate,
-            status="active",
             custom_fields=custom_fields,
         )
 

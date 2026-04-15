@@ -1,6 +1,8 @@
 """API Documentation with Swagger UI"""
 
-from flask import Blueprint, jsonify, render_template_string
+from flask import Blueprint, current_app, jsonify, render_template_string
+
+from app.config.analytics_defaults import get_version_from_setup
 from flask_swagger_ui import get_swaggerui_blueprint
 
 # Create blueprint for serving OpenAPI spec
@@ -29,11 +31,15 @@ swaggerui_blueprint = get_swaggerui_blueprint(
 @api_docs_bp.route("/api/openapi.json")
 def openapi_spec():
     """Serve the OpenAPI specification"""
+    app_version = get_version_from_setup()
+    if app_version == "unknown":
+        app_version = current_app.config.get("APP_VERSION", "1.0.0")
+
     spec = {
         "openapi": "3.0.0",
         "info": {
             "title": "TimeTracker REST API",
-            "version": "4.20.9",
+            "version": app_version,
             "description": """
 # TimeTracker REST API
 

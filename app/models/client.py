@@ -59,6 +59,7 @@ class Client(db.Model):
         company=None,
         prepaid_hours_monthly=None,
         prepaid_reset_day=1,
+        custom_fields=None,
     ):
         """Create a Client.
 
@@ -80,6 +81,7 @@ class Client(db.Model):
             self.prepaid_reset_day = max(1, min(28, reset_day))
         except (TypeError, ValueError):
             self.prepaid_reset_day = 1
+        self.custom_fields = custom_fields
 
     def __repr__(self):
         return f"<Client {self.name}>"

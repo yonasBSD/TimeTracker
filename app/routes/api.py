@@ -164,7 +164,7 @@ def search():
     types_filter = request.args.get("types", "").strip().lower()
 
     if not query or len(query) < 2:
-        return jsonify({"results": [], "query": query})
+        return jsonify({"results": [], "query": query, "count": 0})
 
     # Parse types filter
     allowed_types = {"project", "task", "client", "entry"}
@@ -234,7 +234,8 @@ def search():
                 or_(
                     Client.name.ilike(search_pattern),
                     Client.email.ilike(search_pattern),
-                    Client.company.ilike(search_pattern),
+                    Client.description.ilike(search_pattern),
+                    Client.contact_person.ilike(search_pattern),
                 )
             )
             clients_query = apply_client_scope(Client, clients_query, current_user)
@@ -247,7 +248,7 @@ def search():
                         "category": "client",
                         "id": client.id,
                         "title": client.name,
-                        "description": client.company or client.email or "",
+                        "description": (client.description or client.contact_person or client.email or ""),
                         "url": f"/clients/{client.id}",
                         "badge": "Client",
                     }
