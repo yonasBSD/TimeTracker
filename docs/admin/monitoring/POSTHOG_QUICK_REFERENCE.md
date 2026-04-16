@@ -38,49 +38,9 @@ identify_user(user.id, {
 })
 ```
 
-### Check Feature Flag
-```python
-from app.utils.posthog_features import get_feature_flag
+### Application toggles (server-side)
 
-if get_feature_flag(user.id, "new-feature"):
-    # Enable feature
-    pass
-```
-
-### Protect Route with Flag
-```python
-from app.utils.posthog_features import feature_flag_required
-
-@app.route('/beta/feature')
-@feature_flag_required('beta-access')
-def beta_feature():
-    return "Beta!"
-```
-
-### Get Flag Payload (Remote Config)
-```python
-from app.utils.posthog_features import get_feature_flag_payload
-
-config = get_feature_flag_payload(user.id, "app-config")
-if config:
-    theme = config.get("theme", "light")
-```
-
-### Inject Flags to Frontend
-```python
-from app.utils.posthog_features import inject_feature_flags_to_frontend
-
-@app.route('/dashboard')
-def dashboard():
-    flags = inject_feature_flags_to_frontend(current_user.id)
-    return render_template("dashboard.html", feature_flags=flags)
-```
-
-```html
-<script>
-    window.featureFlags = {{ feature_flags|tojson }};
-</script>
-```
+TimeTracker does **not** ship a PostHog-backed feature-flag API. Enable or restrict behavior with **environment variables** and [`app/config.py`](../../../app/config.py) (for example `DEMO_MODE`, `ALLOW_SELF_REGISTER`, `ENABLE_TELEMETRY`). Per-user UI options live on the user model in the database.
 
 ## 📊 Person Properties
 
@@ -99,39 +59,6 @@ def dashboard():
 - `deployment_method` - docker/native
 - `timezone` - Installation timezone
 - `first_seen_version` - Original version (set once)
-
-## 🎯 Feature Flag Examples
-
-### Gradual Rollout
-```
-Key: new-ui
-Rollout: 10% → 25% → 50% → 100%
-```
-
-### Target Admins Only
-```
-Key: admin-tools
-Condition: is_admin = true
-```
-
-### Platform Specific
-```
-Key: linux-optimizations
-Condition: current_platform = "Linux"
-```
-
-### Version Specific
-```
-Key: v3-features
-Condition: current_version >= "3.0.0"
-```
-
-### Kill Switch
-```
-Key: enable-exports
-Default: true
-Use in code: default=True
-```
 
 ## 📈 Useful PostHog Queries
 
@@ -187,16 +114,6 @@ Compare: All platforms
 
 ## 🧪 Testing
 
-### Mock Feature Flags
-```python
-from unittest.mock import patch
-
-def test_with_feature_enabled():
-    with patch('app.utils.posthog_features.get_feature_flag', return_value=True):
-        # Test with feature enabled
-        pass
-```
-
 ### Mock Track Events
 ```python
 @patch('app.track_event')
@@ -212,36 +129,7 @@ def test_event_tracking(mock_track):
 - **Analytics Docs**: [docs/analytics.md](docs/analytics.md)
 - **PostHog Docs**: https://posthog.com/docs
 
-## 🎯 Predefined Feature Flags
-
-```python
-from app.utils.posthog_features import FeatureFlags
-
-# Beta features
-FeatureFlags.BETA_FEATURES
-FeatureFlags.NEW_DASHBOARD
-FeatureFlags.ADVANCED_REPORTS
-
-# Experiments
-FeatureFlags.TIMER_UI_EXPERIMENT
-FeatureFlags.ONBOARDING_FLOW
-
-# Rollouts
-FeatureFlags.NEW_ANALYTICS_PAGE
-FeatureFlags.BULK_OPERATIONS
-
-# Kill switches
-FeatureFlags.ENABLE_EXPORTS
-FeatureFlags.ENABLE_API
-FeatureFlags.ENABLE_WEBSOCKETS
-
-# Premium
-FeatureFlags.CUSTOM_REPORTS
-FeatureFlags.API_ACCESS
-FeatureFlags.INTEGRATIONS
-```
-
 ---
 
-**Quick Tip:** Start with small rollouts (10%) and gradually increase as you gain confidence!
+**Quick Tip:** Use person properties and cohorts in PostHog for analysis; gate behavior in the app with config and env vars.
 

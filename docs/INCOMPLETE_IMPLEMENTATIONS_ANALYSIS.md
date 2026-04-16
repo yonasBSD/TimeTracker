@@ -115,14 +115,9 @@ This document provides a comprehensive analysis of incomplete implementations, m
 #### 2.2 Telemetry (`app/utils/telemetry.py`)
 - **Status:** Implementation appears complete.
 
-#### 2.3 PostHog Features (`app/utils/posthog_features.py`)
-- **Line 202-205**: Placeholder implementations
-  ```python
-  # This is a placeholder - implement based on your needs
-  pass
-  ```
-  **Impact:** PostHog feature flags may not be fully functional.
-  **Priority:** Low
+#### 2.3 PostHog server-side feature flags (removed)
+
+The dedicated PostHog feature-flag helper under `app/utils/` was **removed**. Remote PostHog feature-flag evaluation is not part of this application; deployment behavior is controlled with **environment variables** and `app/config.py` instead.
 
 #### 2.4 Environment Validation (`app/utils/env_validation.py`)
 - **Line 14**: `pass` statement
@@ -455,10 +450,6 @@ This document provides a comprehensive analysis of incomplete implementations, m
 3. **Toast Manager Info Method** (`app/static/enhanced-ui.js:873`)
    - Implement info toast notifications
    - **Estimated Effort:** 1-2 hours
-
-4. **PostHog Feature Flags** (`app/utils/posthog_features.py:202`)
-   - Complete PostHog feature flag implementation
-   - **Estimated Effort:** 4-6 hours
 
 ---
 

@@ -4,14 +4,15 @@ This guide explains how to leverage PostHog's advanced features in TimeTracker f
 
 ## 📊 What's Included
 
-TimeTracker now uses these PostHog features:
+TimeTracker uses these PostHog-related analytics capabilities where configured:
 
 1. **Person Properties** - Track user and installation characteristics
 2. **Group Analytics** - Segment by version, platform, etc.
-3. **Feature Flags** - Gradual rollouts and A/B testing
-4. **Identify Calls** - Rich user profiles in PostHog
-5. **Enhanced Event Properties** - Contextual data for better analysis
-6. **Group Identification** - Cohort analysis by installation type
+3. **Identify Calls** - Rich user profiles in PostHog
+4. **Enhanced Event Properties** - Contextual data for better analysis
+5. **Group Identification** - Cohort analysis by installation type
+
+**Server-side feature gates** (rollouts, kill switches, route guards) are **not** implemented via PostHog in this codebase. Use environment variables and [`app/config.py`](../../../app/config.py) instead.
 
 ## 🎯 Person Properties
 
@@ -102,109 +103,19 @@ Installations are automatically grouped by:
 - "How many Linux installations are active?"
 - "Which Python versions are most common on Windows?"
 
-## 🚀 Feature Flags
+## 🧪 Experiments and measurement
 
-### Basic Usage
+There is no in-app PostHog feature-flag or variant API. To compare behaviors, implement variants in your own code (for example driven by `app.config`) and **distinguish them in analytics** with explicit properties on `track_event` calls (see below).
 
-Check if a feature is enabled:
-
-```python
-from app.utils.posthog_features import get_feature_flag
-
-if get_feature_flag(user.id, "new-dashboard"):
-    return render_template("dashboard_v2.html")
-else:
-    return render_template("dashboard.html")
-```
-
-### Route Protection
-
-Require a feature flag for entire routes:
+### Track meaningful actions
 
 ```python
-from app.utils.posthog_features import feature_flag_required
+from app import track_event
 
-@app.route('/beta/advanced-analytics')
-@feature_flag_required('beta-features')
-def advanced_analytics():
-    return render_template("analytics_beta.html")
-```
-
-### Remote Configuration
-
-Use feature flag payloads for configuration:
-
-```python
-from app.utils.posthog_features import get_feature_flag_payload
-
-config = get_feature_flag_payload(user.id, "dashboard-config")
-if config:
-    theme = config.get("theme", "light")
-    widgets = config.get("enabled_widgets", [])
-```
-
-### Frontend Feature Flags
-
-Inject flags into JavaScript:
-
-```python
-# In your view function
-from app.utils.posthog_features import inject_feature_flags_to_frontend
-
-@app.route('/dashboard')
-def dashboard():
-    feature_flags = inject_feature_flags_to_frontend(current_user.id)
-    return render_template("dashboard.html", feature_flags=feature_flags)
-```
-
-```html
-<!-- In your template -->
-<script>
-    window.featureFlags = {{ feature_flags|tojson }};
-    
-    if (window.featureFlags['new-timer-ui']) {
-        // Load new timer UI
-    }
-</script>
-```
-
-### Predefined Feature Flags
-
-Use the `FeatureFlags` class to avoid typos:
-
-```python
-from app.utils.posthog_features import FeatureFlags
-
-if get_feature_flag(user.id, FeatureFlags.ADVANCED_REPORTS):
-    # Enable advanced reports
-    pass
-```
-
-## 🧪 A/B Testing & Experiments
-
-### Track Experiment Variants
-
-```python
-from app.utils.posthog_features import get_active_experiments
-
-experiments = get_active_experiments(user.id)
-# {"timer-ui-experiment": "variant-b"}
-
-if experiments.get("timer-ui-experiment") == "variant-b":
-    # Show variant B
-    pass
-```
-
-### Track Feature Interactions
-
-```python
-from app.utils.posthog_features import track_feature_flag_interaction
-
-track_feature_flag_interaction(
+track_event(
     user.id,
-    "new-dashboard",
-    "clicked_export_button",
-    {"export_type": "csv", "rows": 100}
+    "export.completed",
+    {"export_type": "csv", "rows": 100, "experiment_variant": "b"},
 )
 ```
 
@@ -269,41 +180,6 @@ Event: timer.started
 Breakdown: Hour of day
 ```
 
-## 🎨 Setting Up Feature Flags in PostHog
-
-### 1. Create a Feature Flag
-
-1. Go to PostHog → Feature Flags
-2. Click "New feature flag"
-3. Set key (e.g., `new-dashboard`)
-4. Configure rollout:
-   - **Boolean**: On/off for everyone
-   - **Percentage**: Gradual rollout (e.g., 10% of users)
-   - **Person properties**: Target specific users
-   - **Groups**: Target specific platforms/versions
-
-### 2. Target Specific Users
-
-**Example: Enable for admins only**
-```
-Match person properties:
-  is_admin = true
-```
-
-**Example: Enable for Docker installations**
-```
-Match group properties:
-  deployment_method = "docker"
-```
-
-### 3. Gradual Rollout
-
-1. Start at 0% (disabled)
-2. Roll out to 10% (testing)
-3. Increase to 50% (beta)
-4. Increase to 100% (full release)
-5. Remove flag from code
-
 ## 🔐 Person Properties for Segmentation
 
 ### Available Person Properties
@@ -360,81 +236,40 @@ Person properties:
 4. **Timer Usage** - `timer.started` events over time
 5. **Export Activity** - `export.csv` events by user cohort
 
-## 🚨 Kill Switches
+## 🚨 Kill switches and rollouts (application)
 
-Use feature flags as emergency kill switches:
+To disable or limit behavior for **all users** of an installation, use **configuration**: environment variables and [`app/config.py`](../../../app/config.py). That requires a deploy or config change, which is the supported model for this codebase.
 
-```python
-from app.utils.posthog_features import get_feature_flag, FeatureFlags
+## 🧑‍💻 Development best practices
 
-@app.route('/api/export')
-def api_export():
-    if not get_feature_flag(current_user.id, FeatureFlags.ENABLE_EXPORTS, default=True):
-        abort(503, "Exports temporarily disabled")
-    
-    # Proceed with export
-```
+### 1. Centralize deployment toggles
 
-**Benefits:**
-- Instantly disable problematic features
-- No deployment needed
-- Can target specific user segments
-- Helps during incidents
+Add booleans or strings to `Config` in `app/config.py` and read them from the environment with safe defaults.
 
-## 🧑‍💻 Development Best Practices
+### 2. Default to safe values
 
-### 1. Define Flags Centrally
+Prefer secure or conservative defaults for production (for example registration off unless explicitly enabled).
 
-```python
-# In app/utils/posthog_features.py
-class FeatureFlags:
-    MY_NEW_FEATURE = "my-new-feature"
-```
+### 3. Document env vars
 
-### 2. Default to Safe Values
+When you add a new toggle, document the variable in deployment or admin docs so operators know how to set it.
 
-```python
-# Default to False for new features
-if get_feature_flag(user.id, "risky-feature", default=False):
-    # Enable risky feature
-```
+### 4. Test behavior
 
-### 3. Clean Up Old Flags
+Test both branches of a toggle in unit tests by patching `current_app.config` or the setting your view reads.
 
-Once a feature is fully rolled out:
-1. Remove the flag check from code
-2. Delete the flag in PostHog
-3. Document in release notes
-
-### 4. Test Flag Behavior
-
-```python
-def test_feature_flag():
-    with mock.patch('app.utils.posthog_features.get_feature_flag') as mock_flag:
-        mock_flag.return_value = True
-        # Test with flag enabled
-        
-        mock_flag.return_value = False
-        # Test with flag disabled
-```
-
-## 📚 Additional Resources
+## 📚 Additional resources
 
 - **PostHog Docs**: https://posthog.com/docs
-- **Feature Flags**: https://posthog.com/docs/feature-flags
 - **Group Analytics**: https://posthog.com/docs/data/group-analytics
 - **Person Properties**: https://posthog.com/docs/data/persons
 - **Experiments**: https://posthog.com/docs/experiments
 
-## 🎉 Benefits Summary
+## 🎉 Benefits summary
 
-Using these PostHog features, you can now:
+With the analytics integration, you can:
 
 ✅ **Segment users** by role, auth method, platform, version  
-✅ **Gradually roll out** features to test with small groups  
-✅ **A/B test** different UI variations  
-✅ **Kill switches** for emergency feature disabling  
-✅ **Remote config** without deploying code changes  
 ✅ **Cohort analysis** to understand user behavior  
 ✅ **Track updates** and version adoption patterns  
 ✅ **Monitor health** of different installation types  
