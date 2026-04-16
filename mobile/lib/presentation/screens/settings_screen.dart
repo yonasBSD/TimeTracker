@@ -6,6 +6,7 @@ import '../../domain/usecases/sync_usecase.dart';
 import '../providers/api_provider.dart';
 import '../../utils/auth/auth_service.dart';
 import '../providers/theme_mode_provider.dart';
+import 'package:timetracker_mobile/data/api/api_client.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -104,6 +105,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ref.read(themeModeProvider.notifier).setMode(value);
   }
 
+  /// Match login flow: optional scheme, trim trailing slashes for stored base URL.
+  String _normalizeServerUrlForSettings(String input) {
+    var t = input.trim();
+    if (t.isEmpty) return t;
+    final lower = t.toLowerCase();
+    if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+      t = 'https://$t';
+    }
+    while (t.endsWith('/')) {
+      t = t.substring(0, t.length - 1);
+    }
+    return t;
+  }
+
   Future<void> _showEditServerUrlDialog() async {
     final controller = TextEditingController(text: _serverUrl ?? '');
     final result = await showDialog<String>(
@@ -140,10 +155,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return;
     }
 
-    await AppConfig.setServerUrl(result);
+    final normalized = _normalizeServerUrlForSettings(result);
+    final token = await AuthService.getToken();
+    if (token != null && token.isNotEmpty) {
+      final trustedHosts = await AppConfig.getTrustedInsecureHosts();
+      final probe = ApiClient(baseUrl: normalized, trustedInsecureHosts: trustedHosts);
+      await probe.setAuthToken(token);
+      final validation = await probe.validateTokenRaw();
+      final status = validation.statusCode ?? 0;
+      if (status != 200) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              status == 401
+                  ? 'This server did not accept your saved token (401). Sign out, then sign in again on the new server.'
+                  : 'Could not verify your token on this server (HTTP $status). Server URL was not changed.',
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    await AppConfig.setServerUrl(normalized);
     ref.invalidate(apiClientProvider);
     if (mounted) {
-      setState(() => _serverUrl = result);
+      setState(() => _serverUrl = normalized);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Server URL updated')),
       );

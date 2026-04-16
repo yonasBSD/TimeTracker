@@ -185,11 +185,14 @@ GET /api/v1/info
 
 Returns API version and available endpoints. No authentication required.
 
+`setup_required` is a boolean: when `true`, the installation’s initial web setup is not complete; finish setup in the browser. Desktop and mobile apps use this (and JSON shape) to avoid treating arbitrary HTTP 200 pages as TimeTracker. During that phase, `GET /api/v1/info`, `GET /api/v1/health`, and `POST /api/v1/auth/login` are not redirected to the HTML setup wizard so clients still receive JSON.
+
 **Response:**
 ```json
 {
   "api_version": "v1",
   "app_version": "1.0.0",
+  "setup_required": false,
   "documentation_url": "/api/docs",
   "endpoints": {
     "projects": "/api/v1/projects",

@@ -23,26 +23,40 @@
       </div>
     </div>
 
-    <!-- Login Screen -->
+    <!-- Login Screen (first-run wizard: server, then API token) -->
     <div id="login-screen" class="screen">
       <div class="login-container">
         <div class="login-header">
           <img src="../assets/logo.svg" alt="TimeTracker Logo" class="logo-image" id="login-logo">
           <h1>TimeTracker</h1>
-          <p>Connect to your server</p>
+          <p id="login-subtitle">Connect to your server</p>
         </div>
-        <form id="login-form">
+        <div id="wizard-step-server" class="login-wizard-step">
+          <p class="wizard-step-label" id="wizard-step-server-label">Step 1 of 2 — Server</p>
           <div class="form-group">
             <label for="server-url">Server URL</label>
-            <input type="url" id="server-url" required placeholder="https://your-server.com">
+            <input type="text" id="server-url" required placeholder="https://192.168.1.50:5000" autocomplete="url" spellcheck="false">
+            <small>Include protocol and port if needed (e.g. <code>http://</code> or <code>https://</code>). Hostname only defaults to <code>https://</code> when you continue.</small>
           </div>
-          <div class="form-group">
-            <label for="api-token">API Token</label>
-            <input type="password" id="api-token" required placeholder="tt_...">
-            <small>Get your API token from Admin > Security & Access > Api-tokens</small>
+          <div class="form-group wizard-actions">
+            <button type="button" id="login-test-server-btn" class="btn btn-secondary">Test server</button>
+            <button type="button" id="login-wizard-continue" class="btn btn-primary" disabled>Continue to token</button>
           </div>
-          <button type="submit" class="btn btn-primary">Login</button>
-        </form>
+        </div>
+        <div id="wizard-step-token" class="login-wizard-step" style="display: none;">
+          <p class="wizard-step-label">Step 2 of 2 — API token</p>
+          <form id="login-form">
+            <div class="form-group">
+              <label for="api-token">API Token</label>
+              <input type="password" id="api-token" required placeholder="tt_..." autocomplete="off">
+              <small>From the web app: Admin → Security &amp; Access → API tokens</small>
+            </div>
+            <div class="form-group wizard-actions">
+              <button type="button" id="login-wizard-back" class="btn btn-secondary">Back</button>
+              <button type="submit" class="btn btn-primary">Log in</button>
+            </div>
+          </form>
+        </div>
         <div id="login-error" class="error-message"></div>
       </div>
     </div>

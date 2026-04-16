@@ -114,10 +114,16 @@ def api_info():
         # Fallback to config or default
         app_version = current_app.config.get("APP_VERSION", "1.0.0")
 
+    from app.utils.installation import get_installation_config
+
+    installation_config = get_installation_config()
+    setup_required = not installation_config.is_setup_complete()
+
     return jsonify(
         {
             "api_version": "v1",
             "app_version": app_version,
+            "setup_required": setup_required,
             "documentation_url": "/api/docs",
             "authentication": "API Token (Bearer or X-API-Key header)",
             "endpoints": {

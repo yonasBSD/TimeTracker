@@ -8,28 +8,32 @@ const state = require('./state');
 
 // Initialize app
 async function initApp() {
-  // Check if already logged in
-  const serverUrl = await storeGet('server_url');
+  const serverUrlRaw = await storeGet('server_url');
   const apiToken = await storeGet('api_token');
-  
+  const serverUrl = serverUrlRaw ? ApiClient.normalizeBaseUrl(String(serverUrlRaw)) : null;
+  if (serverUrl && serverUrl !== serverUrlRaw) {
+    await storeSet('server_url', serverUrl);
+  }
+
   if (serverUrl && apiToken) {
-    // Initialize API client
     state.apiClient = new ApiClient(serverUrl);
     await state.apiClient.setAuthToken(apiToken);
-    
-    // Validate token
-    const isValid = await state.apiClient.validateToken();
-    if (isValid) {
+
+    const session = await state.apiClient.validateSession();
+    if (session.ok) {
+      state.authFailureStreak = 0;
       await loadCurrentUserProfile();
+      updateConnectionStatus('connected');
       showMainScreen();
       loadDashboard();
     } else {
-      showLoginScreen();
+      state.apiClient = null;
+      showLoginScreen({ prefillServerUrl: serverUrl, sessionError: session });
     }
   } else {
-    showLoginScreen();
+    showLoginScreen({ prefillServerUrl: serverUrl || '' });
   }
-  
+
   setupEventListeners();
   startConnectionCheck();
   setupTrayListeners();
@@ -65,12 +69,22 @@ async function checkConnection() {
     updateConnectionStatus('disconnected');
     return;
   }
-  
-  try {
-    const isValid = await state.apiClient.validateToken();
-    updateConnectionStatus(isValid ? 'connected' : 'error');
-  } catch (error) {
-    updateConnectionStatus('error');
+
+  const session = await state.apiClient.validateSession();
+  if (session.ok) {
+    state.authFailureStreak = 0;
+    updateConnectionStatus('connected');
+    return;
+  }
+
+  updateConnectionStatus('error');
+  if (session.code === 'UNAUTHORIZED') {
+    state.authFailureStreak = (state.authFailureStreak || 0) + 1;
+    if (state.authFailureStreak >= 2 && document.getElementById('main-screen')?.classList.contains('active')) {
+      await forceRelogin(session.message || 'Your session is no longer valid. Please sign in again.');
+    }
+  } else {
+    state.authFailureStreak = 0;
   }
 }
 
@@ -86,8 +100,10 @@ async function loadCurrentUserProfile() {
       is_admin: Boolean(user.is_admin),
       can_approve: Boolean(user.is_admin) || roleCanApprove,
     };
-  } catch (_) {
+  } catch (err) {
+    console.warn('loadCurrentUserProfile failed:', err && err.message ? err.message : err);
     state.currentUserProfile = { id: null, is_admin: false, can_approve: false };
+    showError('Could not load your user profile. Some actions may be unavailable until the connection improves.');
   }
 }
 
@@ -119,12 +135,59 @@ function updateConnectionStatus(status) {
   statusEl.setAttribute('aria-label', label);
 }
 
+async function forceRelogin(message) {
+  state.authFailureStreak = 0;
+  const url = await storeGet('server_url');
+  await storeDelete('api_token');
+  state.apiClient = null;
+  if (state.isTimerRunning) {
+    state.isTimerRunning = false;
+    stopTimerPolling();
+  }
+  showLoginScreen({
+    prefillServerUrl: url || '',
+    openTokenStep: true,
+    bannerMessage: message,
+  });
+}
+
+function showWizardServerStep() {
+  const s1 = document.getElementById('wizard-step-server');
+  const s2 = document.getElementById('wizard-step-token');
+  if (s1) s1.style.display = '';
+  if (s2) s2.style.display = 'none';
+}
+
+function showWizardTokenStep() {
+  const s1 = document.getElementById('wizard-step-server');
+  const s2 = document.getElementById('wizard-step-token');
+  if (s1) s1.style.display = 'none';
+  if (s2) s2.style.display = '';
+}
+
+function resetLoginWizard() {
+  showWizardServerStep();
+  const cont = document.getElementById('login-wizard-continue');
+  if (cont) cont.disabled = true;
+  clearLoginError();
+}
+
+function clearLoginError() {
+  showLoginError('');
+}
+
 function setupEventListeners() {
   // Login form
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
     loginForm.addEventListener('submit', handleLogin);
   }
+  const loginTestServerBtn = document.getElementById('login-test-server-btn');
+  const loginWizardContinue = document.getElementById('login-wizard-continue');
+  const loginWizardBack = document.getElementById('login-wizard-back');
+  if (loginTestServerBtn) loginTestServerBtn.addEventListener('click', handleLoginTestServer);
+  if (loginWizardContinue) loginWizardContinue.addEventListener('click', handleLoginWizardContinue);
+  if (loginWizardBack) loginWizardBack.addEventListener('click', handleLoginWizardBack);
   
   // Navigation
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -213,58 +276,148 @@ function setupEventListeners() {
   if (expenseNextPageBtn) expenseNextPageBtn.addEventListener('click', () => changeExpensePage(1));
 }
 
+async function handleLoginTestServer() {
+  clearLoginError();
+  const raw = document.getElementById('server-url')?.value.trim() || '';
+  const normalizedInput = normalizeServerUrlInput(raw);
+  if (!normalizedInput || !isValidUrl(normalizedInput)) {
+    showLoginError('Enter a valid server URL (e.g. https://your-server.com or http://192.168.1.10:5000)');
+    return;
+  }
+  const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
+  const pub = await ApiClient.testPublicServerInfo(serverUrl);
+  if (!pub.ok) {
+    showLoginError(pub.message);
+    return;
+  }
+  showSuccess('TimeTracker server detected. Continue to enter your API token.');
+  const cont = document.getElementById('login-wizard-continue');
+  if (cont) cont.disabled = false;
+}
+
+async function handleLoginWizardContinue() {
+  clearLoginError();
+  const raw = document.getElementById('server-url')?.value.trim() || '';
+  const normalizedInput = normalizeServerUrlInput(raw);
+  if (!normalizedInput || !isValidUrl(normalizedInput)) {
+    showLoginError('Enter a valid server URL');
+    return;
+  }
+  const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
+  const pub = await ApiClient.testPublicServerInfo(serverUrl);
+  if (!pub.ok) {
+    showLoginError(pub.message);
+    return;
+  }
+  showWizardTokenStep();
+}
+
+function handleLoginWizardBack() {
+  clearLoginError();
+  showWizardServerStep();
+}
+
 async function handleLogin(e) {
   e.preventDefault();
-  
-  const serverUrl = document.getElementById('server-url').value.trim();
-  const apiToken = document.getElementById('api-token').value.trim();
-  const errorDiv = document.getElementById('login-error');
-  
-  // Validate
-  if (!serverUrl || !isValidUrl(serverUrl)) {
+
+  const raw = document.getElementById('server-url')?.value.trim() || '';
+  const normalizedInput = normalizeServerUrlInput(raw);
+  if (!normalizedInput || !isValidUrl(normalizedInput)) {
     showLoginError('Please enter a valid server URL');
     return;
   }
-  
+  const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
+
+  const apiToken = document.getElementById('api-token')?.value.trim() || '';
   if (!apiToken || !apiToken.startsWith('tt_')) {
-    showError('Please enter a valid API token (must start with tt_)');
+    showLoginError('Please enter a valid API token (must start with tt_)');
     return;
   }
-  
-  // Store credentials
+
+  const pub = await ApiClient.testPublicServerInfo(serverUrl);
+  if (!pub.ok) {
+    showLoginError(pub.message);
+    showWizardServerStep();
+    return;
+  }
+
   await storeSet('server_url', serverUrl);
   await storeSet('api_token', apiToken);
-  
-  // Initialize API client
+
   state.apiClient = new ApiClient(serverUrl);
   await state.apiClient.setAuthToken(apiToken);
-  
-    // Validate token
-    const isValid = await state.apiClient.validateToken();
-    if (isValid) {
-      await loadCurrentUserProfile();
-      updateConnectionStatus('connected');
-      showMainScreen();
-      loadDashboard();
+
+  const session = await state.apiClient.validateSession();
+  if (session.ok) {
+    state.authFailureStreak = 0;
+    await loadCurrentUserProfile();
+    updateConnectionStatus('connected');
+    showMainScreen();
+    loadDashboard();
+  } else {
+    updateConnectionStatus('error');
+    await storeDelete('api_token');
+    state.apiClient = null;
+    showLoginError(session.message || 'Login failed');
+    if (session.code === 'UNAUTHORIZED' || session.code === 'FORBIDDEN') {
+      const cont = document.getElementById('login-wizard-continue');
+      if (cont) cont.disabled = false;
+      showWizardTokenStep();
     } else {
-      updateConnectionStatus('error');
-      showLoginError('Invalid API token. Please check your token.');
-      await storeDelete('api_token');
+      showWizardServerStep();
     }
+  }
 }
 
 function showLoginError(message) {
   const errorDiv = document.getElementById('login-error');
-  if (errorDiv) {
-    errorDiv.textContent = message;
+  if (!errorDiv) return;
+  errorDiv.textContent = message || '';
+  if (message) {
     errorDiv.classList.add('show');
+  } else {
+    errorDiv.classList.remove('show');
   }
 }
 
-function showLoginScreen() {
+function showLoginScreen(options = {}) {
   document.getElementById('loading-screen').classList.remove('active');
   document.getElementById('login-screen').classList.add('active');
   document.getElementById('main-screen').classList.remove('active');
+  state.authFailureStreak = 0;
+
+  const su = document.getElementById('server-url');
+  if (su && options.prefillServerUrl !== undefined && options.prefillServerUrl !== null) {
+    su.value = String(options.prefillServerUrl || '');
+  }
+
+  if (options.openTokenStep) {
+    const cont = document.getElementById('login-wizard-continue');
+    if (cont) cont.disabled = false;
+    showWizardTokenStep();
+    if (options.bannerMessage) {
+      showLoginError(options.bannerMessage);
+    } else {
+      clearLoginError();
+    }
+    return;
+  }
+
+  if (options.sessionError) {
+    const se = options.sessionError;
+    if (se.code === 'UNAUTHORIZED' || se.code === 'FORBIDDEN') {
+      const cont = document.getElementById('login-wizard-continue');
+      if (cont) cont.disabled = false;
+      showWizardTokenStep();
+      showLoginError(se.message || 'Authentication failed');
+      return;
+    }
+    resetLoginWizard();
+    showLoginError(se.message || 'Could not reach the server');
+    return;
+  }
+
+  resetLoginWizard();
 }
 
 function showMainScreen() {
@@ -654,7 +807,15 @@ function startTimerPolling() {
         stopTimerPolling();
       }
     } catch (error) {
-      console.error('Error polling timer:', error);
+      console.warn('Error polling timer:', error && error.message ? error.message : error);
+      updateConnectionStatus('error');
+      const now = Date.now();
+      if (!state.lastTimerPollUserMessageAt || now - state.lastTimerPollUserMessageAt > 60000) {
+        state.lastTimerPollUserMessageAt = now;
+        showError(
+          'Lost connection while syncing the active timer. Check the connection indicator; polling will retry.',
+        );
+      }
     }
   }, 5000); // Poll every 5 seconds
 }
@@ -1393,7 +1554,7 @@ async function loadSettings() {
   const syncIntervalInput = document.getElementById('sync-interval');
   
   if (serverUrlInput) {
-    serverUrlInput.value = serverUrl;
+    serverUrlInput.value = serverUrl ? ApiClient.normalizeBaseUrl(String(serverUrl)) : '';
   }
   if (apiTokenInput) {
     // Only show if token exists, otherwise leave empty
@@ -1425,16 +1586,17 @@ async function handleSaveSettings() {
   
   if (!serverUrlInput || !apiTokenInput || !autoSyncInput || !syncIntervalInput) return;
   
-  const serverUrl = serverUrlInput.value.trim();
+  const rawServer = serverUrlInput.value.trim();
+  const normalizedInput = normalizeServerUrlInput(rawServer);
   const apiToken = apiTokenInput.value.trim();
   const autoSync = autoSyncInput.checked;
   const syncInterval = parseInt(syncIntervalInput.value, 10);
-  
-  // Validate server URL
-  if (!serverUrl || !isValidUrl(serverUrl)) {
+
+  if (!normalizedInput || !isValidUrl(normalizedInput)) {
     showSettingsMessage('Please enter a valid server URL', 'error');
     return;
   }
+  const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
   
   // Check if API token was changed (if it's not the masked value)
   const hasExistingToken = apiTokenInput.dataset.hasToken === 'true';
@@ -1459,23 +1621,29 @@ async function handleSaveSettings() {
     await storeSet('api_token', finalApiToken);
     await storeSet('auto_sync', autoSync);
     await storeSet('sync_interval', syncInterval);
-    
-    // Reinitialize API client with new settings
+
+    const pub = await ApiClient.testPublicServerInfo(serverUrl);
+    if (!pub.ok) {
+      updateConnectionStatus('error');
+      showSettingsMessage(pub.message, 'error');
+      return;
+    }
+
     state.apiClient = new ApiClient(serverUrl);
     await state.apiClient.setAuthToken(finalApiToken);
-    
-    // Validate connection
-    const isValid = await state.apiClient.validateToken();
-    if (isValid) {
+
+    const session = await state.apiClient.validateSession();
+    if (session.ok) {
+      state.authFailureStreak = 0;
       await loadCurrentUserProfile();
       updateConnectionStatus('connected');
       showSettingsMessage('Settings saved successfully!', 'success');
-      // Update token input to show masked value
       apiTokenInput.value = '••••••••';
       apiTokenInput.dataset.hasToken = 'true';
+      serverUrlInput.value = serverUrl;
     } else {
       updateConnectionStatus('error');
-      showSettingsMessage('Settings saved, but connection test failed. Please check your API token.', 'warning');
+      showSettingsMessage(session.message || 'Session check failed after save.', 'warning');
     }
   } catch (error) {
     console.error('Error saving settings:', error);
@@ -1490,39 +1658,45 @@ async function handleTestConnection() {
   
   if (!serverUrlInput || !apiTokenInput) return;
   
-  const serverUrl = serverUrlInput.value.trim();
+  const rawServer = serverUrlInput.value.trim();
+  const normalizedInput = normalizeServerUrlInput(rawServer);
   let apiToken = apiTokenInput.value.trim();
-  
-  // Validate server URL
-  if (!serverUrl || !isValidUrl(serverUrl)) {
+
+  if (!normalizedInput || !isValidUrl(normalizedInput)) {
     showSettingsMessage('Please enter a valid server URL', 'error');
     return;
   }
-  
-  // Get actual token if masked
+  const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
+
   const hasExistingToken = apiTokenInput.dataset.hasToken === 'true';
   if (hasExistingToken && apiToken === '••••••••') {
     apiToken = await storeGet('api_token');
   }
-  
+
   if (!apiToken || !apiToken.startsWith('tt_')) {
     showSettingsMessage('Please enter a valid API token (must start with tt_)', 'error');
     return;
   }
-  
-  // Test connection
+
   try {
     showSettingsMessage('Testing connection...', 'info');
+    const pub = await ApiClient.testPublicServerInfo(serverUrl);
+    if (!pub.ok) {
+      updateConnectionStatus('error');
+      showSettingsMessage(pub.message, 'error');
+      return;
+    }
+
     const testClient = new ApiClient(serverUrl);
     await testClient.setAuthToken(apiToken);
-    const isValid = await testClient.validateToken();
-    
-    if (isValid) {
+    const session = await testClient.validateSession();
+
+    if (session.ok) {
       updateConnectionStatus('connected');
-      showSettingsMessage('Connection successful!', 'success');
+      showSettingsMessage('Connection successful: server and API token are valid.', 'success');
     } else {
       updateConnectionStatus('error');
-      showSettingsMessage('Connection failed. Please check your server URL and API token.', 'error');
+      showSettingsMessage(session.message || 'Token validation failed.', 'error');
     }
   } catch (error) {
     console.error('Error testing connection:', error);
@@ -1564,7 +1738,13 @@ if (document.readyState === 'loading') {
 }
 
 // Use helper functions from helpers.js
-const { formatDuration, formatDurationLong, formatDateTime, isValidUrl } = window.Helpers || {};
+const {
+  formatDuration,
+  formatDurationLong,
+  formatDateTime,
+  isValidUrl,
+  normalizeServerUrlInput,
+} = window.Helpers || {};
 
 // Filter functions
 function toggleFilters() {

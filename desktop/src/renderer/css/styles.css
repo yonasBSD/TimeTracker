@@ -146,6 +146,25 @@ button, input, select, textarea {
   color: var(--text-secondary);
 }
 
+.wizard-step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.wizard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.wizard-actions .btn {
+  flex: 1;
+  min-width: 120px;
+}
+
 .form-group {
   margin-bottom: 20px;
 }

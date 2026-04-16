@@ -57,20 +57,21 @@ Both apps use the TimeTracker REST API v1 (`/api/v1/`). See [API Documentation](
 
 ### Authentication
 
-1. **Mobile app**: Sign in with your web username and password; the app obtains an API token in the background for the same basics access as the web app.
-2. **Desktop app**: Enter the server URL and either sign in with username/password (if supported) or use an API token from Admin > Security & Access > Api-tokens.
-3. The app will validate credentials and store the token securely.
+1. **Mobile app**: Sign in with your web username and password; the server returns an API token (`tt_…`) which is stored securely. Changing the **Server URL** in Settings probes the new host with your saved token before persisting the change.
+2. **Desktop app**: Use the two-step sign-in wizard (test server, then API token) or **Settings** with an API token from **Admin → Security & Access → API tokens** (no username/password flow in the Electron app).
+3. Clients validate the server with `GET /api/v1/info` (and respect `setup_required` when the installation is not finished) and validate the token with authenticated API calls.
 
 ### Required API Scopes
 
-- `read:time_entries` - View time entries
+- `read:time_entries` - View time entries and timer status (desktop session check fallback; mobile login token includes this)
 - `write:time_entries` - Create/update time entries and control timer
 - `read:projects` - View projects
 - `read:tasks` - View tasks
+- `read:users` - Optional on desktop tokens; preferred so `GET /api/v1/users/me` can be used for session verification
 
 ### API Endpoints Used
 
-- `GET /api/v1/info` - API version and health check
+- `GET /api/v1/info` - API metadata (includes `setup_required` when the server install is not complete); used for discovery without auth
 - `GET /api/v1/timer/status` - Get active timer status
 - `POST /api/v1/timer/start` - Start timer
 - `POST /api/v1/timer/stop` - Stop timer

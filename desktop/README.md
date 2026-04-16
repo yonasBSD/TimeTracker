@@ -77,7 +77,7 @@ The UI is bundled from [`src/renderer/js/app.js`](src/renderer/js/app.js) into [
 npm start
 ```
 
-(`npm start` runs `build:renderer` first, then launches Electron.)
+(`npm start` runs `build:renderer` first via **prestart**, then launches Electron. `npm run build` uses **prebuild** the same way so installers do not ship a stale `bundle.js`.)
 
 ### Run with DevTools
 
@@ -97,11 +97,12 @@ Before connecting the desktop app, you need to create an API token:
 4. Fill in the required information:
    - **Name**: A descriptive name (e.g., "Desktop App - Windows")
    - **User**: Select the user this token will authenticate as
-   - **Scopes**: Select the following permissions:
+   - **Scopes**: Select at least the following permissions:
      - `read:projects` - View projects
      - `read:tasks` - View tasks
-     - `read:time_entries` - View time entries
+     - `read:time_entries` - View time entries (required for timer status; the app uses this if `read:users` is not granted)
      - `write:time_entries` - Create and update time entries
+     - `read:users` - Recommended: lets the app verify your session with `GET /api/v1/users/me` (otherwise it falls back to timer status)
    - **Expires In**: Optional expiration period (leave empty for no expiration)
 5. Click **"Create Token"**
 6. **Important**: Copy the generated token immediately - you won't be able to see it again!
@@ -115,13 +116,11 @@ The desktop app can be configured in multiple ways:
 #### Method 1: In-App Login (Recommended)
 
 1. **Launch the desktop app**
-2. On the login screen, enter:
-   - **Server URL**: Your TimeTracker server URL (e.g., `https://your-server.com`)
-     - Do not include a trailing slash
-     - Use `http://` for local development or `https://` for production
-   - **API Token**: Paste the token you copied from the web app
-3. Click **"Login"**
-4. The app will validate your connection and show the main screen if successful
+2. **Step 1 — Server**: Enter your TimeTracker **base URL** (e.g. `https://your-server.com` or `http://192.168.1.10:5000`). Trailing slashes are normalized away. You may omit the scheme for convenience; the app assumes `https://` when checking.
+3. Click **Test server** and confirm you see a success message (the app calls `GET /api/v1/info` and checks for a TimeTracker response).
+4. Click **Continue to token**.
+5. **Step 2 — API token**: Paste the `tt_…` token from the web app, then **Log in**. The app verifies the token with the server (user profile or timer status).
+6. If successful, the main window opens. If initial server setup is not finished in the browser, `setup_required` in the API response is surfaced so you can complete setup first.
 
 #### Method 2: Command Line
 
@@ -159,13 +158,23 @@ The app shows a connection status indicator in the header:
 
 The connection is automatically checked every 30 seconds.
 
+### Automated tests (renderer client)
+
+From the `desktop/` directory:
+
+```bash
+npm test
+```
+
+Runs Node’s test runner on `test/api-client.test.js` (URL normalization, TimeTracker JSON shape checks, and error classification).
+
 ### Troubleshooting
 
-**"Invalid API token" error:**
-- Verify the token starts with `tt_`
-- Check that the token hasn't expired
-- Ensure the token has the required scopes
-- Try creating a new token in the web app
+**Login or “Test server” shows a TLS or certificate message:**
+- Use a certificate trusted by the OS, or for lab use only, try `http://` on a trusted network if your server supports it.
+
+**Token rejected after “server OK”:**
+- Verify the token starts with `tt_`, is not expired, and includes at least `read:time_entries` (and ideally `read:users`).
 
 **"Connection failed" error:**
 - Verify the server URL is correct and accessible

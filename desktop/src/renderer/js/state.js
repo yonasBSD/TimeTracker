@@ -4,6 +4,10 @@
  */
 module.exports = {
   apiClient: null,
+  /** Count consecutive background checks that failed with auth (401) while on main UI */
+  authFailureStreak: 0,
+  /** Last timer poll error shown to user (avoid spam) */
+  lastTimerPollUserMessageAt: 0,
   currentView: 'dashboard',
   timerInterval: null,
   isTimerRunning: false,

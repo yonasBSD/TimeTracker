@@ -551,6 +551,12 @@ def create_app(config=None):
             if request.path.startswith("/static/") or request.path.startswith("/_"):
                 return
 
+            # API discovery and mobile login must stay JSON (not HTML redirect) during install
+            if request.path.startswith("/api/v1/info") or request.path.startswith("/api/v1/health"):
+                return
+            if request.path == "/api/v1/auth/login" and request.method == "POST":
+                return
+
             # Check if setup is complete
             from app.utils.installation import get_installation_config
 

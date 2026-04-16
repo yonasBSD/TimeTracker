@@ -503,6 +503,8 @@ class TestSystemEndpoints:
         data = json.loads(response.data)
         assert "api_version" in data
         assert "endpoints" in data
+        assert "setup_required" in data
+        assert isinstance(data["setup_required"], bool)
 
     def test_health_check(self, client):
         """Test health check endpoint (no auth required)"""

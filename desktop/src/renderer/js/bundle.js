@@ -64,6 +64,12 @@
           return false;
         }
       }
+      function normalizeServerUrlInput2(input) {
+        const trimmed = String(input || "").trim();
+        if (!trimmed) return trimmed;
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        return "https://" + trimmed;
+      }
       function debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -83,6 +89,7 @@
           formatDateTime: formatDateTime2,
           parseISODate,
           isValidUrl: isValidUrl2,
+          normalizeServerUrlInput: normalizeServerUrlInput2,
           debounce
         };
       }
@@ -94,6 +101,7 @@
           formatDateTime: formatDateTime2,
           parseISODate,
           isValidUrl: isValidUrl2,
+          normalizeServerUrlInput: normalizeServerUrlInput2,
           debounce
         };
       }
@@ -2639,15 +2647,98 @@
       var storeGet2 = cfg.storeGet || (async (k) => null);
       var storeSet2 = cfg.storeSet || (async (k, v) => {
       });
-      var ApiClient2 = class {
+      function isTlsRelatedError(error) {
+        const code = error && error.code;
+        const msg = error && error.message || "";
+        const tlsCodes = /* @__PURE__ */ new Set([
+          "DEPTH_ZERO_SELF_SIGNED_CERT",
+          "CERT_HAS_EXPIRED",
+          "CERT_NOT_YET_VALID",
+          "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+          "ERR_TLS_CERT_ALTNAME_INVALID",
+          "SELF_SIGNED_CERT_IN_CHAIN",
+          "UNABLE_TO_GET_ISSUER_CERT_LOCALLY"
+        ]);
+        if (code && tlsCodes.has(code)) return true;
+        if (/certificate|ssl|tls|UNABLE_TO_VERIFY/i.test(msg)) return true;
+        return false;
+      }
+      function classifyAxiosError(error) {
+        if (isTlsRelatedError(error)) {
+          return {
+            code: "TLS",
+            message: "SSL/TLS certificate could not be verified. If the server uses a self-signed certificate, install a trusted CA or use http:// only on trusted networks."
+          };
+        }
+        if (error.response) {
+          const status = error.response.status;
+          const data = error.response.data;
+          if (status === 401) {
+            return {
+              code: "UNAUTHORIZED",
+              message: "Authentication failed. Check your API token."
+            };
+          }
+          if (status === 403) {
+            return {
+              code: "FORBIDDEN",
+              message: "Access denied. Your token may not have the required permissions (e.g. read:users)."
+            };
+          }
+          if (status === 404) {
+            return {
+              code: "NOT_FOUND",
+              message: data?.error || "Resource not found. Is the base URL correct (no extra path)?"
+            };
+          }
+          if (status >= 500) {
+            return { code: "SERVER_ERROR", message: "Server error. Please try again later." };
+          }
+          if (data && typeof data === "object" && data.error) {
+            return { code: "HTTP_" + status, message: String(data.error) };
+          }
+          return { code: "HTTP_" + status, message: `Server returned HTTP ${status}.` };
+        }
+        if (error.code === "ECONNABORTED") {
+          return {
+            code: "TIMEOUT",
+            message: "Request timed out. Check the server URL, firewall, and network."
+          };
+        }
+        if (error.code === "ENOTFOUND") {
+          return {
+            code: "DNS",
+            message: "Host not found (DNS). Check the hostname in your server URL."
+          };
+        }
+        if (error.code === "ECONNREFUSED") {
+          return {
+            code: "REFUSED",
+            message: "Connection refused. Check the host, port, and that the TimeTracker server is running."
+          };
+        }
+        if (error.code === "ENETUNREACH" || error.code === "EHOSTUNREACH") {
+          return {
+            code: "UNREACHABLE",
+            message: "Network unreachable. Check your connection and server address."
+          };
+        }
+        const msg = error.message || "Unknown error";
+        return { code: "UNKNOWN", message: msg };
+      }
+      function isTimeTrackerInfoPayload(data) {
+        return data !== null && typeof data === "object" && !Array.isArray(data) && data.api_version === "v1" && typeof data.endpoints === "object";
+      }
+      var ApiClient2 = class _ApiClient {
         constructor(baseUrl) {
-          this.baseUrl = baseUrl;
+          const normalized = _ApiClient.normalizeBaseUrl(baseUrl);
+          this.baseUrl = normalized;
           this.client = axios.create({
-            baseURL: baseUrl,
+            baseURL: normalized,
             timeout: 1e4,
             headers: {
               "Content-Type": "application/json",
-              "Accept": "application/json"
+              Accept: "application/json"
             }
           });
           this.setupInterceptors();
@@ -2656,7 +2747,7 @@
           this.client.interceptors.request.use(async (config) => {
             const token = await storeGet2("api_token");
             if (token) {
-              config.headers["Authorization"] = `Bearer ${token}`;
+              config.headers.Authorization = `Bearer ${token}`;
             }
             return config;
           });
@@ -2681,27 +2772,135 @@
                 error.message = "Request timeout. Please check your internet connection.";
               } else if (error.code === "ENOTFOUND" || error.code === "ECONNREFUSED") {
                 error.message = "Unable to connect to server. Please check the server URL and your internet connection.";
+              } else if (isTlsRelatedError(error)) {
+                error.message = "SSL/TLS error: certificate could not be verified. Use a trusted certificate or verify the server URL.";
               }
               return Promise.reject(error);
             }
           );
         }
+        static normalizeBaseUrl(url) {
+          let u = String(url || "").trim();
+          if (!u) return u;
+          u = u.replace(/\/+$/, "");
+          return u;
+        }
+        /**
+         * Unauthenticated check: reachable TimeTracker JSON at GET /api/v1/info.
+         * @param {string} baseUrl
+         * @returns {Promise<ValidationResult>}
+         */
+        static async testPublicServerInfo(baseUrl) {
+          const normalized = _ApiClient.normalizeBaseUrl(baseUrl);
+          if (!normalized) {
+            return { ok: false, code: "NO_URL", message: "Please enter a server URL." };
+          }
+          let parsed;
+          try {
+            parsed = new URL(normalized);
+          } catch (_) {
+            return { ok: false, code: "BAD_URL", message: "Server URL is not valid." };
+          }
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return { ok: false, code: "BAD_URL", message: "Server URL must start with http:// or https://." };
+          }
+          const plain = axios.create({
+            baseURL: normalized,
+            timeout: 1e4,
+            headers: { Accept: "application/json" }
+          });
+          try {
+            const response = await plain.get("/api/v1/info");
+            if (response.status !== 200) {
+              return {
+                ok: false,
+                code: "HTTP_" + response.status,
+                message: `Server returned HTTP ${response.status}. Check the URL and port.`
+              };
+            }
+            const data = response.data;
+            if (!isTimeTrackerInfoPayload(data)) {
+              return {
+                ok: false,
+                code: "NOT_TIMETRACKER",
+                message: "This address did not return a TimeTracker API response. Check the URL (base URL only, no path) and port."
+              };
+            }
+            if (data.setup_required === true) {
+              return {
+                ok: false,
+                code: "SETUP_REQUIRED",
+                message: "TimeTracker is not fully set up yet. Open this server URL in a browser, complete initial setup, then try again."
+              };
+            }
+            return { ok: true };
+          } catch (error) {
+            const { code, message } = classifyAxiosError(error);
+            return { ok: false, code, message };
+          }
+        }
         async setAuthToken(token) {
           await storeSet2("api_token", token);
         }
-        async validateToken() {
+        /**
+         * Authenticated session check: prefers GET /api/v1/users/me (read:users).
+         * Falls back to GET /api/v1/timer/status (read:time_entries) for narrower tokens.
+         * @returns {Promise<ValidationResult>}
+         */
+        async validateSession() {
           try {
-            const response = await this.client.get("/api/v1/info");
-            return response.status === 200;
+            const response = await this.client.get("/api/v1/users/me");
+            if (response.status !== 200) {
+              return {
+                ok: false,
+                code: "HTTP_" + response.status,
+                message: `Unexpected HTTP ${response.status} from the server.`
+              };
+            }
+            const data = response.data;
+            if (!data || typeof data !== "object" || !data.user) {
+              return {
+                ok: false,
+                code: "INVALID_RESPONSE",
+                message: "Server response was not a valid TimeTracker user payload."
+              };
+            }
+            return { ok: true };
           } catch (error) {
-            return false;
+            const status = error.response && error.response.status;
+            if (status === 401) {
+              const { code: code2, message: message2 } = classifyAxiosError(error);
+              return { ok: false, code: code2, message: message2 };
+            }
+            if (status === 403) {
+              try {
+                const res2 = await this.client.get("/api/v1/timer/status");
+                if (res2.status === 200 && res2.data && typeof res2.data.active === "boolean") {
+                  return { ok: true };
+                }
+              } catch (e2) {
+                const { code: code2, message: message2 } = classifyAxiosError(e2);
+                return { ok: false, code: code2, message: message2 };
+              }
+              return {
+                ok: false,
+                code: "FORBIDDEN",
+                message: "This API token cannot access your profile or timer. Use a token with read:users or read:time_entries."
+              };
+            }
+            const { code, message } = classifyAxiosError(error);
+            return { ok: false, code, message };
           }
+        }
+        /** @deprecated Prefer validateSession() for correct auth + error detail */
+        async validateToken() {
+          const r = await this.validateSession();
+          return r.ok;
         }
         async getUsersMe() {
           const response = await this.client.get("/api/v1/users/me");
           return response.data;
         }
-        // Timer endpoints
         async getTimerStatus() {
           return await this.client.get("/api/v1/timer/status");
         }
@@ -2715,7 +2914,6 @@
         async stopTimer() {
           return await this.client.post("/api/v1/timer/stop");
         }
-        // Time entries endpoints
         async getTimeEntries({ projectId, startDate, endDate, billable, page, perPage }) {
           const params = {};
           if (projectId) params.project_id = projectId;
@@ -2735,7 +2933,6 @@
         async deleteTimeEntry(id) {
           return await this.client.delete(`/api/v1/time-entries/${id}`);
         }
-        // Projects endpoints
         async getProjects({ status, clientId, page, perPage }) {
           const params = {};
           if (status) params.status = status;
@@ -2754,7 +2951,6 @@
           if (perPage) params.per_page = perPage;
           return await this.client.get("/api/v1/clients", { params });
         }
-        // Tasks endpoints
         async getTasks({ projectId, status, page, perPage }) {
           const params = {};
           if (projectId) params.project_id = projectId;
@@ -2766,11 +2962,9 @@
         async getTask(id) {
           return await this.client.get(`/api/v1/tasks/${id}`);
         }
-        // Get time entry by ID
         async getTimeEntry(id) {
           return await this.client.get(`/api/v1/time-entries/${id}`);
         }
-        // Invoices endpoints
         async getInvoices({ status, clientId, projectId, page, perPage }) {
           const params = {};
           if (status) params.status = status;
@@ -2789,7 +2983,6 @@
         async updateInvoice(id, data) {
           return await this.client.put(`/api/v1/invoices/${id}`, data);
         }
-        // Expenses endpoints
         async getExpenses({ projectId, category, startDate, endDate, page, perPage }) {
           const params = {};
           if (projectId) params.project_id = projectId;
@@ -2873,6 +3066,8 @@
       };
       if (typeof module !== "undefined" && module.exports) {
         module.exports = ApiClient2;
+        module.exports.classifyAxiosError = classifyAxiosError;
+        module.exports.isTimeTrackerInfoPayload = isTimeTrackerInfoPayload;
       }
     }
   });
@@ -7794,6 +7989,10 @@
     "src/renderer/js/state.js"(exports, module) {
       module.exports = {
         apiClient: null,
+        /** Count consecutive background checks that failed with auth (401) while on main UI */
+        authFailureStreak: 0,
+        /** Last timer poll error shown to user (avoid spam) */
+        lastTimerPollUserMessageAt: 0,
         currentView: "dashboard",
         timerInterval: null,
         isTimerRunning: false,
@@ -7820,21 +8019,28 @@
   var { showError, showSuccess } = require_notifications();
   var state = require_state();
   async function initApp() {
-    const serverUrl = await storeGet("server_url");
+    const serverUrlRaw = await storeGet("server_url");
     const apiToken = await storeGet("api_token");
+    const serverUrl = serverUrlRaw ? ApiClient.normalizeBaseUrl(String(serverUrlRaw)) : null;
+    if (serverUrl && serverUrl !== serverUrlRaw) {
+      await storeSet("server_url", serverUrl);
+    }
     if (serverUrl && apiToken) {
       state.apiClient = new ApiClient(serverUrl);
       await state.apiClient.setAuthToken(apiToken);
-      const isValid = await state.apiClient.validateToken();
-      if (isValid) {
+      const session = await state.apiClient.validateSession();
+      if (session.ok) {
+        state.authFailureStreak = 0;
         await loadCurrentUserProfile();
+        updateConnectionStatus("connected");
         showMainScreen();
         loadDashboard();
       } else {
-        showLoginScreen();
+        state.apiClient = null;
+        showLoginScreen({ prefillServerUrl: serverUrl, sessionError: session });
       }
     } else {
-      showLoginScreen();
+      showLoginScreen({ prefillServerUrl: serverUrl || "" });
     }
     setupEventListeners();
     startConnectionCheck();
@@ -7862,11 +8068,20 @@
       updateConnectionStatus("disconnected");
       return;
     }
-    try {
-      const isValid = await state.apiClient.validateToken();
-      updateConnectionStatus(isValid ? "connected" : "error");
-    } catch (error) {
-      updateConnectionStatus("error");
+    const session = await state.apiClient.validateSession();
+    if (session.ok) {
+      state.authFailureStreak = 0;
+      updateConnectionStatus("connected");
+      return;
+    }
+    updateConnectionStatus("error");
+    if (session.code === "UNAUTHORIZED") {
+      state.authFailureStreak = (state.authFailureStreak || 0) + 1;
+      if (state.authFailureStreak >= 2 && document.getElementById("main-screen")?.classList.contains("active")) {
+        await forceRelogin(session.message || "Your session is no longer valid. Please sign in again.");
+      }
+    } else {
+      state.authFailureStreak = 0;
     }
   }
   async function loadCurrentUserProfile() {
@@ -7881,8 +8096,10 @@
         is_admin: Boolean(user.is_admin),
         can_approve: Boolean(user.is_admin) || roleCanApprove
       };
-    } catch (_) {
+    } catch (err) {
+      console.warn("loadCurrentUserProfile failed:", err && err.message ? err.message : err);
       state.currentUserProfile = { id: null, is_admin: false, can_approve: false };
+      showError("Could not load your user profile. Some actions may be unavailable until the connection improves.");
     }
   }
   function updateConnectionStatus(status) {
@@ -7911,11 +8128,53 @@
     }
     statusEl.setAttribute("aria-label", label);
   }
+  async function forceRelogin(message) {
+    state.authFailureStreak = 0;
+    const url = await storeGet("server_url");
+    await storeDelete("api_token");
+    state.apiClient = null;
+    if (state.isTimerRunning) {
+      state.isTimerRunning = false;
+      stopTimerPolling();
+    }
+    showLoginScreen({
+      prefillServerUrl: url || "",
+      openTokenStep: true,
+      bannerMessage: message
+    });
+  }
+  function showWizardServerStep() {
+    const s1 = document.getElementById("wizard-step-server");
+    const s2 = document.getElementById("wizard-step-token");
+    if (s1) s1.style.display = "";
+    if (s2) s2.style.display = "none";
+  }
+  function showWizardTokenStep() {
+    const s1 = document.getElementById("wizard-step-server");
+    const s2 = document.getElementById("wizard-step-token");
+    if (s1) s1.style.display = "none";
+    if (s2) s2.style.display = "";
+  }
+  function resetLoginWizard() {
+    showWizardServerStep();
+    const cont = document.getElementById("login-wizard-continue");
+    if (cont) cont.disabled = true;
+    clearLoginError();
+  }
+  function clearLoginError() {
+    showLoginError("");
+  }
   function setupEventListeners() {
     const loginForm = document.getElementById("login-form");
     if (loginForm) {
       loginForm.addEventListener("submit", handleLogin);
     }
+    const loginTestServerBtn = document.getElementById("login-test-server-btn");
+    const loginWizardContinue = document.getElementById("login-wizard-continue");
+    const loginWizardBack = document.getElementById("login-wizard-back");
+    if (loginTestServerBtn) loginTestServerBtn.addEventListener("click", handleLoginTestServer);
+    if (loginWizardContinue) loginWizardContinue.addEventListener("click", handleLoginWizardContinue);
+    if (loginWizardBack) loginWizardBack.addEventListener("click", handleLoginWizardBack);
     document.querySelectorAll(".nav-btn").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         const view = e.target.dataset.view;
@@ -7988,46 +8247,133 @@
     if (expensePrevPageBtn) expensePrevPageBtn.addEventListener("click", () => changeExpensePage(-1));
     if (expenseNextPageBtn) expenseNextPageBtn.addEventListener("click", () => changeExpensePage(1));
   }
+  async function handleLoginTestServer() {
+    clearLoginError();
+    const raw = document.getElementById("server-url")?.value.trim() || "";
+    const normalizedInput = normalizeServerUrlInput(raw);
+    if (!normalizedInput || !isValidUrl(normalizedInput)) {
+      showLoginError("Enter a valid server URL (e.g. https://your-server.com or http://192.168.1.10:5000)");
+      return;
+    }
+    const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
+    const pub = await ApiClient.testPublicServerInfo(serverUrl);
+    if (!pub.ok) {
+      showLoginError(pub.message);
+      return;
+    }
+    showSuccess("TimeTracker server detected. Continue to enter your API token.");
+    const cont = document.getElementById("login-wizard-continue");
+    if (cont) cont.disabled = false;
+  }
+  async function handleLoginWizardContinue() {
+    clearLoginError();
+    const raw = document.getElementById("server-url")?.value.trim() || "";
+    const normalizedInput = normalizeServerUrlInput(raw);
+    if (!normalizedInput || !isValidUrl(normalizedInput)) {
+      showLoginError("Enter a valid server URL");
+      return;
+    }
+    const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
+    const pub = await ApiClient.testPublicServerInfo(serverUrl);
+    if (!pub.ok) {
+      showLoginError(pub.message);
+      return;
+    }
+    showWizardTokenStep();
+  }
+  function handleLoginWizardBack() {
+    clearLoginError();
+    showWizardServerStep();
+  }
   async function handleLogin(e) {
     e.preventDefault();
-    const serverUrl = document.getElementById("server-url").value.trim();
-    const apiToken = document.getElementById("api-token").value.trim();
-    const errorDiv = document.getElementById("login-error");
-    if (!serverUrl || !isValidUrl(serverUrl)) {
+    const raw = document.getElementById("server-url")?.value.trim() || "";
+    const normalizedInput = normalizeServerUrlInput(raw);
+    if (!normalizedInput || !isValidUrl(normalizedInput)) {
       showLoginError("Please enter a valid server URL");
       return;
     }
+    const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
+    const apiToken = document.getElementById("api-token")?.value.trim() || "";
     if (!apiToken || !apiToken.startsWith("tt_")) {
-      showError("Please enter a valid API token (must start with tt_)");
+      showLoginError("Please enter a valid API token (must start with tt_)");
+      return;
+    }
+    const pub = await ApiClient.testPublicServerInfo(serverUrl);
+    if (!pub.ok) {
+      showLoginError(pub.message);
+      showWizardServerStep();
       return;
     }
     await storeSet("server_url", serverUrl);
     await storeSet("api_token", apiToken);
     state.apiClient = new ApiClient(serverUrl);
     await state.apiClient.setAuthToken(apiToken);
-    const isValid = await state.apiClient.validateToken();
-    if (isValid) {
+    const session = await state.apiClient.validateSession();
+    if (session.ok) {
+      state.authFailureStreak = 0;
       await loadCurrentUserProfile();
       updateConnectionStatus("connected");
       showMainScreen();
       loadDashboard();
     } else {
       updateConnectionStatus("error");
-      showLoginError("Invalid API token. Please check your token.");
       await storeDelete("api_token");
+      state.apiClient = null;
+      showLoginError(session.message || "Login failed");
+      if (session.code === "UNAUTHORIZED" || session.code === "FORBIDDEN") {
+        const cont = document.getElementById("login-wizard-continue");
+        if (cont) cont.disabled = false;
+        showWizardTokenStep();
+      } else {
+        showWizardServerStep();
+      }
     }
   }
   function showLoginError(message) {
     const errorDiv = document.getElementById("login-error");
-    if (errorDiv) {
-      errorDiv.textContent = message;
+    if (!errorDiv) return;
+    errorDiv.textContent = message || "";
+    if (message) {
       errorDiv.classList.add("show");
+    } else {
+      errorDiv.classList.remove("show");
     }
   }
-  function showLoginScreen() {
+  function showLoginScreen(options = {}) {
     document.getElementById("loading-screen").classList.remove("active");
     document.getElementById("login-screen").classList.add("active");
     document.getElementById("main-screen").classList.remove("active");
+    state.authFailureStreak = 0;
+    const su = document.getElementById("server-url");
+    if (su && options.prefillServerUrl !== void 0 && options.prefillServerUrl !== null) {
+      su.value = String(options.prefillServerUrl || "");
+    }
+    if (options.openTokenStep) {
+      const cont = document.getElementById("login-wizard-continue");
+      if (cont) cont.disabled = false;
+      showWizardTokenStep();
+      if (options.bannerMessage) {
+        showLoginError(options.bannerMessage);
+      } else {
+        clearLoginError();
+      }
+      return;
+    }
+    if (options.sessionError) {
+      const se = options.sessionError;
+      if (se.code === "UNAUTHORIZED" || se.code === "FORBIDDEN") {
+        const cont = document.getElementById("login-wizard-continue");
+        if (cont) cont.disabled = false;
+        showWizardTokenStep();
+        showLoginError(se.message || "Authentication failed");
+        return;
+      }
+      resetLoginWizard();
+      showLoginError(se.message || "Could not reach the server");
+      return;
+    }
+    resetLoginWizard();
   }
   function showMainScreen() {
     document.getElementById("loading-screen").classList.remove("active");
@@ -8330,7 +8676,15 @@
           stopTimerPolling();
         }
       } catch (error) {
-        console.error("Error polling timer:", error);
+        console.warn("Error polling timer:", error && error.message ? error.message : error);
+        updateConnectionStatus("error");
+        const now = Date.now();
+        if (!state.lastTimerPollUserMessageAt || now - state.lastTimerPollUserMessageAt > 6e4) {
+          state.lastTimerPollUserMessageAt = now;
+          showError(
+            "Lost connection while syncing the active timer. Check the connection indicator; polling will retry."
+          );
+        }
       }
     }, 5e3);
   }
@@ -8894,7 +9248,7 @@
     const autoSyncInput = document.getElementById("auto-sync");
     const syncIntervalInput = document.getElementById("sync-interval");
     if (serverUrlInput) {
-      serverUrlInput.value = serverUrl;
+      serverUrlInput.value = serverUrl ? ApiClient.normalizeBaseUrl(String(serverUrl)) : "";
     }
     if (apiTokenInput) {
       apiTokenInput.value = apiToken ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : "";
@@ -8921,14 +9275,16 @@
     const syncIntervalInput = document.getElementById("sync-interval");
     const messageDiv = document.getElementById("settings-message");
     if (!serverUrlInput || !apiTokenInput || !autoSyncInput || !syncIntervalInput) return;
-    const serverUrl = serverUrlInput.value.trim();
+    const rawServer = serverUrlInput.value.trim();
+    const normalizedInput = normalizeServerUrlInput(rawServer);
     const apiToken = apiTokenInput.value.trim();
     const autoSync = autoSyncInput.checked;
     const syncInterval = parseInt(syncIntervalInput.value, 10);
-    if (!serverUrl || !isValidUrl(serverUrl)) {
+    if (!normalizedInput || !isValidUrl(normalizedInput)) {
       showSettingsMessage("Please enter a valid server URL", "error");
       return;
     }
+    const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
     const hasExistingToken = apiTokenInput.dataset.hasToken === "true";
     let finalApiToken = apiToken;
     if (hasExistingToken && apiToken === "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022") {
@@ -8946,18 +9302,26 @@
       await storeSet("api_token", finalApiToken);
       await storeSet("auto_sync", autoSync);
       await storeSet("sync_interval", syncInterval);
+      const pub = await ApiClient.testPublicServerInfo(serverUrl);
+      if (!pub.ok) {
+        updateConnectionStatus("error");
+        showSettingsMessage(pub.message, "error");
+        return;
+      }
       state.apiClient = new ApiClient(serverUrl);
       await state.apiClient.setAuthToken(finalApiToken);
-      const isValid = await state.apiClient.validateToken();
-      if (isValid) {
+      const session = await state.apiClient.validateSession();
+      if (session.ok) {
+        state.authFailureStreak = 0;
         await loadCurrentUserProfile();
         updateConnectionStatus("connected");
         showSettingsMessage("Settings saved successfully!", "success");
         apiTokenInput.value = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
         apiTokenInput.dataset.hasToken = "true";
+        serverUrlInput.value = serverUrl;
       } else {
         updateConnectionStatus("error");
-        showSettingsMessage("Settings saved, but connection test failed. Please check your API token.", "warning");
+        showSettingsMessage(session.message || "Session check failed after save.", "warning");
       }
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -8969,12 +9333,14 @@
     const apiTokenInput = document.getElementById("settings-api-token");
     const messageDiv = document.getElementById("settings-message");
     if (!serverUrlInput || !apiTokenInput) return;
-    const serverUrl = serverUrlInput.value.trim();
+    const rawServer = serverUrlInput.value.trim();
+    const normalizedInput = normalizeServerUrlInput(rawServer);
     let apiToken = apiTokenInput.value.trim();
-    if (!serverUrl || !isValidUrl(serverUrl)) {
+    if (!normalizedInput || !isValidUrl(normalizedInput)) {
       showSettingsMessage("Please enter a valid server URL", "error");
       return;
     }
+    const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
     const hasExistingToken = apiTokenInput.dataset.hasToken === "true";
     if (hasExistingToken && apiToken === "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022") {
       apiToken = await storeGet("api_token");
@@ -8985,15 +9351,21 @@
     }
     try {
       showSettingsMessage("Testing connection...", "info");
+      const pub = await ApiClient.testPublicServerInfo(serverUrl);
+      if (!pub.ok) {
+        updateConnectionStatus("error");
+        showSettingsMessage(pub.message, "error");
+        return;
+      }
       const testClient = new ApiClient(serverUrl);
       await testClient.setAuthToken(apiToken);
-      const isValid = await testClient.validateToken();
-      if (isValid) {
+      const session = await testClient.validateSession();
+      if (session.ok) {
         updateConnectionStatus("connected");
-        showSettingsMessage("Connection successful!", "success");
+        showSettingsMessage("Connection successful: server and API token are valid.", "success");
       } else {
         updateConnectionStatus("error");
-        showSettingsMessage("Connection failed. Please check your server URL and API token.", "error");
+        showSettingsMessage(session.message || "Token validation failed.", "error");
       }
     } catch (error) {
       console.error("Error testing connection:", error);
@@ -9026,7 +9398,13 @@
   } else {
     initApp();
   }
-  var { formatDuration, formatDurationLong, formatDateTime, isValidUrl } = window.Helpers || {};
+  var {
+    formatDuration,
+    formatDurationLong,
+    formatDateTime,
+    isValidUrl,
+    normalizeServerUrlInput
+  } = window.Helpers || {};
   function toggleFilters() {
     const filtersEl = document.getElementById("entries-filters");
     if (filtersEl) {
