@@ -249,6 +249,44 @@ Persists `dismissed_release_version` for the current user so `GET /api/version/c
 
 The web UI also mirrors dismissal in `localStorage` (`tt_dismissed_release_version`) as a client-side fallback; the database remains authoritative for `update_available`.
 
+### Dashboard productivity (web JSON under `/api`)
+
+These routes are used by the **web dashboard** after login. They live on the same legacy JSON blueprint as `/api/health` (not under `/api/v1`). **Authentication:** browser **session cookie** (`@login_required`); unauthenticated requests receive **401**.
+
+#### Value dashboard aggregates
+
+```
+GET /api/stats/value-dashboard
+```
+
+Returns productivity aggregates for the **current user** only (completed time entries: `end_time` is set). Used by the main dashboard “Value insights” widget.
+
+**Caching:** responses may be cached for up to **10 minutes** per user when Redis is available (`REDIS_URL` and working connection). If Redis is unavailable, each request recomputes from the database.
+
+**Response (200):**
+
+```json
+{
+  "total_hours": 132.5,
+  "entries_count": 248,
+  "active_days": 18,
+  "avg_session_length": 1.4,
+  "most_productive_day": "Tuesday",
+  "this_week_hours": 24.5,
+  "this_month_hours": 110.2,
+  "last_7_days": [
+    { "date": "2026-04-09", "hours": 2.5 },
+    { "date": "2026-04-10", "hours": 0.0 }
+  ],
+  "estimated_value_tracked": 1234.56,
+  "estimated_value_currency": "EUR"
+}
+```
+
+- **`most_productive_day`:** English weekday name (`Sunday`–`Saturday`) with the highest total tracked time across all history, or **`null`** when there is no qualifying data.
+- **`last_7_days`:** seven objects in chronological order for the last seven **local** calendar days (app timezone), including days with **0** hours.
+- **`estimated_value_tracked`:** `null` when the estimated billable total is zero or no rate applies; otherwise `hours ×` resolved rate using **`COALESCE(project.hourly_rate, entry client default, project client default)`** (see server implementation in `StatsService`). **`estimated_value_currency`** comes from **Settings → currency** with application default fallback.
+
 ### Search
 
 #### Global Search

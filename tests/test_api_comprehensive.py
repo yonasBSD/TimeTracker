@@ -192,12 +192,11 @@ def test_get_task_details(authenticated_client, task):
 
 @pytest.mark.api
 @pytest.mark.integration
-def test_get_project_tasks_excludes_done_and_cancelled(authenticated_client, project, user, app):
-    """Test that /api/projects/<project_id>/tasks excludes done and cancelled tasks."""
-    from app.models import Task
+def test_get_project_tasks_includes_all_statuses(authenticated_client, project, user, app):
+    """Test that /api/projects/<project_id>/tasks returns all tasks (incl. done/cancelled) for time-entry UI."""
     from app import db
+    from app.models import Task
 
-    # Create tasks with different statuses
     active_task = Task(name="Active Task", project_id=project.id, status="todo", created_by=user.id)
     in_progress_task = Task(name="In Progress Task", project_id=project.id, status="in_progress", created_by=user.id)
     review_task = Task(name="Review Task", project_id=project.id, status="review", created_by=user.id)
@@ -207,7 +206,6 @@ def test_get_project_tasks_excludes_done_and_cancelled(authenticated_client, pro
     db.session.add_all([active_task, in_progress_task, review_task, done_task, cancelled_task])
     db.session.commit()
 
-    # Get tasks for the project
     response = authenticated_client.get(f"/api/projects/{project.id}/tasks")
 
     assert response.status_code == 200
@@ -215,16 +213,17 @@ def test_get_project_tasks_excludes_done_and_cancelled(authenticated_client, pro
     assert "tasks" in data
     assert data["success"] is True
 
-    # Verify only active tasks are returned
     task_names = [t["name"] for t in data["tasks"]]
-    assert "Active Task" in task_names
-    assert "In Progress Task" in task_names
-    assert "Review Task" in task_names
-    assert "Done Task" not in task_names
-    assert "Cancelled Task" not in task_names
+    for name in (
+        "Active Task",
+        "In Progress Task",
+        "Review Task",
+        "Done Task",
+        "Cancelled Task",
+    ):
+        assert name in task_names
 
-    # Verify we got exactly 3 tasks
-    assert len(data["tasks"]) == 3
+    assert len(data["tasks"]) == 5
 
 
 # ============================================================================
