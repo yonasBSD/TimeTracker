@@ -45,9 +45,19 @@ def openapi_spec():
 
 A comprehensive REST API for time tracking, project management, and reporting.
 
-## Authentication
+## Two HTTP JSON surfaces
 
-All API endpoints require authentication using an API token. You can obtain an API token from the admin dashboard.
+TimeTracker exposes two JSON HTTP surfaces. **This OpenAPI document describes only `/api/v1`** (paths are relative to the v1 server URL).
+
+1. **`/api/v1` (documented here)** — Primary, versioned **REST API** for integrations (desktop, mobile, automation). Uses **API token** authentication (`Authorization: Bearer` or `X-API-Key`), scoped permissions, and stable JSON contracts.
+
+2. **`/api/*` (not fully documented here)** — Same-origin **session** JSON used by the **logged-in web UI** (Flask-Login cookie): search, timer helpers, notifications, dashboard fragments, uploads, and similar. These routes may change with the UI. Where a v1 equivalent exists, legacy `/api` routes may return **`X-API-Deprecated: true`** and a **`Link`** header with `rel="successor-version"` pointing at the v1 path. **Integrations should not rely on `/api/*`.**
+
+**Exception:** a few `/api` routes (for example version check/dismiss) may accept **either** session or token for admin tooling; see product docs for details.
+
+## Authentication (paths under `/api/v1` in this spec)
+
+All **documented** API endpoints use authentication as described below. You can obtain an API token from the admin dashboard.
 
 ### Authentication Methods
 
@@ -159,8 +169,11 @@ Example: `2024-01-15T14:30:00Z`
             "license": {"name": "MIT"},
         },
         "servers": [
-            {"url": "/api/v1", "description": "REST API v1"},
-            {"url": "", "description": "App root (for /api/analytics, etc.)"},
+            {"url": "/api/v1", "description": "Versioned REST API (token auth); OpenAPI paths are relative to this base."},
+            {
+                "url": "",
+                "description": "Application origin only (HTML, static assets, session `/api/*`, and other non-spec routes—not covered by this document).",
+            },
         ],
         "components": {
             "securitySchemes": {
@@ -263,6 +276,10 @@ Example: `2024-01-15T14:30:00Z`
         },
         "security": [{"BearerAuth": []}, {"ApiKeyAuth": []}],
         "tags": [
+            {
+                "name": "SessionWebApi",
+                "description": "Session-based JSON under `/api/*` is for the browser UI only; it is not defined in this spec. Use `/api/v1` for integrations.",
+            },
             {"name": "System", "description": "System information and health checks"},
             {"name": "Projects", "description": "Project management operations"},
             {"name": "Time Entries", "description": "Time tracking operations"},

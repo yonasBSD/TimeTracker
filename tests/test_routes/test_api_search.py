@@ -4,13 +4,32 @@ Tests both /api/search (legacy) and /api/v1/search (versioned API).
 """
 
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
+
+
+class _FailingProjectQuery:
+    """Minimal query stand-in so Project.query.filter(...).limit(...).all() raises."""
+
+    def filter(self, *args, **kwargs):
+        return self
+
+    def limit(self, *args, **kwargs):
+        return self
+
+    def order_by(self, *args, **kwargs):
+        return self
+
+    def all(self):
+        raise SQLAlchemyError("simulated project search failure")
 
 pytestmark = [pytest.mark.api, pytest.mark.integration]
 
 from app import db
 from app.models import Project, Task, Client, TimeEntry, ApiToken
+from app.services import global_search_service as global_search_service_module
 
 
 @pytest.fixture
@@ -67,6 +86,8 @@ class TestLegacySearchAPI:
         assert "query" in data
         assert "count" in data
         assert isinstance(data["results"], list)
+        assert data.get("partial") is False
+        assert data.get("errors") == {}
 
     def test_search_with_short_query(self, authenticated_client):
         """Test search with query that's too short"""
@@ -76,6 +97,8 @@ class TestLegacySearchAPI:
         data = response.get_json()
         assert data["results"] == []
         assert data["count"] == 0
+        assert data.get("partial") is False
+        assert data.get("errors") == {}
 
     def test_search_with_empty_query(self, authenticated_client):
         """Test search with empty query"""
@@ -84,6 +107,20 @@ class TestLegacySearchAPI:
         assert response.status_code == 200
         data = response.get_json()
         assert data["results"] == []
+        assert data.get("partial") is False
+        assert data.get("errors") == {}
+
+    def test_search_partial_when_projects_domain_db_error(self, authenticated_client):
+        """Project search SQLAlchemy errors surface as partial response; other domains still run."""
+        with patch.object(global_search_service_module.Project, "query", _FailingProjectQuery()):
+            response = authenticated_client.get("/api/search", query_string={"q": "te"})
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["partial"] is True
+        assert "projects" in data["errors"]
+        assert "simulated project search failure" in data["errors"]["projects"]
+        assert data["errors"].get("tasks") is None
+        assert isinstance(data["results"], list)
 
     def test_search_with_limit(self, authenticated_client, project):
         """Test search with custom limit"""
@@ -198,6 +235,8 @@ class TestV1SearchAPI:
         assert "query" in data
         assert "count" in data
         assert isinstance(data["results"], list)
+        assert data.get("partial") is False
+        assert data.get("errors") == {}
 
     def test_search_with_short_query(self, api_client):
         """Test search with query that's too short"""
@@ -207,12 +246,28 @@ class TestV1SearchAPI:
         data = response.get_json()
         assert "error" in data
         assert "results" in data
+        assert data.get("partial") is False
+        assert data.get("errors") == {}
 
     def test_search_with_empty_query(self, api_client):
         """Test search with empty query"""
         response = api_client.get("/api/v1/search", query_string={"q": ""})
 
         assert response.status_code == 400
+        data = response.get_json()
+        assert data.get("partial") is False
+        assert data.get("errors") == {}
+
+    def test_v1_search_partial_when_projects_domain_db_error(self, api_client):
+        """v1: project search DB errors are reported in errors.projects; other domains still run."""
+        with patch.object(global_search_service_module.Project, "query", _FailingProjectQuery()):
+            response = api_client.get("/api/v1/search", query_string={"q": "te"})
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["partial"] is True
+        assert "projects" in data["errors"]
+        assert "simulated project search failure" in data["errors"]["projects"]
+        assert isinstance(data["results"], list)
 
     def test_search_requires_authentication(self, app):
         """Test that search requires authentication"""

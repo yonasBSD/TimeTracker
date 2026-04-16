@@ -4,6 +4,12 @@
 
 The TimeTracker REST API provides programmatic access to all time tracking, project management, and reporting features. This API is designed for developers who want to integrate TimeTracker with other tools or build custom applications.
 
+**Integrations should use `/api/v1` only** (this document). The web application also exposes same-origin session JSON under **`/api/*`** (for example search and timer helpers used by the browser). Those routes are not the stable integration surface; use tokens and `/api/v1` for scripts, mobile, and desktop clients.
+
+### For maintainers
+
+Ship new HTTP capabilities under **`/api/v1`** first, with OpenAPI updates in `app/routes/api_docs.py`. Add or change **`/api/*`** only for logged-in UI needs or short-lived shims; reuse services from `app/services/` rather than duplicating logic.
+
 ## Base URL
 
 ```

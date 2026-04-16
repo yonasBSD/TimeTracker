@@ -71,8 +71,8 @@ API endpoints are versioned under `/api/v1/`. Authentication is session-based fo
 
 ## API Structure
 
-- **Base URL:** `/api/v1/`
-- **Auth:** API token in header `Authorization: Bearer <token>` or `X-API-Key: <token>`. Tokens are created in Admin → Api-tokens and have scopes (e.g. `read:projects`, `write:time_entries`).
+- **Integrations (primary):** **`/api/v1/`** — Versioned REST API for desktop, mobile, and automation. **API token** auth (`Authorization: Bearer <token>` or `X-API-Key: <token>`). Tokens are created in Admin → Api-tokens and have scopes (e.g. `read:projects`, `write:time_entries`). Documented in OpenAPI at `/api/docs` (spec: `/api/openapi.json`).
+- **Web UI JSON (session):** **`/api/*`** (see [`app/routes/api.py`](../app/routes/api.py)) — Same-origin JSON used by the logged-in browser (Flask-Login session cookie): command-palette search, timer helpers, notifications, dashboard fragments, calendar helpers, uploads, and similar. **Not** the integration contract; paths may evolve with the UI. Where a v1 equivalent exists, responses may include **`X-API-Deprecated: true`** and a **`Link: <.../api/v1/...>; rel="successor-version"`** header.
 - **Sub-blueprints (all under `/api/v1/`):** `api_v1` (info, health, auth/login), `api_v1_time_entries`, `api_v1_projects`, `api_v1_tasks`, `api_v1_clients`, `api_v1_invoices`, `api_v1_expenses`, `api_v1_payments`, `api_v1_mileage`, `api_v1_deals`, `api_v1_leads`, `api_v1_contacts`, plus remaining routes in `api_v1` (time-entry-approvals, per-diems, budget-alerts, calendar, kanban, saved-filters, etc.).
 - **Full reference:** [REST API](api/REST_API.md).
 

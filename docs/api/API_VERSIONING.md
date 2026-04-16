@@ -11,6 +11,30 @@ TimeTracker uses URL-based API versioning to ensure backward compatibility while
 /api/v2/*  - Future version (when breaking changes are needed)
 ```
 
+## Session JSON under `/api/*` vs REST under `/api/v1`
+
+| Surface | Auth | Audience | Spec |
+|--------|------|----------|------|
+| **`/api/v1/*`** | API token (Bearer or `X-API-Key`), scopes | Integrations, mobile, desktop | OpenAPI at `/api/openapi.json`, UI at `/api/docs` |
+| **`/api/*`** | Flask-Login **session** (browser cookie) | Logged-in web UI (`app/routes/api.py`) | Not fully documented in OpenAPI; may change with templates/JS |
+
+**Hybrid (session or token):** `/api/version/check` and `/api/version/dismiss` accept either a logged-in admin session or a valid API token (see `app/routes/api.py`).
+
+### Deprecated session routes (overlap with v1)
+
+These **`/api/*`** routes have v1 successors. They remain for the web UI but may send **`X-API-Deprecated: true`** and **`Link: </api/v1/...>; rel="successor-version"`**:
+
+- `GET /api/health` → `GET /api/v1/health`
+- `GET /api/search` → `GET /api/v1/search`
+- Timer: `GET /api/timer/status`, `POST /api/timer/start`, `POST /api/timer/stop`, `POST /api/timer/stop_at`, `POST /api/timer/resume` → `/api/v1/timer/*`
+- Time entries: `GET|POST /api/entries`, `POST /api/entries/bulk`, `GET|PUT|DELETE /api/entry/<id>` → `/api/v1/time-entries` (and related)
+- `GET /api/projects`, `GET /api/projects/<id>/tasks`, `GET /api/tasks` → `/api/v1/projects`, `/api/v1/tasks`
+- `GET /api/activities` → `GET /api/v1/activities` (v1 is a simpler list; legacy adds filters/pagination)
+
+### Internal / UI-only (no v1 equivalent yet)
+
+Examples: `GET /api/notifications`, dashboard stats (`/api/dashboard/*`, `/api/stats*`), editor uploads, smart notifications dismiss, many calendar helpers. Treat as **internal** to the web app unless documented otherwise.
+
 ## Versioning Policy
 
 ### When to Create a New Version
@@ -64,10 +88,10 @@ Clients specify API version via:
 
 ## Deprecation Policy
 
-1. **Deprecation Notice:** Deprecated endpoints return `X-API-Deprecated: true` header
-2. **Deprecation Period:** Minimum 6 months before removal
-3. **Migration Guide:** Documentation provided for migrating to new version
-4. **Removal:** Deprecated endpoints removed only in major version bumps
+1. **Deprecation notice:** Deprecated **session** JSON routes (see table above) return **`X-API-Deprecated: true`** and optionally **`Link: <path>; rel="successor-version"`** pointing at the **`/api/v1`** equivalent.
+2. **Deprecation period:** Minimum 6 months before removal (if removal is ever scheduled for a given route).
+3. **Migration guide:** Prefer [REST API](REST_API.md) and OpenAPI for v1 behavior.
+4. **Removal:** Deprecated endpoints removed only in coordinated major releases (v1 remains the default integration API).
 
 ## Migration Example
 
@@ -114,12 +138,14 @@ Clients specify API version via:
 
 ```
 app/routes/
-├── api.py          # Legacy API (deprecated)
-├── api_v1.py       # v1 API (current)
+├── api.py          # Session JSON for web UI (/api/*); overlapping routes may be deprecated toward v1
+├── api_v1.py       # v1 REST API (current)
 └── api/            # Future versioned structure
     └── v1/
         └── __init__.py
 ```
+
+Shared **global search** for `GET /api/search` and `GET /api/v1/search` lives in `app/services/global_search_service.py`. **`X-API-Deprecated`** / **`Link`** headers for overlapping session routes are applied with `app/utils/api_deprecation.py`.
 
 ### Future Structure
 
@@ -169,7 +195,7 @@ def get_api_version():
 
 ---
 
-**Last Updated:** 2025-01-27  
+**Last Updated:** 2026-04-16  
 **Current Version:** v1  
 **Next Version:** v2 (when needed)
 
