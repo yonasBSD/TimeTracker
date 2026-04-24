@@ -963,7 +963,7 @@ class InvoicePDFGenerator:
         try:
             # Render using Flask's Jinja environment to include app filters and _()
             if html_template:
-                from flask import render_template_string
+                from app.utils.safe_template_render import render_sandboxed_string
 
                 # When we have separate CSS, remove @page rules from HTML inline styles
                 # to ensure the separate CSS @page rule is used (WeasyPrint uses first @page it finds)
@@ -990,8 +990,9 @@ class InvoicePDFGenerator:
                         html_template_updated = update_page_size_in_html(html_template)
                     else:
                         html_template_updated = html_template
-                html = render_template_string(
+                html = render_sandboxed_string(
                     html_template_updated,
+                    autoescape=True,
                     invoice=invoice_data,  # Use wrapped object with lists
                     settings=self.settings,
                     Path=Path,
@@ -2255,7 +2256,7 @@ class QuotePDFGenerator:
         try:
             # Render using Flask's Jinja environment
             if html_template:
-                from flask import render_template_string
+                from app.utils.safe_template_render import render_sandboxed_string
 
                 # When we have separate CSS, remove @page rules from HTML inline styles
                 if html_inline_styles_extracted and css_template:
@@ -2269,8 +2270,9 @@ class QuotePDFGenerator:
                 else:
                     html_template_updated = html_template
 
-                html = render_template_string(
+                html = render_sandboxed_string(
                     html_template_updated,
+                    autoescape=True,
                     quote=quote_data,
                     settings=self.settings,
                     Path=Path,

@@ -6,9 +6,9 @@ from threading import Thread
 
 from flask import current_app, render_template, url_for
 from flask_mail import Mail, Message
-from jinja2 import Template as JinjaTemplate
 
 from app import db
+from app.utils.safe_template_render import render_sandboxed_string
 
 mail = Mail()
 
@@ -688,8 +688,13 @@ def _build_invoice_email_payload(invoice, email_template_id=None, custom_message
 </body>
 </html>"""
 
-                template = JinjaTemplate(template_html)
-                html_body = template.render(invoice=invoice, company_name=company_name, custom_message=custom_message)
+                html_body = render_sandboxed_string(
+                    template_html,
+                    autoescape=True,
+                    invoice=invoice,
+                    company_name=company_name,
+                    custom_message=custom_message,
+                )
                 text_body = f"Invoice {invoice.invoice_number} - Please see attached PDF for details."
         except Exception as template_error:
             current_app.logger.warning(f"[INVOICE EMAIL] Custom template failed: {template_error}")
