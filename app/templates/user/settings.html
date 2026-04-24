@@ -8,20 +8,27 @@
         <p class="text-gray-600 dark:text-gray-400 mt-2">{{ _('Manage your account settings and preferences') }}</p>
     </div>
 
-    {% if not is_license_activated %}
-    <div class="mb-6 p-4 rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <p class="text-sm text-text-light dark:text-text-dark">{{ _('TimeTracker is free and open-source. If you enjoy using it, you can support development by purchasing a license key.') }}</p>
-        <a href="{{ support_purchase_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-shrink-0 w-full sm:w-auto text-center">
-            {{ _('Buy license (€25)') }} <i class="fas fa-external-link-alt ml-1 text-xs" aria-hidden="true"></i>
-        </a>
-    </div>
-    {% endif %}
-
-    <div class="mb-6">
-        <a href="{{ url_for('user.license') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark hover:bg-gray-50 dark:hover:bg-gray-700/50 transition text-sm font-medium">
-            <i class="fas fa-key" aria-hidden="true"></i>{{ _('License') }}
-        </a>
-    </div>
+    <details class="bg-card-light dark:bg-card-dark rounded-lg shadow-md group mb-6" open>
+        <summary class="flex items-center justify-between p-6 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+                <i class="fas fa-heart mr-2 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>{{ _('Support & Community') }}
+            </h2>
+            <i class="fas fa-chevron-down text-gray-400 transition-transform group-open:rotate-180 md:hidden"></i>
+        </summary>
+        <div class="px-6 pb-6 space-y-4 text-sm text-text-light dark:text-text-dark">
+            <p class="text-text-muted-light dark:text-text-muted-dark">{{ _('TimeTracker is free and open source. Funding comes from optional donations and supporter licenses — never from locking features.') }}</p>
+            {% if is_license_activated %}
+            <p>{{ _('This instance already has a supporter license. Thank you — you can still donate or share the app anytime.') }}</p>
+            {% else %}
+            <p>{{ _('If the app saves you time, you can donate or buy a supporter license (€25). A license shows a Supporter badge; it does not change what you can use.') }}</p>
+            {% endif %}
+            <div class="flex flex-wrap gap-2">
+                <button type="button" class="btn btn-primary js-open-support-modal">{{ _('Support TimeTracker') }}</button>
+                <a href="{{ url_for('user.license') }}" class="btn btn-secondary inline-flex items-center gap-2"><i class="fas fa-key" aria-hidden="true"></i>{{ _('License & supporter key') }}</a>
+                <a href="{{ support_purchase_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">{{ _('Checkout on timetracker.drytrix.com') }} <i class="fas fa-external-link-alt text-xs" aria-hidden="true"></i></a>
+            </div>
+        </div>
+    </details>
 
     <form method="POST" class="space-y-8">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -137,6 +144,56 @@
                         <label for="reminder_to_log_time" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ _('Reminder time (your timezone)') }}</label>
                         <input type="time" id="reminder_to_log_time" name="reminder_to_log_time" value="{{ user.reminder_to_log_time or '17:00' }}"
                                class="w-32 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white text-sm">
+                    </div>
+
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-4 mb-2">{{ _('In-app reminders (toasts)') }}</p>
+                    <label for="smart_notifications_enabled" class="flex items-center min-h-[44px] cursor-pointer rounded-lg px-2 -mx-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <input type="checkbox" id="smart_notifications_enabled" name="smart_notifications_enabled"
+                               {% if user.smart_notifications_enabled %}checked{% endif %}
+                               class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0">
+                        <span class="ml-3 block text-sm text-gray-700 dark:text-gray-300">
+                            {{ _('Enable smart notifications on this device') }}
+                        </span>
+                    </label>
+                    <div class="ml-2 mt-2 space-y-2 {% if not user.smart_notifications_enabled %}opacity-60{% endif %}" id="smart_notify_sub_wrap">
+                        <label for="smart_notify_no_tracking" class="flex items-center min-h-[40px] cursor-pointer rounded-lg px-2 -mx-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <input type="checkbox" id="smart_notify_no_tracking" name="smart_notify_no_tracking"
+                                   {% if user.smart_notify_no_tracking %}checked{% endif %}
+                                   class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0">
+                            <span class="ml-3 block text-sm text-gray-700 dark:text-gray-300">{{ _('Nudge when no time logged today (uses hour from app settings or override below)') }}</span>
+                        </label>
+                        <label for="smart_notify_long_timer" class="flex items-center min-h-[40px] cursor-pointer rounded-lg px-2 -mx-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <input type="checkbox" id="smart_notify_long_timer" name="smart_notify_long_timer"
+                                   {% if user.smart_notify_long_timer %}checked{% endif %}
+                                   class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0">
+                            <span class="ml-3 block text-sm text-gray-700 dark:text-gray-300">{{ _('Alert when a timer runs longer than the configured threshold') }}</span>
+                        </label>
+                        <label for="smart_notify_daily_summary" class="flex items-center min-h-[40px] cursor-pointer rounded-lg px-2 -mx-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <input type="checkbox" id="smart_notify_daily_summary" name="smart_notify_daily_summary"
+                                   {% if user.smart_notify_daily_summary %}checked{% endif %}
+                                   class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0">
+                            <span class="ml-3 block text-sm text-gray-700 dark:text-gray-300">{{ _('End-of-day summary (logged hours today)') }}</span>
+                        </label>
+                        <label for="smart_notify_browser" class="flex items-center min-h-[40px] cursor-pointer rounded-lg px-2 -mx-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <input type="checkbox" id="smart_notify_browser" name="smart_notify_browser"
+                                   {% if user.smart_notify_browser %}checked{% endif %}
+                                   class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0">
+                            <span class="ml-3 block text-sm text-gray-700 dark:text-gray-300">{{ _('Also use browser notifications when permission is granted') }}</span>
+                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                            <div>
+                                <label for="smart_notify_no_tracking_after" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ _('No-tracking nudge hour (optional override, HH:MM)') }}</label>
+                                <input type="time" id="smart_notify_no_tracking_after" name="smart_notify_no_tracking_after"
+                                       value="{{ user.smart_notify_no_tracking_after or '' }}"
+                                       class="w-full max-w-[12rem] px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white text-sm">
+                            </div>
+                            <div>
+                                <label for="smart_notify_summary_at" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ _('Summary hour (optional override, HH:MM)') }}</label>
+                                <input type="time" id="smart_notify_summary_at" name="smart_notify_summary_at"
+                                       value="{{ user.smart_notify_summary_at or '' }}"
+                                       class="w-full max-w-[12rem] px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white text-sm">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

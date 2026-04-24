@@ -56,6 +56,7 @@ from app.models import (
     WebhookDelivery,
 )
 from app.models.time_entry import local_now
+from app.services.global_search_service import run_global_search
 from app.models.time_entry_approval import ApprovalStatus, TimeEntryApproval
 from app.utils.api_auth import require_api_token
 from app.utils.api_responses import (
@@ -67,6 +68,7 @@ from app.utils.api_responses import (
     validation_error_response,
 )
 from app.utils.error_handling import safe_log
+from app.utils.scope_filter import apply_client_scope, apply_project_scope
 from app.utils.timezone import get_app_timezone, parse_local_datetime, utc_to_local
 
 api_v1_bp = Blueprint("api_v1", __name__, url_prefix="/api/v1")
@@ -112,10 +114,16 @@ def api_info():
         # Fallback to config or default
         app_version = current_app.config.get("APP_VERSION", "1.0.0")
 
+    from app.utils.installation import get_installation_config
+
+    installation_config = get_installation_config()
+    setup_required = not installation_config.is_setup_complete()
+
     return jsonify(
         {
             "api_version": "v1",
             "app_version": app_version,
+            "setup_required": setup_required,
             "documentation_url": "/api/docs",
             "authentication": "API Token (Bearer or X-API-Key header)",
             "endpoints": {
@@ -4485,6 +4493,11 @@ def search():
               type: string
             count:
               type: integer
+            partial:
+              type: boolean
+            errors:
+              type: object
+              description: Domain key to error message (projects, tasks, clients, entries)
       400:
         description: Invalid query (too short)
     """
@@ -4493,153 +4506,34 @@ def search():
     types_filter = request.args.get("types", "").strip().lower()
 
     if not query or len(query) < 2:
-        return jsonify({"error": "Query must be at least 2 characters", "results": []}), 400
+        return (
+            jsonify(
+                {
+                    "error": "Query must be at least 2 characters",
+                    "results": [],
+                    "partial": False,
+                    "errors": {},
+                }
+            ),
+            400,
+        )
 
-    # Parse types filter
-    allowed_types = {"project", "task", "client", "entry"}
-    if types_filter:
-        requested_types = {t.strip() for t in types_filter.split(",") if t.strip()}
-        search_types = requested_types.intersection(allowed_types)
-    else:
-        search_types = allowed_types
+    results, errors = run_global_search(
+        g.api_user,
+        query,
+        limit=limit,
+        types_filter=types_filter,
+    )
 
-    results = []
-    search_pattern = f"%{query}%"
-
-    # Get authenticated user from API token
-    user = g.api_user
-
-    # Search projects (scoped for subcontractors)
-    if "project" in search_types:
-        try:
-            from app.utils.scope_filter import apply_project_scope_to_model
-
-            projects_query = Project.query.filter(
-                Project.status == "active",
-                or_(Project.name.ilike(search_pattern), Project.description.ilike(search_pattern)),
-            )
-            scope_p = apply_project_scope_to_model(Project, user)
-            if scope_p is not None:
-                projects_query = projects_query.filter(scope_p)
-            projects = projects_query.limit(limit).all()
-
-            for project in projects:
-                results.append(
-                    {
-                        "type": "project",
-                        "category": "project",
-                        "id": project.id,
-                        "title": project.name,
-                        "description": project.description or "",
-                        "url": f"/projects/{project.id}",
-                        "badge": "Project",
-                    }
-                )
-        except Exception as e:
-            current_app.logger.error(f"Error searching projects: {e}")
-
-    # Search tasks
-    if "task" in search_types:
-        try:
-            tasks = (
-                Task.query.join(Project)
-                .filter(
-                    Project.status == "active",
-                    or_(Task.name.ilike(search_pattern), Task.description.ilike(search_pattern)),
-                )
-                .limit(limit)
-                .all()
-            )
-
-            for task in tasks:
-                results.append(
-                    {
-                        "type": "task",
-                        "category": "task",
-                        "id": task.id,
-                        "title": task.name,
-                        "description": f"{task.project.name if task.project else 'No Project'}",
-                        "url": f"/tasks/{task.id}",
-                        "badge": task.status.replace("_", " ").title() if task.status else "Task",
-                    }
-                )
-        except Exception as e:
-            current_app.logger.error(f"Error searching tasks: {e}")
-
-    # Search clients (scoped for subcontractors)
-    if "client" in search_types:
-        try:
-            from app.utils.scope_filter import apply_client_scope_to_model
-
-            clients_query = Client.query.filter(
-                or_(
-                    Client.name.ilike(search_pattern),
-                    Client.email.ilike(search_pattern),
-                    Client.company.ilike(search_pattern),
-                )
-            )
-            scope_c = apply_client_scope_to_model(Client, user)
-            if scope_c is not None:
-                clients_query = clients_query.filter(scope_c)
-            clients = clients_query.limit(limit).all()
-
-            for client in clients:
-                results.append(
-                    {
-                        "type": "client",
-                        "category": "client",
-                        "id": client.id,
-                        "title": client.name,
-                        "description": client.company or client.email or "",
-                        "url": f"/clients/{client.id}",
-                        "badge": "Client",
-                    }
-                )
-        except Exception as e:
-            current_app.logger.error(f"Error searching clients: {e}")
-
-    # Search time entries (notes and tags)
-    # Non-admin users can only see their own entries
-    if "entry" in search_types:
-        try:
-            entries_query = TimeEntry.query.filter(
-                TimeEntry.end_time.isnot(None),
-                or_(TimeEntry.notes.ilike(search_pattern), TimeEntry.tags.ilike(search_pattern)),
-            )
-
-            # Restrict to user's entries if not admin
-            if not user.is_admin:
-                entries_query = entries_query.filter(TimeEntry.user_id == user.id)
-
-            entries = entries_query.order_by(TimeEntry.start_time.desc()).limit(limit).all()
-
-            for entry in entries:
-                title_parts = []
-                if entry.project:
-                    title_parts.append(entry.project.name)
-                if entry.task:
-                    title_parts.append(f"• {entry.task.name}")
-                title = " ".join(title_parts) if title_parts else "Time Entry"
-
-                description = entry.notes[:100] if entry.notes else ""
-                if entry.tags:
-                    description += f" [{entry.tags}]"
-
-                results.append(
-                    {
-                        "type": "entry",
-                        "category": "entry",
-                        "id": entry.id,
-                        "title": title,
-                        "description": description,
-                        "url": f"/timer/edit/{entry.id}",
-                        "badge": entry.duration_formatted,
-                    }
-                )
-        except Exception as e:
-            current_app.logger.error(f"Error searching time entries: {e}")
-
-    return jsonify({"results": results, "query": query, "count": len(results)})
+    return jsonify(
+        {
+            "results": results,
+            "query": query,
+            "count": len(results),
+            "partial": bool(errors),
+            "errors": errors,
+        }
+    )
 
 
 # ==================== Timesheet Governance ====================

@@ -1054,13 +1054,12 @@
                             <span class="ml-3 sidebar-label">{{ _('Help') }}</span>
                         </a>
                     </li>
-                    {% if current_user.is_authenticated and (not settings or not getattr(settings, 'donate_ui_hidden', false)) and current_user.ui_show_donate %}
+                    {% if current_user.is_authenticated and current_user.ui_show_donate %}
                     <li class="mt-2">
-                        <a href="{{ url_for('main.donate') }}" class="sidebar-nav-item flex items-center p-2 rounded-lg {% if ep == 'main.donate' %}bg-background-light dark:bg-background-dark text-primary font-semibold{% else %}bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:from-amber-500/20 hover:to-orange-500/20 hover:border-amber-500/30{% endif %} transition-all duration-200 group" title="{{ _('Support updates — or remove prompts with a key') }}">
-                            <i class="fas fa-mug-saucer w-6 text-center group-hover:scale-110 transition-transform"></i>
-                            <span class="ml-3 sidebar-label font-medium">{{ _('Support Development') }}</span>
-                            <span class="ml-auto text-xs opacity-70">☕</span>
-                        </a>
+                        <button type="button" class="sidebar-nav-item w-full text-left flex items-center p-2 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:from-amber-500/20 hover:to-orange-500/20 hover:border-amber-500/30 transition-all duration-200 group js-open-support-modal" title="{{ _('Open support options') }}">
+                            <i class="fas fa-heart w-6 text-center group-hover:scale-110 transition-transform" aria-hidden="true"></i>
+                            <span class="ml-3 sidebar-label font-medium">{{ _('Support TimeTracker') }}</span>
+                        </button>
                     </li>
                     {% endif %}
                 </ul>
@@ -1126,6 +1125,12 @@
                         <a href="{{ url_for('main.help') }}" class="flex items-center justify-center w-9 h-9 rounded-lg text-text-light dark:text-text-dark hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50" aria-label="{{ _('Help') }}" title="{{ _('Help') }}">
                             <i class="fas fa-life-ring"></i>
                         </a>
+                        {% if current_user.is_authenticated %}
+                        <button type="button" id="headerSupportBtn" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-amber-800 dark:text-amber-200 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 dark:border-amber-500/40 focus:outline-none focus:ring-2 focus:ring-amber-500/40" title="{{ _('Support TimeTracker') }}">
+                            <i class="fas fa-heart text-amber-600 dark:text-amber-300" aria-hidden="true"></i>
+                            <span class="max-w-[10rem] truncate">{{ _('Support TimeTracker') }}</span>
+                        </button>
+                        {% endif %}
                     </div>
 
                     <!-- Language Switcher -->
@@ -1164,6 +1169,9 @@
                                     </div>
                                 {% endif %}
                                 <span class="hidden md:inline text-text-light dark:text-text-dark font-medium">{{ current_user.display_name }}</span>
+                                {% if is_license_activated %}
+                                <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200 border border-emerald-200/80 dark:border-emerald-700/60" title="{{ _('Supporter') }}">{{ _('Supporter') }}</span>
+                                {% endif %}
                             {% else %}
                                 <div class="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center">
                                     <i class="fas fa-user text-white"></i>
@@ -1182,8 +1190,8 @@
                             {% if current_user.is_authenticated %}
                             <li><a href="{{ url_for('user.license') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-text-light dark:text-text-dark hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fas fa-key w-4"></i> {{ _('License') }}</a></li>
                             {% endif %}
-                            {% if not is_license_activated and current_user.is_authenticated %}
-                            <li><a href="{{ support_purchase_url }}" target="_blank" rel="noopener noreferrer" class="flex flex-col gap-0.5 px-4 py-2 text-sm text-amber-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700"><span class="font-medium"><i class="fas fa-heart w-4" aria-hidden="true"></i> {{ _('Support TimeTracker') }}</span><span class="text-xs text-text-muted-light dark:text-text-muted-dark">{{ _('Buy a license key (€25)') }}</span></a></li>
+                            {% if current_user.is_authenticated %}
+                            <li><button type="button" class="js-open-support-modal w-full text-left flex flex-col gap-0.5 px-4 py-2 text-sm text-amber-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700"><span class="font-medium"><i class="fas fa-heart w-4" aria-hidden="true"></i> {{ _('Support TimeTracker') }}</span><span class="text-xs text-text-muted-light dark:text-text-muted-dark">{{ _('Donate or get a supporter license') }}</span></button></li>
                             {% endif %}
                             <li class="border-t border-border-light dark:border-border-dark"><a href="{{ url_for('auth.logout') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="fas fa-sign-out-alt w-4"></i> {{ _('Logout') }}</a></li>
                         </ul>
@@ -1211,7 +1219,7 @@
                 {% endwith %}
             </div>
 
-            {% if current_user.is_authenticated and (not settings or not getattr(settings, 'donate_ui_hidden', false)) and current_user.ui_show_donate %}
+            {% if current_user.is_authenticated and current_user.ui_show_donate %}
             <!-- Dismissible Support Banner -->
             <div id="supportBanner" class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-b border-amber-200 dark:border-amber-800 px-4 py-3 opacity-0 invisible max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
@@ -1222,7 +1230,7 @@
                                 {{ _('Enjoying TimeTracker?') }}
                             </p>
                             <p class="text-xs text-amber-700 dark:text-amber-300" id="bannerMessage">
-                                {{ _('Support updates and new features — or remove prompts with a key') }} ☕
+                                {{ _('Support independent development — licenses are supporter badges, not paywalls.') }}
                             </p>
                         </div>
                     </div>
@@ -1245,9 +1253,9 @@
                            class="px-3 py-1.5 text-white text-sm font-medium rounded-lg transition-colors border border-blue-600 hover:opacity-90" style="background: linear-gradient(to right, #0070ba, #003087);">
                             <i class="fab fa-paypal mr-1"></i>{{ _('PayPal') }}
                         </a>
-                        <a href="{{ support_purchase_url }}" target="_blank" rel="noopener noreferrer" onclick="trackDonationClick('banner_key')" class="text-xs text-amber-700 dark:text-amber-300 hover:underline self-center">
-                            {{ _('Remove prompts with key') }}
-                        </a>
+                        <button type="button" class="text-xs text-amber-700 dark:text-amber-300 hover:underline self-center js-open-support-modal">
+                            {{ _('Support / License') }}
+                        </button>
                         <button onclick="dismissSupportBanner()" 
                                 class="p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded transition-colors"
                                 aria-label="{{ _('Dismiss') }}">
@@ -1262,6 +1270,9 @@
             <main id="mainContentAnchor" class="flex-1 min-w-0 p-4 sm:p-6 w-full max-w-7xl mx-auto overflow-x-hidden">
                 {% block content %}{% endblock %}
             </main>
+            {% if current_user.is_authenticated %}
+            <p class="text-center text-xs text-text-muted-light dark:text-text-muted-dark px-4 pb-2 max-w-7xl mx-auto w-full">{{ _('Built by an independent developer') }}</p>
+            {% endif %}
         </div>
 
         {% if current_user.is_authenticated %}
@@ -1296,6 +1307,33 @@
             </a>
         </nav>
 
+        {% if is_admin_user %}
+        <div id="adminVersionUpdateRoot" class="hidden fixed bottom-20 right-4 z-[60] max-w-sm w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark shadow-xl" role="region" aria-label="{{ _('Software update') }}">
+            <div class="p-4 sm:p-5">
+                <div class="flex items-start gap-3">
+                    <span class="text-2xl shrink-0" aria-hidden="true">&#128640;</span>
+                    <div class="min-w-0 flex-1">
+                        <h2 id="adminVersionUpdateTitle" class="text-sm font-semibold text-text-light dark:text-text-dark"></h2>
+                        <p id="adminVersionUpdatePublished" class="mt-1 text-xs text-text-muted-light dark:text-text-muted-dark"></p>
+                        <div id="adminVersionUpdateNotes" class="mt-2 text-sm text-text-light dark:text-text-dark whitespace-pre-wrap break-words max-h-40 overflow-y-auto"></div>
+                        <button type="button" id="adminVersionUpdateReadMore" class="hidden mt-1 text-xs text-primary hover:underline">{{ _('Read more') }}</button>
+                    </div>
+                    <button type="button" id="adminVersionUpdateClose" class="shrink-0 p-1 rounded-md text-text-muted-light hover:bg-background-light dark:text-text-muted-dark dark:hover:bg-background-dark" aria-label="{{ _('Close') }}">&times;</button>
+                </div>
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <a id="adminVersionUpdateViewRelease" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark">{{ _('View Release') }}</a>
+                    <button type="button" id="adminVersionUpdateDismiss" class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-border-light dark:border-border-dark text-sm">{{ _('Dismiss') }}</button>
+                    <button type="button" id="adminVersionUpdateDismissVersion" class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg border border-border-light dark:border-border-dark text-sm">{{ _("Don't show again for this version") }}</button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if current_user.is_authenticated and support_ui_json %}
+        <script type="application/json" id="support-ui-bootstrap">{{ support_ui_json|safe }}</script>
+        {% include 'components/support_modal.html' %}
+        {% endif %}
+
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
@@ -1305,6 +1343,9 @@
     <script src="{{ url_for('static', filename='enhanced-search.js') }}"></script>
     <script src="{{ url_for('static', filename='form-validation.js') }}"></script>
     <script src="{{ url_for('static', filename='toast-notifications.js') }}?v={{ app_version }}-toastfix1"></script>
+    {% if current_user.is_authenticated and support_ui_json %}
+    <script src="{{ url_for('static', filename='support-ui.js') }}?v={{ app_version }}-sup1"></script>
+    {% endif %}
     <script src="{{ url_for('static', filename='enhanced-tables.js') }}"></script>
     <script src="{{ url_for('static', filename='interactions.js') }}"></script>
     <script src="{{ url_for('static', filename='offline-sync.js') }}"></script>
@@ -1313,6 +1354,9 @@
     {% if current_user.is_authenticated %}
     <script src="{{ url_for('static', filename='floating-timer-bar.js') }}"></script>
     <script src="{{ url_for('static', filename='idle.js') }}"></script>
+    {% endif %}
+    {% if is_admin_user %}
+    <script src="{{ url_for('static', filename='admin-version-update.js') }}?v={{ app_version }}"></script>
     {% endif %}
     <!-- Old command palette and keyboard navigation (restored) -->
     <script src="{{ url_for('static', filename='commands.js') }}?v=2.0"></script>

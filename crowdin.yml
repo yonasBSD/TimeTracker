@@ -1,4 +1,5 @@
 # Crowdin CLI / GitHub Action configuration.
+# Project: https://crowdin.com/project/drytrix-timetracker
 # See docs/CONTRIBUTING_TRANSLATIONS.md → Crowdin setup.
 #
 # Secrets (never commit real values):

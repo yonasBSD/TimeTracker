@@ -44,6 +44,7 @@ make test-models          # Test models only
 make test-unit           # Test unit tests only
 make test-integration    # Test integration only
 make test-api            # Test API endpoints
+pytest tests/test_api_route_contract.py -v   # Curated URL map + OpenAPI version vs setup.py
 ```
 
 ### Coverage Analysis

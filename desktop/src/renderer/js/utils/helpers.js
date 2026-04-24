@@ -46,6 +46,14 @@ function isValidUrl(string) {
   }
 }
 
+/** Add https:// when user entered host:port or hostname only */
+function normalizeServerUrlInput(input) {
+  const trimmed = String(input || '').trim();
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return 'https://' + trimmed;
+}
+
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -67,6 +75,7 @@ if (typeof module !== 'undefined' && module.exports) {
     formatDateTime,
     parseISODate,
     isValidUrl,
+    normalizeServerUrlInput,
     debounce,
   };
 }
@@ -79,6 +88,7 @@ if (typeof window !== 'undefined') {
     formatDateTime,
     parseISODate,
     isValidUrl,
+    normalizeServerUrlInput,
     debounce,
   };
 }

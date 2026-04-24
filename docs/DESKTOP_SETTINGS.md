@@ -2,6 +2,18 @@
 
 The TimeTracker desktop app includes a comprehensive settings system that allows users to configure the server URL and API token.
 
+## First sign-in (connection wizard)
+
+On first launch (or whenever credentials are missing), the app shows a **two-step** flow:
+
+1. **Step 1 — Server**  
+   Enter the base URL of your TimeTracker server (protocol and port as needed, e.g. `https://timetracker.example.com` or `http://192.168.1.50:5000`). If you omit the scheme, `https://` is assumed when validating. Use **Test server** to confirm the host speaks the TimeTracker API (`GET /api/v1/info` must return JSON with `api_version: "v1"`). **Continue to token** is enabled only after a successful test.
+
+2. **Step 2 — API token**  
+   Paste an API token from the web app (**Admin → Security & Access → API tokens**). **Log in** verifies the token against the server (see **Connection testing** below).
+
+Command-line `--server-url` / `TIMETRACKER_SERVER_URL` can pre-fill the stored server URL and skip typing it in step 1; you still complete token entry unless the token is already saved.
+
 ## Settings Location
 
 Settings are stored using Electron's secure storage (`electron-store`), which saves data in a JSON file in the user's application data directory:
@@ -54,7 +66,7 @@ export TIMETRACKER_SERVER_URL=https://your-server.com
 
 ### Server URL Configuration
 
-- **Validation**: The app validates that the URL is properly formatted (must start with `http://` or `https://`)
+- **Validation**: URLs are normalized (trailing slashes removed). If you type a host without a scheme (e.g. `internal.company.com:8443`), `https://` is prepended for validation.
 - **Persistence**: Server URL is saved to secure storage and persists across app restarts
 - **Change Detection**: The app automatically reinitializes the API client when the server URL changes
 
@@ -67,11 +79,16 @@ export TIMETRACKER_SERVER_URL=https://your-server.com
 
 ### Connection Testing
 
-The settings screen includes a "Test Connection" button that:
-- Validates the server URL format
-- Tests the API token against the server
-- Provides immediate feedback on connection status
-- Shows success/error messages
+The settings screen includes a **Test Connection** button (and **Save Settings** runs the same checks). The flow is:
+
+1. **Public check** — `GET /api/v1/info` without credentials. The response must be JSON with `api_version: "v1"` and an `endpoints` object. If the server returns `setup_required: true`, finish initial web setup in a browser first.
+2. **Authenticated check** — With your token, the app calls `GET /api/v1/users/me`. If the token does not include the `read:users` scope, it falls back to `GET /api/v1/timer/status` (requires `read:time_entries`). One of these must succeed for the session to be considered valid.
+
+Errors are shown with specific causes when possible (DNS, connection refused, timeout, TLS/certificate issues, HTTP status, wrong app).
+
+### Session loss and background checks
+
+While you are signed in, the app re-validates the session about every **30 seconds**. If the server repeatedly rejects the token (**401**), the app signs you out to the login wizard (step 2) and shows a short message so you can fix the token or server URL.
 
 ## Settings File Structure
 
@@ -97,18 +114,18 @@ When the settings view is opened:
 ### Settings Saving
 
 When "Save Settings" is clicked:
-1. Server URL is validated
+1. Server URL is validated and normalized
 2. API token is validated (if changed)
-3. Settings are saved to secure storage
-4. API client is reinitialized with new settings
-5. Connection is automatically tested
-6. Success/error message is displayed
+3. Values are written to secure storage (URL, token, sync options)
+4. API client is reinitialized with the new URL and token
+5. The same **public + authenticated** checks as **Test Connection** are run
+6. On full success, a success message is shown. If the **public** check fails, an error message is shown (values were already saved—correct them and save again). If only the **session** check fails, a **warning** is shown with the server message.
 
 ### Settings Validation
 
-- **Server URL**: Must be a valid HTTP/HTTPS URL
+- **Server URL**: Must resolve to a valid HTTP/HTTPS URL after normalization
 - **API Token**: Must start with `tt_` and be non-empty
-- **Connection**: Server must be reachable and token must be valid
+- **Connection**: Server must expose TimeTracker `GET /api/v1/info`, and the token must pass the authenticated check described above
 
 ## Security Considerations
 
@@ -153,7 +170,11 @@ To manually edit or backup settings:
 
 ## Code References
 
-- Settings UI: `desktop/src/renderer/index.html` (settings view)
-- Settings Logic: `desktop/src/renderer/js/app.js` (loadSettings, handleSaveSettings, handleTestConnection)
+- Login wizard and settings UI: `desktop/src/renderer/index.html`
+- Connection and settings logic: `desktop/src/renderer/js/app.js` (initApp, wizard handlers, loadSettings, handleSaveSettings, handleTestConnection, checkConnection)
+- HTTP client: `desktop/src/renderer/js/api/client.js` (`testPublicServerInfo`, `validateSession`, URL normalization, error classification)
+- Unit tests: `desktop/test/api-client.test.js` (run `npm test` from `desktop/`)
 - Storage: `desktop/src/shared/config.js` (storeGet, storeSet, storeDelete, storeClear)
-- Main Process: `desktop/src/main/main.js` (command line argument parsing)
+- Main process: `desktop/src/main/main.js` (command line argument parsing)
+
+`npm run build` and `npm start` run **`prebuild` / `prestart`**, which rebuild the renderer bundle (`bundle.js`) via esbuild so packaged builds do not ship a stale UI.

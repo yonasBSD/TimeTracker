@@ -223,6 +223,60 @@
     </div>
 </div>
 
+<!-- Value Dashboard: productivity insights (filled via /api/stats/value-dashboard) -->
+<div id="valueDashboardRoot" class="mb-6 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm p-6 dashboard-widget" data-support-msg="{{ _('If this saved you even 1 hour, consider supporting ❤️') }}" data-empty-msg="{{ _('Start tracking to see your productivity insights here.') }}" data-loading-msg="{{ _('Loading insights…') }}">
+    <div class="flex items-center gap-3 mb-4">
+        <div class="bg-amber-500/10 dark:bg-amber-400/10 p-3 rounded-lg">
+            <i class="fas fa-chart-line text-amber-600 dark:text-amber-400 text-xl" aria-hidden="true"></i>
+        </div>
+        <div>
+            <h2 class="text-lg font-semibold text-text-light dark:text-text-dark">{{ _('Value insights') }}</h2>
+            <p class="text-sm text-text-muted-light dark:text-text-muted-dark">{{ _('Your tracked time at a glance') }}</p>
+        </div>
+    </div>
+    <p id="valueDashboardLoading" class="text-sm text-text-muted-light dark:text-text-muted-dark">{{ _('Loading insights…') }}</p>
+    <div id="valueDashboardEmpty" class="hidden text-center py-8 text-text-muted-light dark:text-text-muted-dark">
+        <i class="fas fa-seedling text-4xl mb-3 opacity-60" aria-hidden="true"></i>
+        <p id="valueDashboardEmptyText" class="mb-4"></p>
+        <a href="{{ url_for('timer.time_entries_overview') }}" class="btn btn-primary btn-sm">{{ _('View time entries') }}</a>
+    </div>
+    <div id="valueDashboardContent" class="hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div class="rounded-lg border border-border-light dark:border-border-dark bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-900/15 dark:to-orange-900/10 p-4">
+                <p class="text-xs font-medium text-amber-800 dark:text-amber-200/90 mb-1">{{ _('Total hours tracked') }}</p>
+                <p class="text-2xl font-bold text-text-light dark:text-text-dark"><span id="valueDashboardTotalHours">0</span> <span class="text-sm font-normal text-text-muted-light dark:text-text-muted-dark">h</span></p>
+            </div>
+            <div class="rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-4">
+                <p class="text-xs font-medium text-text-muted-light dark:text-text-muted-dark mb-1">{{ _('Time entries') }}</p>
+                <p class="text-2xl font-bold text-text-light dark:text-text-dark" id="valueDashboardEntriesCount">0</p>
+            </div>
+            <div class="rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-4">
+                <p class="text-xs font-medium text-text-muted-light dark:text-text-muted-dark mb-1">{{ _('Active days') }}</p>
+                <p class="text-2xl font-bold text-text-light dark:text-text-dark" id="valueDashboardActiveDays">0</p>
+            </div>
+        </div>
+        <div class="mb-6">
+            <p class="text-sm font-medium text-text-light dark:text-text-dark mb-2">{{ _('Hours per day (last 7 days)') }}</p>
+            <div id="valueDashboardChart" class="flex items-end justify-between gap-1 sm:gap-2 min-h-[140px] pt-2 border-t border-border-light dark:border-border-dark" role="img" aria-label="{{ _('Hours per day last seven days') }}"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-sm">
+            <div class="rounded-lg bg-gray-50 dark:bg-gray-800/50 p-4 border border-border-light dark:border-border-dark">
+                <p class="text-text-muted-light dark:text-text-muted-dark mb-1">{{ _('Most productive day') }}</p>
+                <p class="font-semibold text-text-light dark:text-text-dark" id="valueDashboardMostProductiveDay">—</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 dark:bg-gray-800/50 p-4 border border-border-light dark:border-border-dark">
+                <p class="text-text-muted-light dark:text-text-muted-dark mb-1">{{ _('Avg session length') }}</p>
+                <p class="font-semibold text-text-light dark:text-text-dark"><span id="valueDashboardAvgSession">0</span> h</p>
+            </div>
+        </div>
+        <div id="valueDashboardEstimated" class="hidden mb-4 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/20 p-4">
+            <p class="text-sm font-medium text-emerald-900 dark:text-emerald-100">{{ _('Estimated value tracked') }} (<span id="valueDashboardCurrency"></span>)</p>
+            <p class="text-xl font-bold text-emerald-800 dark:text-emerald-200" id="valueDashboardEstimatedAmount"></p>
+        </div>
+        <p id="valueDashboardSupport" class="text-sm text-text-muted-light dark:text-text-muted-dark text-center sm:text-left"></p>
+    </div>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
     <!-- Left Column: Recent Entries -->
     <div class="lg:col-span-2">
@@ -534,22 +588,38 @@
         </div>
     </div>
 
-    {% if show_support_reminder %}
-    <!-- Support reminder - once per session, unlicensed only -->
-    <div class="bg-card-light dark:bg-card-dark border border-amber-200 dark:border-amber-800 p-5 rounded-xl shadow-sm dashboard-widget">
+    {% if current_user.ui_show_donate %}
+    <div class="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark p-5 rounded-xl shadow-sm dashboard-widget">
         <div class="flex items-center gap-2 mb-3">
             <div class="bg-amber-500/10 dark:bg-amber-400/10 p-2 rounded-lg">
-                <i class="fas fa-heart text-amber-600 dark:text-amber-400"></i>
+                <i class="fas fa-heart text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
             </div>
             <h2 class="text-base font-semibold text-text-light dark:text-text-dark">{{ _('Enjoying TimeTracker?') }}</h2>
         </div>
-        <p class="text-sm text-text-muted-light dark:text-text-muted-dark mb-4">
-            {{ _('You can support development by purchasing a license key.') }}
+        <p class="text-sm text-text-muted-light dark:text-text-muted-dark mb-2">
+            {{ _('You have tracked %(hours)s hours', hours=('%.1f'|format((usage_support_stats.total_hours or 0)|float))) }}
+            · {{ _('You have created %(count)s entries', count=usage_support_stats.time_entries_count or 0) }}
+            {% if (usage_support_stats.reports_generated_count or 0) > 0 %}
+            · {{ _('Reports generated: %(n)s', n=usage_support_stats.reports_generated_count) }}
+            {% endif %}
         </p>
-        <a href="{{ support_purchase_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors">
-            <i class="fas fa-heart mr-1.5" aria-hidden="true"></i>{{ _('Support the project') }}
-        </a>
+        {% if is_supporter_instance %}
+        <p class="text-sm text-text-muted-light dark:text-text-muted-dark mb-4">{{ _('Thank you for supporting development. Sharing TimeTracker still helps a lot.') }}</p>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn btn-secondary js-open-support-modal">{{ _('Share & support') }}</button>
+            <a href="{{ url_for('user.license') }}" class="btn btn-secondary">{{ _('License') }}</a>
+        </div>
+        {% else %}
+        <p class="text-sm text-text-muted-light dark:text-text-muted-dark mb-4">{{ _('If this saves you time, consider supporting development — everything stays free and open.') }}</p>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn btn-primary js-open-support-modal"><i class="fas fa-heart mr-1.5" aria-hidden="true"></i>{{ _('Donate') }}</button>
+            <a href="{{ support_purchase_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">{{ _('Buy License (€25)') }} <i class="fas fa-external-link-alt text-xs" aria-hidden="true"></i></a>
+        </div>
+        {% endif %}
     </div>
+    {% endif %}
+    {% if support_dashboard_prompt %}
+    <script>window.__TT_DASHBOARD_SUPPORT_PROMPT = {{ support_dashboard_prompt|tojson }};</script>
     {% endif %}
 </div>
     <!-- Delete Entry Confirmation Dialogs -->

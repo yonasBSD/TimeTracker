@@ -80,7 +80,7 @@ The mobile app supports server URL configuration through:
 3. **Runtime Configuration:**
    - Users can configure the server URL in the app settings
    - Stored in SharedPreferences
-   - Configuration class: `mobile/lib/core/config.dart`
+   - Configuration class: `mobile/lib/core/config/app_config.dart`
 
 ## Icon and Favicon Configuration
 

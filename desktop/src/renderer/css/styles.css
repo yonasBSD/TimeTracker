@@ -146,6 +146,25 @@ button, input, select, textarea {
   color: var(--text-secondary);
 }
 
+.wizard-step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.wizard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.wizard-actions .btn {
+  flex: 1;
+  min-width: 120px;
+}
+
 .form-group {
   margin-bottom: 20px;
 }
@@ -205,6 +224,47 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.header-connection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-left: 4px;
+}
+
+.header-connection-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--text-secondary);
+}
+
+.header-connection-url {
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 36vw;
+}
+
+.header-connection-meta {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.wizard-intro {
+  margin: 0 0 16px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 .header-left h1 {
@@ -231,6 +291,14 @@ button, input, select, textarea {
 
 .connection-disconnected {
   color: var(--text-secondary);
+}
+
+.connection-offline {
+  color: var(--error);
+}
+
+.connection-connecting {
+  color: var(--warning, #b8860b);
 }
 
 .header-right {

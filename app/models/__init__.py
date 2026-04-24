@@ -90,6 +90,7 @@ from .time_off import CompanyHoliday, LeaveType, TimeOffRequest, TimeOffRequestS
 from .timesheet_period import TimesheetPeriod, TimesheetPeriodStatus
 from .timesheet_policy import TimesheetPolicy
 from .user import User
+from .user_smart_notification_dismissal import UserSmartNotificationDismissal
 from .user_client import UserClient
 from .user_favorite_project import UserFavoriteProject
 from .warehouse import Warehouse
@@ -100,6 +101,7 @@ from .workflow import WorkflowExecution, WorkflowRule
 
 __all__ = [
     "User",
+    "UserSmartNotificationDismissal",
     "Project",
     "TimeEntry",
     "Task",

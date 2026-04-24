@@ -32,11 +32,13 @@ Use when contributors cannot or will not use GitHub:
 
 Examples: [Weblate](https://weblate.org/) (open source, can be self-hosted), [Crowdin](https://crowdin.com/), [POEditor](https://poeditor.com/), [Transifex](https://www.transifex.com/). Translators work in the browser; integration or export/import keeps `.po` in sync with the codebase. Setup is maintainer-owned.
 
+**TimeTracker on Crowdin:** [https://crowdin.com/project/drytrix-timetracker](https://crowdin.com/project/drytrix-timetracker)
+
 #### Crowdin setup (maintainers)
 
 This repo includes a root [`crowdin.yml`](../crowdin.yml) that maps **source** `translations/en/LC_MESSAGES/messages.po` to **translations** under `translations/<locale>/LC_MESSAGES/messages.po`, with **`nb` → `no`** so Norwegian matches `app/config.py` (`no`, not `nb`). You may still have a legacy `translations/nb/` tree locally; prefer **`no`** in Crowdin and in config so you do not maintain two Norwegian copies.
 
-1. **Create a Crowdin account and project** at [crowdin.com](https://crowdin.com/) → **Create project**.
+1. **Crowdin account and project** — [Sign up at Crowdin](https://crowdin.com/) if needed. Translators work in **[Drytrix TimeTracker](https://crowdin.com/project/drytrix-timetracker)** (ask a maintainer for access if the project is private). Maintainers configure API tokens and GitHub integration against that same project unless you intentionally use a separate test project.
 2. **Source language:** English. Treat the resource as **Gettext PO** (`.po`).
 3. **Target languages:** Add every locale you ship: `nl`, `de`, `fr`, `it`, `fi`, `es`, `no`, `ar`, `he` (match `LANGUAGES` in `app/config.py`). For Norwegian, add Norwegian (Bokmål) in Crowdin; the `crowdin.yml` mapping writes files into `translations/no/`.
 4. **Sync with this repository (pick one):**
@@ -47,6 +49,20 @@ This repo includes a root [`crowdin.yml`](../crowdin.yml) that maps **source** `
 6. **Landing translations:** Approve in Crowdin if you use review, then download (workflow or integration PR), merge, and run the app so `.mo` files rebuild.
 
 Translators only need a Crowdin account; they do not use git.
+
+#### Further Crowdin integration (optional)
+
+Pick what reduces manual work without duplicating automation (avoid running **both** the Crowdin GitHub app and the **Crowdin sync** Action on the same events unless you coordinate branches, or you may get competing PRs).
+
+1. **Crowdin → Integrations → GitHub** — Connect the repository and default branch (e.g. `main` or `develop`). Crowdin can open PRs when translations are updated and can watch the repo for changes to configured source files. Use the same [`crowdin.yml`](../crowdin.yml) path the integration expects (usually repo root). This can replace manual Action runs for “download translations” if you prefer Crowdin-driven PRs.
+2. **Automate the existing Action** — Extend [.github/workflows/crowdin-sync.yml](../.github/workflows/crowdin-sync.yml) with triggers such as `schedule` (e.g. weekly), or `push` limited to `translations/en/**` and `messages.pot` so new English sources upload shortly after merge. Keep `workflow_dispatch` for on-demand full sync.
+3. **Pre-translate and QA** — In the [Drytrix TimeTracker](https://crowdin.com/project/drytrix-timetracker) project, enable **Translation Memory**, **Machine translation** (as a suggestion layer only), and **QA checks** (variables, HTML tags, duplicate translations). Add a **Glossary** for product names and fixed terminology.
+4. **Context for translators** — Upload **screenshots** or use Crowdin’s in-context / overlay tools where supported so ambiguous short strings (e.g. “Save”, “Project”) get the right meaning.
+5. **Review before merge** — Turn on **proofreading** / “Export only approved” in Crowdin if you want the GitHub Action or integration to pull only reviewed strings (match the Action’s `export_only_approved`-style options to your Crowdin workflow).
+6. **CLI in release process** — Add `crowdin upload sources` after `pybabel extract` / `update` in a maintainer script or release checklist so Crowdin always matches the latest POT-derived English catalog.
+7. **Notifications** — Slack, email, or webhooks in Crowdin when a language reaches 100% or when there are new strings to translate.
+
+Official references: [Crowdin + GitHub](https://support.crowdin.com/github-integration/), [GitHub Action](https://github.com/crowdin/github-action), [Crowdin CLI](https://crowdin.github.io/crowdin-cli/).
 
 ### Other options (reference)
 

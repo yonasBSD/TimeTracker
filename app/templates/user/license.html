@@ -5,7 +5,7 @@
 <div class="container mx-auto px-4 py-8 max-w-2xl">
     <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ _('License') }}</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-2">{{ _('View activation status and enter a license key') }}</p>
+        <p class="text-gray-600 dark:text-gray-400 mt-2">{{ _('Supporter badge: confirm your key and thank you for funding development.') }}</p>
     </div>
 
     <div class="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg shadow-md p-6 mb-6">
@@ -13,16 +13,16 @@
         {% if is_license_activated %}
         <p class="flex items-center gap-2 text-green-600 dark:text-green-400">
             <i class="fas fa-check-circle" aria-hidden="true"></i>
-            {{ _('Active license') }}
+            {{ _('Supporter license active') }}
         </p>
-        <p class="text-sm text-text-muted-light dark:text-text-muted-dark mt-2">{{ _('Thank you for supporting TimeTracker.') }}</p>
+        <p class="text-sm text-text-muted-light dark:text-text-muted-dark mt-2">{{ _('Thank you for supporting TimeTracker. Your badge confirms this instance as a supporter — no features are locked.') }}</p>
         {% else %}
         <p class="flex items-center gap-2 text-text-muted-light dark:text-text-muted-dark">
             <i class="fas fa-circle-info" aria-hidden="true"></i>
             {{ _('Not activated') }}
         </p>
         <p class="text-sm text-text-muted-light dark:text-text-muted-dark mt-2">
-            {{ _('Want to support development? You can purchase a license key for €25.') }}
+            {{ _('Purchase a supporter license (€25) to unlock the supporter badge for this instance. The app stays fully free either way.') }}
         </p>
         <a href="{{ support_purchase_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-md text-sm font-medium transition">
             {{ _('Buy license (€25)') }} <i class="fas fa-external-link-alt text-xs" aria-hidden="true"></i>

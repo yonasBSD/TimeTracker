@@ -21,13 +21,15 @@
     function isDashboardPage() {
         return window.location.pathname === '/dashboard' ||
             document.getElementById('todayHoursValue') != null ||
-            document.querySelector('[data-sparkline]') != null;
+            document.querySelector('[data-sparkline]') != null ||
+            document.getElementById('valueDashboardRoot') != null;
     }
 
     function init() {
         initSparklines();
         initActivityTimeline();
         initRealTimeUpdates();
+        initValueDashboard();
     }
 
     /**
@@ -307,6 +309,8 @@
 
             // Update sparklines
             await updateSparklines();
+
+            await loadValueDashboard();
         } catch (error) {
             console.error('Error updating dashboard:', error);
         }
@@ -425,6 +429,129 @@
     }
 
     /**
+     * Value Dashboard widget (/api/stats/value-dashboard)
+     */
+    function initValueDashboard() {
+        loadValueDashboard();
+    }
+
+    async function loadValueDashboard() {
+        const root = document.getElementById('valueDashboardRoot');
+        if (!root) return;
+
+        const loadingEl = document.getElementById('valueDashboardLoading');
+        const emptyEl = document.getElementById('valueDashboardEmpty');
+        const emptyTextEl = document.getElementById('valueDashboardEmptyText');
+        const contentEl = document.getElementById('valueDashboardContent');
+
+        if (loadingEl) {
+            loadingEl.classList.remove('hidden');
+            loadingEl.textContent = root.getAttribute('data-loading-msg') || 'Loading…';
+        }
+        if (emptyEl) emptyEl.classList.add('hidden');
+        if (contentEl) contentEl.classList.add('hidden');
+
+        try {
+            const response = await fetch('/api/stats/value-dashboard', { credentials: 'same-origin' });
+            if (!response.ok) {
+                throw new Error('value-dashboard failed');
+            }
+            const data = await response.json();
+
+            if (loadingEl) loadingEl.classList.add('hidden');
+
+            const entries = Number(data.entries_count) || 0;
+            const totalH = Number(data.total_hours) || 0;
+            if (entries === 0 || totalH <= 0) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                if (emptyTextEl) {
+                    emptyTextEl.textContent = root.getAttribute('data-empty-msg') || '';
+                }
+                return;
+            }
+
+            if (contentEl) contentEl.classList.remove('hidden');
+
+            const th = document.getElementById('valueDashboardTotalHours');
+            if (th) th.textContent = Number(data.total_hours).toFixed(1);
+            const ec = document.getElementById('valueDashboardEntriesCount');
+            if (ec) ec.textContent = String(entries);
+            const ad = document.getElementById('valueDashboardActiveDays');
+            if (ad) ad.textContent = String(Number(data.active_days) || 0);
+
+            const mpd = document.getElementById('valueDashboardMostProductiveDay');
+            if (mpd) mpd.textContent = data.most_productive_day || '—';
+
+            const avg = document.getElementById('valueDashboardAvgSession');
+            if (avg) avg.textContent = Number(data.avg_session_length).toFixed(1);
+
+            renderValueDashboardChart(document.getElementById('valueDashboardChart'), data.last_7_days || []);
+
+            const estWrap = document.getElementById('valueDashboardEstimated');
+            const estAmt = document.getElementById('valueDashboardEstimatedAmount');
+            const estCur = document.getElementById('valueDashboardCurrency');
+            if (data.estimated_value_tracked != null && data.estimated_value_tracked > 0) {
+                if (estWrap) estWrap.classList.remove('hidden');
+                if (estCur) estCur.textContent = data.estimated_value_currency || 'EUR';
+                if (estAmt) estAmt.textContent = Number(data.estimated_value_tracked).toFixed(2);
+            } else if (estWrap) {
+                estWrap.classList.add('hidden');
+            }
+
+            const sup = document.getElementById('valueDashboardSupport');
+            if (sup) {
+                sup.textContent = root.getAttribute('data-support-msg') || '';
+            }
+        } catch (e) {
+            console.error('Value dashboard load error', e);
+            if (loadingEl) {
+                loadingEl.classList.remove('hidden');
+                loadingEl.textContent = '—';
+            }
+        }
+    }
+
+    function renderValueDashboardChart(container, series) {
+        if (!container) return;
+        container.innerHTML = '';
+        if (!Array.isArray(series) || series.length === 0) return;
+
+        const hours = series.map(function (d) { return Number(d.hours) || 0; });
+        var maxH = Math.max.apply(null, hours.concat([0.01]));
+        var maxBarPx = 88;
+
+        series.forEach(function (day) {
+            var h = Number(day.hours) || 0;
+            var barH = Math.max(3, Math.round((h / maxH) * maxBarPx));
+            var col = document.createElement('div');
+            col.className = 'flex-1 flex flex-col items-center justify-end min-w-0';
+
+            var bar = document.createElement('div');
+            bar.className = 'w-full max-w-[3rem] mx-auto rounded-t-md bg-primary/80 dark:bg-primary/60 transition-all';
+            bar.style.height = barH + 'px';
+            bar.style.minHeight = '3px';
+            bar.title = (day.date || '') + ': ' + h.toFixed(1) + ' h';
+
+            var lbl = document.createElement('span');
+            lbl.className = 'mt-2 text-[10px] sm:text-xs text-text-muted-light dark:text-text-muted-dark truncate w-full text-center';
+            try {
+                var dt = new Date((day.date || '') + 'T12:00:00');
+                lbl.textContent = dt.toLocaleDateString(undefined, { weekday: 'short' });
+            } catch (err) {
+                lbl.textContent = (day.date || '').slice(5);
+            }
+
+            var barOuter = document.createElement('div');
+            barOuter.className = 'w-full flex items-end justify-center';
+            barOuter.style.height = maxBarPx + 'px';
+            barOuter.appendChild(bar);
+            col.appendChild(barOuter);
+            col.appendChild(lbl);
+            container.appendChild(col);
+        });
+    }
+
+    /**
      * Cleanup on page unload
      */
     window.addEventListener('beforeunload', () => {
@@ -437,7 +564,8 @@
     window.DashboardEnhancements = {
         createSparkline,
         loadActivityTimeline,
-        updateDashboardData
+        updateDashboardData,
+        loadValueDashboard
     };
 
 })();

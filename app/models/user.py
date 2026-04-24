@@ -23,6 +23,8 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     theme_preference = db.Column(db.String(10), default=None, nullable=True)  # 'light' | 'dark' | None=system
     preferred_language = db.Column(db.String(8), default=None, nullable=True)  # e.g., 'en', 'de'
+    # Admin update popup: normalized semver of last "don't show again" GitHub release
+    dismissed_release_version = db.Column(db.String(64), nullable=True)
     oidc_sub = db.Column(db.String(255), nullable=True)
     oidc_issuer = db.Column(db.String(255), nullable=True)
     avatar_filename = db.Column(db.String(255), nullable=True)
@@ -43,6 +45,14 @@ class User(UserMixin, db.Model):
     reminder_to_log_time = db.Column(
         db.String(5), nullable=True
     )  # Time of day "HH:MM" (24h) for reminder, e.g. "17:00"
+    # In-app smart notifications (separate from email remind-to-log)
+    smart_notifications_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    smart_notify_no_tracking = db.Column(db.Boolean, default=True, nullable=False)
+    smart_notify_long_timer = db.Column(db.Boolean, default=True, nullable=False)
+    smart_notify_daily_summary = db.Column(db.Boolean, default=True, nullable=False)
+    smart_notify_browser = db.Column(db.Boolean, default=False, nullable=False)
+    smart_notify_no_tracking_after = db.Column(db.String(5), nullable=True)  # HH:MM override; null = use app config
+    smart_notify_summary_at = db.Column(db.String(5), nullable=True)  # HH:MM override; null = use app config
     timezone = db.Column(db.String(50), nullable=True)  # User-specific timezone override
     date_format = db.Column(db.String(20), default=None, nullable=True)  # None = use system default
     time_format = db.Column(db.String(10), default=None, nullable=True)  # None = use system default
@@ -141,6 +151,9 @@ class User(UserMixin, db.Model):
     ui_show_client_portal = db.Column(db.Boolean, default=True, nullable=False)  # Show/hide Client Portal
     ui_show_kiosk = db.Column(db.Boolean, default=True, nullable=False)  # Show/hide Kiosk Mode
     ui_show_donate = db.Column(db.Boolean, default=True, nullable=False)  # Show/hide donate/support UI
+
+    # Support UX: count of report generations (exports + custom report views) for stats in support modal
+    support_stats_reports_generated = db.Column(db.Integer, default=0, nullable=False)
 
     # Relationships
     time_entries = db.relationship("TimeEntry", backref="user", lazy="dynamic", cascade="all, delete-orphan")
@@ -470,16 +483,25 @@ class User(UserMixin, db.Model):
         """True if user is restricted to assigned clients (e.g. subcontractor role)."""
         return "subcontractor" in self.get_role_names()
 
+    @property
+    def is_client_portal_user(self):
+        """Check if user has client portal access enabled"""
+        return self.client_portal_enabled and self.client_id is not None
+
     def get_allowed_client_ids(self):
         """Return list of client IDs this user may access, or None for full access."""
-        if self.is_admin or not self.is_scope_restricted:
+        if self.is_admin:
+            return None
+        if self.is_client_portal_user:
+            return [self.client_id] if self.client_id else []
+        if not self.is_scope_restricted:
             return None
         ids = [c.id for c in self.assigned_clients.all()]
         return ids if ids else []
 
     def get_allowed_project_ids(self):
         """Return list of project IDs this user may access, or None for full access."""
-        if self.is_admin or not self.is_scope_restricted:
+        if self.is_admin:
             return None
         from .project import Project
 
@@ -492,11 +514,6 @@ class User(UserMixin, db.Model):
         return [r[0] for r in rows]
 
     # Client portal helpers
-    @property
-    def is_client_portal_user(self):
-        """Check if user has client portal access enabled"""
-        return self.client_portal_enabled and self.client_id is not None
-
     def get_client_portal_data(self):
         """Get data for client portal view (projects, invoices, time entries for assigned client)"""
         if not self.is_client_portal_user:

@@ -1,32 +1,58 @@
 """Tests for REST API v1"""
 
+import json
+import os
+import tempfile
+import uuid
+from datetime import datetime, timedelta
+
 import pytest
+from sqlalchemy.pool import NullPool
+
+from app import create_app, db
+from app.models import ApiToken, Client, Project, Settings, Task, TimeEntry, User
 
 pytestmark = [pytest.mark.api, pytest.mark.integration]
-
-import json
-from datetime import datetime, timedelta
-from app import create_app, db
-from app.models import User, Project, TimeEntry, Task, Client, ApiToken
 
 
 @pytest.fixture
 def app():
-    """Create and configure a test app instance"""
+    """Create and configure a test app instance (isolated SQLite, same engine options as main conftest)."""
+    unique_db_path = os.path.join(tempfile.gettempdir(), f"pytest_api_v1_{uuid.uuid4().hex}.sqlite")
     app = create_app(
         {
             "TESTING": True,
-            # Use a file-based SQLite DB to ensure consistent connection across contexts
-            "SQLALCHEMY_DATABASE_URI": "sqlite:///test_api_v1.sqlite",
+            "SQLALCHEMY_DATABASE_URI": f"sqlite:///{unique_db_path}",
+            "SQLALCHEMY_ENGINE_OPTIONS": {
+                "pool_pre_ping": True,
+                "connect_args": {"timeout": 30},
+                "poolclass": NullPool,
+            },
             "WTF_CSRF_ENABLED": False,
+            "SERVER_NAME": "localhost:5000",
         }
     )
 
     with app.app_context():
         db.create_all()
+        settings = Settings()
+        db.session.add(settings)
+        db.session.commit()
         yield app
         db.session.remove()
-        db.drop_all()
+        try:
+            db.drop_all()
+        except Exception:
+            pass
+        try:
+            db.engine.dispose()
+        except Exception:
+            pass
+        try:
+            if os.path.exists(unique_db_path):
+                os.remove(unique_db_path)
+        except Exception:
+            pass
 
 
 @pytest.fixture
@@ -61,23 +87,17 @@ def admin_user(app):
 
 @pytest.fixture
 def api_token(app, test_user):
-    """Create an API token with full permissions"""
-    with app.app_context():
-        # Robustly resolve user_id even if the instance is expired/detached
-        try:
-            user_id = int(getattr(test_user, "id"))
-        except Exception:
-            user = User.query.filter_by(username="testuser").first()
-            user_id = int(user.id) if user else None
-        token, plain_token = ApiToken.create_token(
-            user_id=user_id,
-            name="Test Token",
-            description="For testing",
-            scopes="read:projects,write:projects,read:time_entries,write:time_entries,read:tasks,write:tasks,read:clients,write:clients,read:reports,read:users",
-        )
-        db.session.add(token)
-        db.session.commit()
-        return plain_token
+    """Create an API token with full permissions (uses app fixture's application context)."""
+    user_id = int(test_user)
+    token, plain_token = ApiToken.create_token(
+        user_id=user_id,
+        name="Test Token",
+        description="For testing",
+        scopes="read:projects,write:projects,read:time_entries,write:time_entries,read:tasks,write:tasks,read:clients,write:clients,read:reports,read:users",
+    )
+    db.session.add(token)
+    db.session.commit()
+    return plain_token
 
 
 @pytest.fixture
@@ -132,7 +152,7 @@ class TestAPIAuthentication:
         response = client.get("/api/v1/projects", headers=headers)
         assert response.status_code == 200
 
-    def test_insufficient_scope(self, app, client, test_user):
+    def test_insufficient_scope(self, app, client, test_user, test_client_model):
         """Test request with insufficient scope"""
         # Create token with limited scope
         token, plain_token = ApiToken.create_token(
@@ -147,8 +167,12 @@ class TestAPIAuthentication:
         response = client.get("/api/v1/projects", headers=headers)
         assert response.status_code == 200
 
-        # Should fail for write
-        response = client.post("/api/v1/projects", json={"name": "New Project"}, headers=headers)
+        # Should fail for write (include client_id so we hit scope check, not validation)
+        response = client.post(
+            "/api/v1/projects",
+            json={"name": "New Project", "client_id": test_client_model.id},
+            headers=headers,
+        )
         assert response.status_code == 403
         data = json.loads(response.data)
         assert "Insufficient permissions" in data["error"]
@@ -179,11 +203,15 @@ class TestProjects:
         assert "project" in data
         assert data["project"]["name"] == "Test Project"
 
-    @pytest.mark.skip(reason="API endpoint returning 500 - needs investigation")
-    def test_create_project(self, client, api_token):
+    def test_create_project(self, client, api_token, test_client_model):
         """Test creating a project"""
         headers = {"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"}
-        project_data = {"name": "New Project", "description": "A new project", "hourly_rate": 100.0, "status": "active"}
+        project_data = {
+            "name": "New Project",
+            "description": "A new project",
+            "client_id": test_client_model.id,
+            "hourly_rate": 100.0,
+        }
 
         response = client.post("/api/v1/projects", json=project_data, headers=headers)
 
@@ -221,19 +249,18 @@ class TestProjects:
 class TestTimeEntries:
     """Test time entry endpoints"""
 
-    @pytest.mark.skip(reason="Transaction closed error - needs investigation")
     def test_list_time_entries(self, client, api_token, test_user, test_project):
         """Test listing time entries"""
-        # Create a test time entry
-        from factories import TimeEntryFactory
-
-        entry = TimeEntryFactory(
+        entry = TimeEntry(
             user_id=int(test_user),
             project_id=test_project.id,
             start_time=datetime.utcnow() - timedelta(hours=2),
             end_time=datetime.utcnow(),
             source="api",
+            billable=True,
         )
+        db.session.add(entry)
+        db.session.commit()
 
         headers = {"Authorization": f"Bearer {api_token}"}
         response = client.get("/api/v1/time-entries", headers=headers)
@@ -261,30 +288,30 @@ class TestTimeEntries:
         assert "time_entry" in data
         assert data["time_entry"]["notes"] == "Development work"
 
-    @pytest.mark.skip(reason="Transaction closed error - needs investigation")
     def test_update_time_entry(self, client, api_token, test_user, test_project):
         """Test updating a time entry"""
-        # Create entry
-        from factories import TimeEntryFactory
-
-        entry = TimeEntryFactory(
+        entry = TimeEntry(
             user_id=int(test_user),
             project_id=test_project.id,
             start_time=datetime.utcnow() - timedelta(hours=2),
             end_time=datetime.utcnow(),
             notes="Original notes",
             source="api",
+            billable=True,
         )
+        db.session.add(entry)
+        db.session.commit()
+        entry_id = entry.id
 
         headers = {"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"}
         update_data = {"notes": "Updated notes", "billable": False}
 
-        response = client.put(f"/api/v1/time-entries/{entry.id}", json=update_data, headers=headers)
+        response = client.put(f"/api/v1/time-entries/{entry_id}", json=update_data, headers=headers)
 
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data["time_entry"]["notes"] == "Updated notes"
-        assert data["time_entry"]["billable"] == False
+        assert data["time_entry"]["billable"] is False
 
 
 class TestTimer:
@@ -312,19 +339,18 @@ class TestTimer:
         assert "timer" in data
         assert data["timer"]["project_id"] == test_project.id
 
-    @pytest.mark.skip(reason="Transaction closed error - needs investigation")
     def test_stop_timer(self, client, api_token, test_user, test_project):
         """Test stopping a timer"""
-        # Start a timer
-        from factories import TimeEntryFactory
-
-        timer = TimeEntryFactory(
+        timer = TimeEntry(
             user_id=int(test_user),
             project_id=test_project.id,
             start_time=datetime.utcnow(),
             end_time=None,
             source="api",
+            billable=True,
         )
+        db.session.add(timer)
+        db.session.commit()
 
         headers = {"Authorization": f"Bearer {api_token}"}
         response = client.post("/api/v1/timer/stop", headers=headers)
@@ -338,23 +364,26 @@ class TestTimer:
 class TestTasks:
     """Test task endpoints"""
 
-    @pytest.mark.skip(reason="Transaction closed error - needs investigation")
-    def test_list_tasks(self, client, api_token, test_project):
+    def test_list_tasks(self, client, api_token, test_user, test_project):
         """Test listing tasks"""
-        # Create a test task
-        task = Task(name="Test Task", project_id=test_project.id, status="todo", priority=1)
+        task = Task(
+            name="Test Task",
+            project_id=test_project.id,
+            status="todo",
+            priority="medium",
+            created_by=int(test_user),
+        )
         db.session.add(task)
         db.session.commit()
 
         headers = {"Authorization": f"Bearer {api_token}"}
-        response = client.get("/api/v1/tasks", headers=headers)
+        response = client.get(f"/api/v1/tasks?project_id={test_project.id}", headers=headers)
 
         assert response.status_code == 200
         data = json.loads(response.data)
         assert "tasks" in data
         assert len(data["tasks"]) == 1
 
-    @pytest.mark.skip(reason="API endpoint returning 500 - needs investigation")
     def test_create_task(self, client, api_token, test_project):
         """Test creating a task"""
         headers = {"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"}
@@ -363,7 +392,7 @@ class TestTasks:
             "description": "Task description",
             "project_id": test_project.id,
             "status": "todo",
-            "priority": 1,
+            "priority": "medium",
         }
 
         response = client.post("/api/v1/tasks", json=task_data, headers=headers)
@@ -403,27 +432,27 @@ class TestClients:
 class TestReports:
     """Test report endpoints"""
 
-    @pytest.mark.skip(reason="Transaction closed error - needs investigation")
     def test_summary_report(self, client, api_token, test_user, test_project):
         """Test getting summary report"""
-        # Create some time entries
-        from factories import TimeEntryFactory
-
-        entry1 = TimeEntryFactory(
+        now = datetime.utcnow()
+        entry1 = TimeEntry(
             user_id=int(test_user),
             project_id=test_project.id,
-            start_time=datetime.utcnow() - timedelta(hours=10),
-            end_time=datetime.utcnow() - timedelta(hours=8),
+            start_time=now - timedelta(hours=10),
+            end_time=now - timedelta(hours=8),
             source="api",
+            billable=True,
         )
-        entry2 = TimeEntryFactory(
+        entry2 = TimeEntry(
             user_id=int(test_user),
             project_id=test_project.id,
-            start_time=datetime.utcnow() - timedelta(hours=5),
-            end_time=datetime.utcnow() - timedelta(hours=3),
+            start_time=now - timedelta(hours=5),
+            end_time=now - timedelta(hours=3),
             billable=True,
             source="api",
         )
+        db.session.add_all([entry1, entry2])
+        db.session.commit()
 
         headers = {"Authorization": f"Bearer {api_token}"}
         response = client.get("/api/v1/reports/summary", headers=headers)
@@ -437,25 +466,29 @@ class TestReports:
 class TestPagination:
     """Test pagination"""
 
-    @pytest.mark.skip(reason="IntegrityError - needs investigation")
-    def test_pagination_params(self, client, api_token, test_project):
+    def test_pagination_params(self, client, api_token, test_project, test_client_model):
         """Test pagination parameters"""
-        # Create multiple projects
         for i in range(15):
-            project = Project(name=f"Project {i}", status="active")
+            project = Project(
+                name=f"Paginate Project {i}",
+                status="active",
+                client_id=test_client_model.id,
+            )
             db.session.add(project)
         db.session.commit()
 
         headers = {"Authorization": f"Bearer {api_token}"}
 
-        # Test per_page
+        # Test per_page (1 from test_project fixture + 15 new = 16 active projects)
         response = client.get("/api/v1/projects?per_page=5", headers=headers)
+        assert response.status_code == 200
         data = json.loads(response.data)
         assert len(data["projects"]) == 5
         assert data["pagination"]["per_page"] == 5
 
         # Test page
         response = client.get("/api/v1/projects?page=2&per_page=5", headers=headers)
+        assert response.status_code == 200
         data = json.loads(response.data)
         assert data["pagination"]["page"] == 2
 
@@ -470,6 +503,8 @@ class TestSystemEndpoints:
         data = json.loads(response.data)
         assert "api_version" in data
         assert "endpoints" in data
+        assert "setup_required" in data
+        assert isinstance(data["setup_required"], bool)
 
     def test_health_check(self, client):
         """Test health check endpoint (no auth required)"""

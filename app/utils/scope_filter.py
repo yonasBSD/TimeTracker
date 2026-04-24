@@ -1,4 +1,4 @@
-"""Scope filtering for subcontractor role: restrict data to assigned clients/projects."""
+"""Scope filtering: restrict data to assigned clients/projects (subcontractors, client portal users)."""
 
 from typing import Set, Tuple
 
@@ -29,10 +29,18 @@ def apply_client_scope(Client, query, user=None):
     return query.filter(scope)
 
 
+def apply_project_scope(Project, query, user=None):
+    """Apply project scope to a Project query. Returns query with scope filter applied if restricted."""
+    scope = apply_project_scope_to_model(Project, user)
+    if scope is None:
+        return query
+    return query.filter(scope)
+
+
 def apply_client_scope_to_model(Client, user=None):
     """Return filter expression for Client query (Client.id.in_(...) or None for no filter)."""
     u = user or (current_user if current_user.is_authenticated else None)
-    if not u or not u.is_scope_restricted:
+    if not u or u.is_admin:
         return None
     allowed = u.get_allowed_client_ids()
     if allowed is None:
@@ -45,7 +53,7 @@ def apply_client_scope_to_model(Client, user=None):
 def apply_project_scope_to_model(Project, user=None):
     """Return filter expression for Project query (Project.client_id.in_(...) or Project.id.in_(...))."""
     u = user or (current_user if current_user.is_authenticated else None)
-    if not u or not u.is_scope_restricted:
+    if not u or u.is_admin:
         return None
     allowed_clients = u.get_allowed_client_ids()
     if allowed_clients is None:
@@ -59,20 +67,24 @@ def user_can_access_client(user, client_id):
     """Return True if user may access this client (for direct ID checks / 403)."""
     if not user:
         return False
-    if user.is_admin or not user.is_scope_restricted:
+    if user.is_admin:
         return True
     allowed = user.get_allowed_client_ids()
-    return allowed is not None and client_id in allowed
+    if allowed is None:
+        return True
+    return client_id in allowed
 
 
 def user_can_access_project(user, project_id):
     """Return True if user may access this project (for direct ID checks / 403)."""
     if not user:
         return False
-    if user.is_admin or not user.is_scope_restricted:
+    if user.is_admin:
         return True
     allowed = user.get_allowed_project_ids()
-    return allowed is not None and project_id in allowed
+    if allowed is None:
+        return True
+    return project_id in allowed
 
 
 def get_accessible_project_and_client_ids_for_user(user_id: int) -> Tuple[Set[int], Set[int]]:

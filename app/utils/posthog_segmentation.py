@@ -20,9 +20,8 @@ def identify_user_with_segments(user_id: Any, user) -> None:
 
     This sets person properties in PostHog that can be used for:
     - Creating cohorts
-    - Targeting feature flags
+    - Analytics segmentation
     - Analyzing behavior by segment
-    - A/B testing
 
     Args:
         user_id: User ID

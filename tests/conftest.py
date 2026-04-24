@@ -44,6 +44,7 @@ from app.models import (
     TimeEntryTemplate,
     Activity,
     UserFavoriteProject,
+    UserSmartNotificationDismissal,
     UserClient,
     ClientNote,
     WeeklyTimeGoal,

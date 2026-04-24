@@ -23,6 +23,7 @@ from .reporting_service import ReportingService
 from .task_service import TaskService
 from .time_tracking_service import TimeTrackingService
 from .user_service import UserService
+from .version_service import VersionService
 from .workforce_governance_service import WorkforceGovernanceService
 
 __all__ = [
@@ -46,5 +47,6 @@ __all__ = [
     "PermissionService",
     "BackupService",
     "HealthService",
+    "VersionService",
     "WorkforceGovernanceService",
 ]

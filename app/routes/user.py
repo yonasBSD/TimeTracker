@@ -66,6 +66,25 @@ def settings():
             else:
                 current_user.reminder_to_log_time = None
 
+            # Smart in-app notifications (separate from email remind-to-log)
+            current_user.smart_notifications_enabled = "smart_notifications_enabled" in request.form
+            current_user.smart_notify_no_tracking = "smart_notify_no_tracking" in request.form
+            current_user.smart_notify_long_timer = "smart_notify_long_timer" in request.form
+            current_user.smart_notify_daily_summary = "smart_notify_daily_summary" in request.form
+            current_user.smart_notify_browser = "smart_notify_browser" in request.form
+            for form_key, attr in (
+                ("smart_notify_no_tracking_after", "smart_notify_no_tracking_after"),
+                ("smart_notify_summary_at", "smart_notify_summary_at"),
+            ):
+                raw = (request.form.get(form_key) or "").strip()
+                if raw and len(raw) <= 5:
+                    if re.match(r"^([01]?\d|2[0-3]):[0-5]\d$", raw):
+                        setattr(current_user, attr, raw)
+                    else:
+                        setattr(current_user, attr, None)
+                else:
+                    setattr(current_user, attr, None)
+
             # Profile information
             full_name = request.form.get("full_name", "").strip()
             if full_name:
@@ -218,7 +237,7 @@ def settings():
 @user_bp.route("/settings/license", methods=["GET", "POST"])
 @login_required
 def license():
-    """License management page: show status, enter key, validate (sets donate_ui_hidden for instance)."""
+    """License management: supporter key validation (sets donate_ui_hidden / supporter instance flag)."""
     settings_obj = Settings.get_settings()
     if request.method == "POST":
         if is_license_activated(settings_obj):

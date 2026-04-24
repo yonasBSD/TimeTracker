@@ -33,6 +33,7 @@ Tests must cover:
 
 - **Root:** Single `tests/conftest.py` for app, client, DB, users, projects, time entries, auth fixtures, and shared API token/client.
 - **Grouping:** `test_models/`, `test_routes/`, `test_services/`, `test_utils/`, `test_repositories/`, `test_integration/` for clarity. Root-level `test_*.py` is allowed for legacy or cross-cutting tests.
+- **API contract:** `tests/test_api_route_contract.py` asserts a curated set of HTTP paths resolve on the Flask `url_map` and that OpenAPI `info.version` matches `get_version_from_setup()` (same rules as production). Extend the curated list when adding stable public endpoints covered by tests.
 - **Markers:** Use `smoke`, `unit`, `integration`, `api`, `routes`, `models`, `utils`, `security` consistently so CI can run subsets (e.g. `-m "unit and routes"`).
 
 ## Fixtures and factories
@@ -62,4 +63,4 @@ These areas are under-covered or hard to test. Add or extend tests when touching
 - **PDF generation:** Real PDF code paths are partially excluded from coverage; many tests mock PDF. Add targeted tests when changing PDF logic.
 - **Client lock and workforce:** Timer and some routes depend on client lock; coverage is partial. Add tests when changing lock behavior.
 - **Scheduled jobs:** Recurring invoice run and report emails run in workers. Unit test service methods; full scheduler E2E can remain out of scope.
-- **test_api_v1.py duplicate app:** That module uses its own SQLite app. Prefer migrating to conftest app so scope_restricted_user and client_with_token can be reused there.
+- **test_api_v1.py isolated app:** That module still uses its own per-test SQLite file for isolation, but engine options (e.g. `NullPool`) and a default `Settings` row align with main conftest patterns. Prefer `client_with_token` from conftest for new API tests where the shared app is sufficient.

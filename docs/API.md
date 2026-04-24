@@ -46,8 +46,10 @@ curl -H "X-API-Key: YOUR_API_TOKEN" \
 | **Contacts** | `/api/v1/clients/<id>/contacts` | Client contacts |
 | **Search** | `/api/v1/search` | Global search across projects, tasks, clients |
 | **Time approvals** | `/api/v1/time-entry-approvals` | Approve, reject, request approval for time entries |
+| **Admin version check** | `/api/version/check`, `/api/version/dismiss` | Compare install to latest GitHub release; dismiss per version (admin only; session or API token; not under `/api/v1`) |
+| **Dashboard (session)** | `/api/stats/value-dashboard`, `/api/dashboard/stats`, … | JSON used by the logged-in web UI (session cookie); see [REST API reference](api/REST_API.md) for `value-dashboard` fields and caching |
 
-Access is controlled by **scopes** (e.g. `read:projects`, `write:time_entries`). Create a token with the scopes you need; see [API Token Scopes](api/API_TOKEN_SCOPES.md).
+Access is controlled by **scopes** (e.g. `read:projects`, `write:time_entries`) on **`/api/v1`** routes. Create a token with the scopes you need; see [API Token Scopes](api/API_TOKEN_SCOPES.md). The admin version endpoints do not require a specific scope but require an **administrator** user. Legacy **`/api/...`** dashboard JSON routes require a normal **logged-in session**, not API-token scopes.
 
 ## Quick Examples
 

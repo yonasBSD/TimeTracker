@@ -9,6 +9,9 @@ class SmartNotificationManager {
         this.preferences = this.loadPreferences();
         this.queue = [];
         this.permissionGranted = false;
+        /** @type {Set<string>} dedupe server-driven toasts per localDate:kind in this tab session */
+        this._serverSmartShown = new Set();
+        this._serverSmartPollMs = (typeof window !== 'undefined' && window.SMART_NOTIFY_POLL_MS) || 600000;
         this.init();
     }
 
@@ -18,7 +21,7 @@ class SmartNotificationManager {
         this.setupServiceWorkerMessaging();
         this.checkIdleTime();
         this.checkDeadlines();
-        this.checkDailySummary();
+        this.startServerSmartNotificationsPolling();
     }
 
     /**
@@ -351,108 +354,101 @@ class SmartNotificationManager {
         }
     }
 
-    // Daily summary
-    checkDailySummary() {
-        const storageKey = 'smart_notifications_last_daily_summary';
-        const getTodayKey = () => {
-            const d = new Date();
-            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-        };
+    /**
+     * Poll server for smart notifications (no-tracking nudge, long timer, daily summary).
+     * Timing and copy come from the server; dismissals sync via POST /api/notifications/dismiss.
+     */
+    startServerSmartNotificationsPolling() {
         try {
-            const targetHour = 18; // 6 PM
-
-            const sendSummary = () => {
-                try {
-                    const now = new Date();
-                    const hour = now.getHours();
-                    const todayKey = getTodayKey();
-                    let lastSent = null;
-                    try {
-                        lastSent = localStorage.getItem(storageKey);
-                    } catch (e) { /* ignore */ }
-                    if (hour === targetHour && lastSent !== todayKey) {
-                        this.sendDailySummary();
-                        try {
-                            localStorage.setItem(storageKey, todayKey);
-                        } catch (e) { /* ignore */ }
-                    }
-                } catch (error) {
-                    console.error('[SmartNotifications] Error in daily summary check:', error);
-                }
-            };
-
-            setInterval(sendSummary, 60 * 60 * 1000);
-            const now = new Date();
-            if (now.getHours() === targetHour) {
-                sendSummary();
-            }
-        } catch (error) {
-            console.error('[SmartNotifications] Error initializing daily summary check:', error);
+            setTimeout(() => this.pollServerSmartNotifications(), 12000);
+            setInterval(() => this.pollServerSmartNotifications(), this._serverSmartPollMs);
+        } catch (e) {
+            console.error('[SmartNotifications] server poll init:', e);
         }
     }
 
-    async sendDailySummary() {
-        if (!this.preferences.dailySummary) return;
-
+    async pollServerSmartNotifications() {
         try {
-            // Check if fetch is available
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+                return;
+            }
             if (typeof fetch === 'undefined') {
-                console.warn('[SmartNotifications] Fetch not available for daily summary');
                 return;
             }
-            
-            const response = await fetch('/api/summary/today', {
+            const res = await fetch('/api/notifications', {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' }
             });
-            
-            // Check if response is OK before reading body
-            if (!response.ok) {
-                // Log status but don't throw error (404 is expected if endpoint doesn't exist)
-                if (response.status !== 404) {
-                    console.warn('[SmartNotifications] Daily summary check failed:', response.status, response.statusText);
-                }
+            if (!res.ok) {
                 return;
             }
-            
-            const summary = await response.json();
+            const data = await res.json();
+            const meta = data.meta || {};
+            if (!meta.enabled) {
+                return;
+            }
+            const localDate = meta.local_date || '';
+            const list = data.notifications || [];
+            const csrf = (typeof document !== 'undefined' && document.querySelector('meta[name="csrf-token"]'))
+                ? document.querySelector('meta[name="csrf-token"]').content
+                : '';
 
-            // Safely extract values with defaults
-            const hours = (summary && typeof summary.hours === 'number')
-                ? summary.hours
-                : (summary && summary.hours ? Number(summary.hours) : 0);
-            const projects = (summary && typeof summary.projects === 'number')
-                ? summary.projects
-                : (summary && summary.projects ? Number(summary.projects) : 0);
+            for (const n of list) {
+                if (!n || !n.kind) {
+                    continue;
+                }
+                const dedupeKey = `${localDate}:${n.kind}`;
+                if (this._serverSmartShown.has(dedupeKey)) {
+                    continue;
+                }
+                this._serverSmartShown.add(dedupeKey);
 
-            // Build a safe, human-friendly message
-            const hoursText = isNaN(hours) || hours < 0 ? '0' : hours.toFixed(1);
-            const projectsText = isNaN(projects) || projects < 0 ? '0' : String(projects);
-            const message = `Today you logged ${hoursText}h across ${projectsText} project${projects !== 1 ? 's' : ''}. Great work!`;
+                const dismissToServer = () => {
+                    fetch('/api/notifications/dismiss', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrf
+                        },
+                        body: JSON.stringify({ kind: n.kind, local_date: localDate })
+                    }).catch(() => {});
+                };
 
-            // Auto-dismiss after 8s; no permanent sticky summary to avoid lingering toasts
-            if (window.toastManager && typeof window.toastManager.show === 'function') {
-                window.toastManager.show({
-                    message: message,
-                    title: 'Daily Summary',
-                    type: 'success',
-                    duration: 8000
-                });
-            } else {
-                this.show({
-                    title: 'Daily Summary',
-                    message,
-                    type: 'success',
-                    priority: 'normal',
-                    persistent: false
-                });
+                if (window.toastManager && typeof window.toastManager.show === 'function') {
+                    window.toastManager.show({
+                        title: n.title || '',
+                        message: n.message || '',
+                        type: n.type || 'info',
+                        duration: 12000,
+                        onDismiss: () => {
+                            dismissToServer();
+                        }
+                    });
+                } else {
+                    this.show({
+                        title: n.title,
+                        message: n.message,
+                        type: n.type || 'info',
+                        priority: n.priority || 'normal',
+                        persistent: false
+                    });
+                }
+
+                if (meta.browser_push && this.permissionGranted && (n.priority || '') !== 'low') {
+                    this.showBrowserNotification({
+                        id: `smart_${n.kind}_${localDate}`,
+                        title: n.title,
+                        message: n.message,
+                        group: `smart_${n.kind}`,
+                        actions: []
+                    });
+                }
             }
         } catch (error) {
-            // Only log if it's not a network/abort error (which are expected in some cases)
             if (error.name !== 'AbortError' && error.name !== 'TypeError') {
-                console.error('[SmartNotifications] Error fetching daily summary:', error);
+                console.debug('[SmartNotifications] server poll:', error);
             }
         }
     }

@@ -52,7 +52,7 @@ This project and everyone participating in it is governed by our [Code of Conduc
 
 ### Translations (no Git required)
 
-Contributors who only want to fix wording can use the **Translation improvement** GitHub issue template or follow [CONTRIBUTING_TRANSLATIONS.md](../CONTRIBUTING_TRANSLATIONS.md) (spreadsheet option, maintainer workflow, optional Crowdin using [`crowdin.yml`](../../crowdin.yml) and the **Crowdin sync** workflow). Developers adding new `_('...')` strings should run `pybabel extract` / `update` as described there.
+Contributors who only want to fix wording can use the **Translation improvement** GitHub issue template, work in **[Crowdin (Drytrix TimeTracker)](https://crowdin.com/project/drytrix-timetracker)**, or follow [CONTRIBUTING_TRANSLATIONS.md](../CONTRIBUTING_TRANSLATIONS.md) (spreadsheet option, maintainer workflow, [`crowdin.yml`](../../crowdin.yml), **Crowdin sync** workflow). Developers adding new `_('...')` strings should run `pybabel extract` / `update` as described there.
 
 ## Development Setup
 
@@ -153,6 +153,12 @@ Examples:
 - Keep route handlers thin, move business logic to models or services
 - Use proper HTTP status codes
 - Implement proper error handling
+
+### HTTP APIs (`/api/v1` vs `/api`)
+
+- **New features for integrations** (mobile, desktop, scripts, webhooks): implement under **`/api/v1`** first, with scopes and updates to OpenAPI in `app/routes/api_docs.py`.
+- **`/api/*` session JSON** (`app/routes/api.py`): reserve for same-origin **web UI** needs (browser cookie auth). Reuse code from `app/services/` instead of duplicating v1 logic. If you add a session route that mirrors v1, document it and consider **`X-API-Deprecated`** plus a **`Link`** successor header (see `app/utils/api_deprecation.py` and `docs/api/API_VERSIONING.md`).
+- **Global search** (`GET /api/v1/search` and `GET /api/search`): shared implementation in **`app/services/global_search_service.py`** (`run_global_search`). Change behavior there and keep [REST_API.md](../api/REST_API.md) in sync.
 
 ### Database
 

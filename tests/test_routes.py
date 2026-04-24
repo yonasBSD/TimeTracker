@@ -91,23 +91,26 @@ def test_start_timer_api(authenticated_client, project, app):
 @pytest.mark.integration
 @pytest.mark.routes
 @pytest.mark.api
-@pytest.mark.xfail(reason="Endpoint /api/timer/stop/{id} may not exist or requires different URL pattern")
 def test_stop_timer_api(authenticated_client, active_timer, app):
-    """Test stopping a timer via API."""
+    """Test stopping a timer via session API (POST /api/timer/stop)."""
     with app.app_context():
-        response = authenticated_client.post(f"/api/timer/stop/{active_timer.id}")
+        response = authenticated_client.post("/api/timer/stop")
         assert response.status_code == 200
+        data = response.get_json()
+        assert data.get("success") is True
 
 
 @pytest.mark.integration
 @pytest.mark.routes
 @pytest.mark.api
-@pytest.mark.xfail(reason="Endpoint /api/timer/active may not exist or requires authentication")
 def test_get_active_timer(authenticated_client, active_timer, app):
-    """Test getting active timer."""
+    """Test getting active timer status (GET /api/timer/status)."""
     with app.app_context():
-        response = authenticated_client.get("/api/timer/active")
+        response = authenticated_client.get("/api/timer/status")
         assert response.status_code == 200
+        data = response.get_json()
+        assert data.get("active") is True
+        assert data.get("timer") is not None
 
 
 # ============================================================================
@@ -178,10 +181,9 @@ def test_create_project_post_does_not_500_and_logs_activity(admin_authenticated_
 
 @pytest.mark.integration
 @pytest.mark.routes
-@pytest.mark.xfail(reason="Endpoint /projects/new may not exist or uses different URL")
-def test_project_create_page(authenticated_client):
-    """Test project creation page."""
-    response = authenticated_client.get("/projects/new")
+def test_project_create_page(admin_authenticated_client):
+    """Test project creation page (requires create_projects permission)."""
+    response = admin_authenticated_client.get("/projects/create")
     assert response.status_code == 200
 
 
@@ -197,25 +199,21 @@ def test_project_detail_page(authenticated_client, project, app):
 @pytest.mark.integration
 @pytest.mark.routes
 @pytest.mark.api
-@pytest.mark.xfail(reason="POST /api/projects endpoint may not exist or not allow POST method")
-def test_create_project_api(authenticated_client, test_client, app):
-    """Test creating a project via API."""
-    with app.app_context():
-        response = authenticated_client.post(
-            "/api/projects",
-            json={
-                "name": "API Test Project",
-                "client_id": test_client.id,
-                "description": "Created via API test",
-                "billable": True,
-                "hourly_rate": 85.00,
-            },
-        )
-
-        # API might return 200 or 201 for creation
-        assert (
-            response.status_code in [200, 201] or response.status_code == 400
-        )  # May require CSRF or additional fields
+def test_create_project_api(client_with_token, test_client, app):
+    """Test creating a project via API v1 (Bearer token)."""
+    response = client_with_token.post(
+        "/api/v1/projects",
+        json={
+            "name": "API Test Project",
+            "client_id": test_client.id,
+            "description": "Created via API test",
+            "billable": True,
+            "hourly_rate": 85.00,
+        },
+    )
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data.get("project", {}).get("name") == "API Test Project"
 
 
 @pytest.mark.integration
@@ -403,19 +401,15 @@ def test_reports_page(authenticated_client):
 @pytest.mark.integration
 @pytest.mark.routes
 @pytest.mark.api
-@pytest.mark.xfail(reason="Endpoint /api/reports/time may not exist")
 def test_time_report_api(authenticated_client, multiple_time_entries, app):
-    """Test time report API."""
+    """Test analytics hours-by-day API (replaces removed /api/reports/time)."""
     with app.app_context():
-        response = authenticated_client.get(
-            "/api/reports/time",
-            query_string={
-                "start_date": (datetime.utcnow() - timedelta(days=30)).strftime("%Y-%m-%d"),
-                "end_date": datetime.utcnow().strftime("%Y-%m-%d"),
-            },
-        )
+        response = authenticated_client.get("/api/analytics/hours-by-day", query_string={"days": 30})
 
         assert response.status_code == 200
+        data = response.get_json()
+        assert "labels" in data
+        assert "datasets" in data
 
 
 # ============================================================================
@@ -456,7 +450,6 @@ def test_base_layout_has_sidebar_toggle(authenticated_client):
 @pytest.mark.integration
 @pytest.mark.routes
 @pytest.mark.api
-@pytest.mark.xfail(reason="Analytics endpoint has bugs with date handling - 'str' object has no attribute 'strftime'")
 def test_hours_by_day_api(authenticated_client, multiple_time_entries, app):
     """Test hours by day analytics API."""
     with app.app_context():
@@ -506,10 +499,9 @@ def test_invoice_detail_page(authenticated_client, invoice, app):
 
 @pytest.mark.integration
 @pytest.mark.routes
-@pytest.mark.xfail(reason="Endpoint /invoices/new may not exist or uses different URL")
 def test_invoice_create_page(authenticated_client):
     """Test invoice creation page."""
-    response = authenticated_client.get("/invoices/new")
+    response = authenticated_client.get("/invoices/create")
     assert response.status_code == 200
 
 
@@ -563,10 +555,9 @@ def test_404_error_page(client):
 
 @pytest.mark.integration
 @pytest.mark.api
-@pytest.mark.xfail(reason="Endpoint /api/timer/active may return 404 instead of auth error")
 def test_api_requires_authentication(client):
     """Test that API endpoints require authentication."""
-    response = client.get("/api/timer/active")
+    response = client.get("/api/timer/status")
     assert response.status_code in [302, 401, 403]
 
 
@@ -608,11 +599,10 @@ def test_tasks_list_page(authenticated_client):
 
 @pytest.mark.integration
 @pytest.mark.routes
-@pytest.mark.xfail(reason="Endpoint /tasks/new may not exist or uses different URL")
 def test_task_create_page(authenticated_client, project, app):
     """Test task creation page."""
     with app.app_context():
-        response = authenticated_client.get(f"/tasks/new?project_id={project.id}")
+        response = authenticated_client.get(f"/tasks/create?project_id={project.id}")
         assert response.status_code == 200
 
 
@@ -628,12 +618,11 @@ def test_task_detail_page(authenticated_client, task, app):
 @pytest.mark.integration
 @pytest.mark.routes
 @pytest.mark.api
-@pytest.mark.xfail(reason="POST /api/tasks endpoint may not exist or not allow POST method")
-def test_create_task_api(authenticated_client, project, user, app):
-    """Test creating a task via API."""
+def test_create_task_api(authenticated_client, project, app):
+    """Test creating a task via POST /api/tasks/create."""
     with app.app_context():
         response = authenticated_client.post(
-            "/api/tasks",
+            "/api/tasks/create",
             json={
                 "name": "API Test Task",
                 "project_id": project.id,
@@ -641,8 +630,10 @@ def test_create_task_api(authenticated_client, project, user, app):
                 "priority": "medium",
             },
         )
-        # May return 200, 201, or 400 depending on validation
-        assert response.status_code in [200, 201, 400, 404]
+        assert response.status_code == 201
+        data = response.get_json()
+        assert data.get("success") is True
+        assert data.get("name") == "API Test Task"
 
 
 @pytest.mark.integration

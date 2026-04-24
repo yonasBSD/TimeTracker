@@ -23,7 +23,7 @@ This document describes the privacy-aware, two-layer telemetry system: **base te
 ## Detailed Analytics (Opt-In Only)
 
 - **Gated by:** `is_telemetry_enabled()` / `allow_analytics`. No product events sent without opt-in.
-- **Events:** Existing names (e.g. `auth.login`, `timer.started`, `project.created`). Optional prefix `analytics.*` in future.
+- **Events:** Existing names (e.g. `auth.login`, `timer.started`, `project.created`). Support funnel events use the `support.*` prefix (e.g. `support.modal_opened`); see [all_tracked_events.md](all_tracked_events.md). Optional prefix `analytics.*` in future.
 - **Properties:** Include `install_id`, app_version, deployment, request context (path, browser, device) only when opted in.
 - **Sink:** Grafana Cloud OTLP (`identity = user_id` for events).
 - **Retention:** Per Grafana retention policy. Document in privacy policy.

@@ -114,6 +114,8 @@ Display a toast notification.
 - `options.type` (string, optional): Type of notification - 'success', 'error', 'warning', 'info' (default: 'info')
 - `options.duration` (number, optional): Duration in milliseconds (default: 5000, 0 = no auto-dismiss)
 - `options.dismissible` (boolean, optional): Show close button (default: true)
+- `options.actionLink` / `options.actionLabel` (string, optional): In-toast link (e.g. “View time entries”)
+- `options.onDismiss` (function, optional): Called when the toast is removed; receives a reason string such as `'close'` (user clicked the close button) or `'timeout'` (auto-dismiss). Use for syncing dismiss state with the server (for example smart notifications calling `POST /api/notifications/dismiss`).
 
 **Returns:** Toast ID (can be used to dismiss programmatically)
 

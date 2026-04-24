@@ -134,6 +134,9 @@ class Config:
 
     # Support & Purchase Key page URL (for links to purchase a key to hide donate UI)
     SUPPORT_PURCHASE_URL = os.getenv("SUPPORT_PURCHASE_URL", "https://timetracker.drytrix.com/support.html").strip()
+    SUPPORT_PORTAL_BASE = os.getenv("SUPPORT_PORTAL_BASE", "https://timetracker.drytrix.com").strip()
+    # Optional one-line social proof for support modal (empty = omit block)
+    SUPPORT_SOCIAL_PROOF_TEXT = os.getenv("SUPPORT_SOCIAL_PROOF_TEXT", "").strip()
 
     # Backup settings
     BACKUP_RETENTION_DAYS = int(os.getenv("BACKUP_RETENTION_DAYS", 30))
@@ -226,6 +229,22 @@ class Config:
         # If no tag provided, create a dev-build identifier if available
         github_run_number = os.getenv("GITHUB_RUN_NUMBER")
         APP_VERSION = f"dev-{github_run_number}" if github_run_number else "3.1.0"
+
+    # GitHub release check (admin update notification). GITHUB_RELEASES_TOKEN is optional; never log it.
+    VERSION_CHECK_GITHUB_REPO = os.getenv("VERSION_CHECK_GITHUB_REPO", "DRYTRIX/TimeTracker").strip()
+    VERSION_CHECK_GITHUB_CACHE_TTL = int(os.getenv("VERSION_CHECK_GITHUB_CACHE_TTL", "43200"))  # 12h
+    VERSION_CHECK_GITHUB_STALE_TTL = int(os.getenv("VERSION_CHECK_GITHUB_STALE_TTL", "604800"))  # 7d
+    VERSION_CHECK_HTTP_TIMEOUT = int(os.getenv("VERSION_CHECK_HTTP_TIMEOUT", "10"))
+    GITHUB_RELEASES_TOKEN = os.getenv("GITHUB_RELEASES_TOKEN", "").strip() or None
+    ENABLE_PRE_RELEASE_NOTIFICATIONS = os.getenv("ENABLE_PRE_RELEASE_NOTIFICATIONS", "false").lower() == "true"
+
+    # Smart in-app notifications (GET /api/notifications); times are HH:MM 24h in user's timezone.
+    SMART_NOTIFY_MAX_PER_DAY = max(1, min(10, int(os.getenv("SMART_NOTIFY_MAX_PER_DAY", "2"))))
+    SMART_NOTIFY_NO_TRACKING_AFTER = os.getenv("SMART_NOTIFY_NO_TRACKING_AFTER", "16:00").strip()
+    SMART_NOTIFY_SUMMARY_AT = os.getenv("SMART_NOTIFY_SUMMARY_AT", "18:00").strip()
+    SMART_NOTIFY_LONG_TIMER_HOURS = float(os.getenv("SMART_NOTIFY_LONG_TIMER_HOURS", "4"))
+    # Fire time-based kinds only during the first N minutes of the configured hour (same idea as email remind-to-log).
+    SMART_NOTIFY_SCHEDULER_SLOT_MINUTES = max(1, min(59, int(os.getenv("SMART_NOTIFY_SCHEDULER_SLOT_MINUTES", "30"))))
 
 
 class DevelopmentConfig(Config):

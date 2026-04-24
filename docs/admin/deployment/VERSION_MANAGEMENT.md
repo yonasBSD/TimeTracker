@@ -4,6 +4,8 @@ This document describes the comprehensive version management system for TimeTrac
 
 **For contributors:** Application version is defined only in **setup.py**. Do not duplicate it in README or other docs. Desktop and mobile builds may use their own version numbers; see [BUILD.md](../../build/BUILD.md) and repo scripts.
 
+**OpenAPI (`/api/openapi.json`):** The `info.version` field uses the same resolution as the in-app version helpers: environment variables **`TIMETRACKER_VERSION`** or **`APP_VERSION`** override the value read from **`setup.py`**; see `get_version_from_setup()` in `app/config/analytics_defaults.py` and `openapi_spec()` in `app/routes/api_docs.py`.
+
 ## Overview
 
 The version management system provides multiple ways to set version tags:
@@ -364,6 +366,30 @@ For external CI/CD systems, use the version manager scripts:
 ./scripts/version-manager.sh build $BUILD_NUMBER
 git push origin --tags
 ```
+
+## Admin in-app update notification (GitHub releases) {#admin-github-update-notification}
+
+Administrators can be notified in the web UI when a **newer semantic version** exists on GitHub compared to this installation. The feature is server-driven, does not affect non-admin users, and uses caching so routine page loads do not hammer the GitHub API.
+
+### Behavior
+
+- **Source of truth for “latest”:** GitHub’s API for the configured repository (default `DRYTRIX/TimeTracker`), either `releases/latest` or, when pre-releases are enabled, the newest non-draft release from the releases list.
+- **Installed version:** `APP_VERSION` / `GITHUB_TAG` from the environment (via Flask config) if it parses as a semantic version; otherwise the version read from **`setup.py`** at runtime (see the note at the top of this document). Non-semver installs (for example `dev-123`) do not show an upgrade prompt.
+- **UI:** A small, non-blocking card on authenticated admin pages (templates using `base.html`). **Dismiss** hides until the next load; **Don’t show again for this version** persists per user in the database (migration `148_add_user_dismissed_release_version`) and mirrors to browser `localStorage` as a fallback.
+- **API:** `GET /api/version/check` and `POST /api/version/dismiss` on the legacy `/api` JSON routes; session or API token; admin-only. See [REST API — Admin version check](../../api/REST_API.md#admin-version-check-web-json-under-api).
+
+### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VERSION_CHECK_GITHUB_REPO` | `DRYTRIX/TimeTracker` | `owner/repo` for `api.github.com/repos/{repo}/releases/…` |
+| `VERSION_CHECK_GITHUB_CACHE_TTL` | `43200` (12h) | TTL in seconds for the successful GitHub response cache |
+| `VERSION_CHECK_GITHUB_STALE_TTL` | `604800` (7d) | TTL for the last successful payload used when GitHub returns errors (for example `403` rate limit) |
+| `VERSION_CHECK_HTTP_TIMEOUT` | `10` | HTTP timeout in seconds for GitHub requests |
+| `GITHUB_RELEASES_TOKEN` | _(empty)_ | Optional GitHub personal access token (fine-scoped classic token with `public_repo` is enough for public repos); raises authenticated rate limits. **Do not commit tokens;** set only via environment or secrets manager. |
+| `ENABLE_PRE_RELEASE_NOTIFICATIONS` | `false` | When `true`, consider the newest non-draft release from the paginated releases list (including pre-releases). When `false`, use `releases/latest` (stable only per GitHub’s definition). |
+
+Optional: set `APP_VERSION` (or `GITHUB_TAG`) at deploy time to a semver string so Docker images and CI builds compare correctly against release tags.
 
 ## Future Enhancements
 

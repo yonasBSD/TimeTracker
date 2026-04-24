@@ -74,6 +74,7 @@ class ToastNotificationManager {
      * @param {boolean} options.dismissible - Show close button (default: true)
      * @param {string} options.actionLink - Optional URL for action link
      * @param {string} options.actionLabel - Label for action link (e.g. "View time entries")
+     * @param {function(string): void} [options.onDismiss] - Called when toast closes (reason: 'close'|'timeout')
      */
     show(options) {
         // Legacy signature: show(message, type) for backward compatibility with templates
@@ -121,7 +122,8 @@ class ToastNotificationManager {
         this.toasts.set(toastId, {
             element: toast,
             config: config,
-            timeoutId: null
+            timeoutId: null,
+            onDismiss: typeof options.onDismiss === 'function' ? options.onDismiss : null
         });
 
         // Add to container
@@ -136,7 +138,7 @@ class ToastNotificationManager {
         // Auto-dismiss
         if (config.duration > 0) {
             const timeoutId = setTimeout(() => {
-                this.dismiss(toastId);
+                this.dismiss(toastId, 'timeout');
             }, config.duration);
             this.toasts.get(toastId).timeoutId = timeoutId;
         }
@@ -250,6 +252,15 @@ class ToastNotificationManager {
                 opacity: '0.95',
                 textDecoration: 'underline'
             });
+            if (config.actionLink === '__support_modal__') {
+                actionLink.href = '#';
+                actionLink.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (typeof window.openSupportModal === 'function') {
+                        window.openSupportModal();
+                    }
+                });
+            }
             content.appendChild(actionLink);
         }
 
@@ -329,7 +340,7 @@ class ToastNotificationManager {
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
                 const toastId = this.findToastId(toast);
-                if (toastId) this.dismiss(toastId);
+                if (toastId) this.dismiss(toastId, 'close');
             });
             closeBtn.addEventListener('mouseenter', () => {
                 closeBtn.style.opacity = '1';
@@ -368,15 +379,23 @@ class ToastNotificationManager {
         return toast;
     }
 
-    dismiss(toastId) {
+    dismiss(toastId, reason) {
         const toastData = this.toasts.get(toastId);
         if (!toastData) return;
 
-        const { element, timeoutId } = toastData;
+        const { element, timeoutId, onDismiss } = toastData;
 
         // Clear timeout
         if (timeoutId) {
             clearTimeout(timeoutId);
+        }
+
+        if (typeof onDismiss === 'function') {
+            try {
+                onDismiss(reason === undefined ? 'unknown' : reason);
+            } catch (e) {
+                console.warn('Toast onDismiss error', e);
+            }
         }
 
         // Animate out

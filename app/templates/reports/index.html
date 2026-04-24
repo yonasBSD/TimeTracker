@@ -15,10 +15,10 @@
     actions_html=None
 ) }}
 
-{% if not is_license_activated and current_user.is_authenticated %}
+{% if current_user.is_authenticated and current_user.ui_show_donate %}
 <p class="text-sm text-text-muted-light dark:text-text-muted-dark mb-4">
-    {{ _('Enjoying TimeTracker?') }} {{ _('You can support development by purchasing a license key.') }}
-    <a href="{{ support_purchase_url }}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline font-medium">{{ _('Support the project') }}</a>
+    {{ _('Enjoying TimeTracker?') }} {{ _('Support development or get a supporter license — the app stays free for everyone.') }}
+    <button type="button" class="text-primary hover:underline font-medium js-open-support-modal">{{ _('Open support') }}</button>
 </p>
 {% endif %}
 

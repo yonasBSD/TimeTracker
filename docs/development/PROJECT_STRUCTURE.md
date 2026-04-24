@@ -63,7 +63,7 @@ TimeTracker/
 ## 🏗️ Core Components
 
 ### Application (`app/`)
-- **blueprint_registry.py**: Centralized registration of all route blueprints (reduces `__init__.py` size)
+- **blueprint_registry.py**: Centralized registration of all route blueprints (reduces `__init__.py` size). Optional blueprints log `logger.exception` on failure; in local development (`FLASK_ENV=development` or `DEBUG`) failures re-raise; production and tests continue without that blueprint.
 - **Models**: Database models for users, projects, time entries, tasks, and settings
 - **Routes**: API endpoints and web routes (auth, api, api_v1, tasks, admin, etc.)
 - **Templates**: Jinja2 HTML templates under `app/templates/` (task management, reports, timer, etc.)
@@ -171,7 +171,7 @@ The Task Management feature is fully integrated into the application with automa
 - **Canonical app version**: Defined in `setup.py` (single source of truth). Do not duplicate the version in other docs.
 - **Desktop**: `desktop/package.json` version should align with the app version when the desktop client ships with that release.
 - **Frontend build**: Root `package.json` is for Tailwind/build tooling and may use a separate semver (e.g. 1.0.0).
-- **API docs**: OpenAPI info version in `app/routes/api_docs.py` can match the app version for consistency.
+- **API docs (OpenAPI)**: `GET /api/openapi.json` sets `info.version` from `get_version_from_setup()` in `app/config/analytics_defaults.py` (reads `setup.py` at runtime). **`TIMETRACKER_VERSION`** or **`APP_VERSION`** may override that for CI or containers; if still unknown, `app/routes/api_docs.py` falls back to Flask `APP_VERSION` config. Do not hardcode a version string in the spec.
 
 ## 🔍 File Purposes
 

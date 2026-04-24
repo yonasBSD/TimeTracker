@@ -4,6 +4,12 @@
 
 The TimeTracker REST API provides programmatic access to all time tracking, project management, and reporting features. This API is designed for developers who want to integrate TimeTracker with other tools or build custom applications.
 
+**Integrations should use `/api/v1` only** (this document). The web application also exposes same-origin session JSON under **`/api/*`** (for example search and timer helpers used by the browser). Those routes are not the stable integration surface; use tokens and `/api/v1` for scripts, mobile, and desktop clients.
+
+### For maintainers
+
+Ship new HTTP capabilities under **`/api/v1`** first, with OpenAPI updates in `app/routes/api_docs.py`. Add or change **`/api/*`** only for logged-in UI needs or short-lived shims; reuse services from `app/services/` rather than duplicating logic.
+
 ## Base URL
 
 ```
@@ -179,11 +185,14 @@ GET /api/v1/info
 
 Returns API version and available endpoints. No authentication required.
 
+`setup_required` is a boolean: when `true`, the installation’s initial web setup is not complete; finish setup in the browser. Desktop and mobile apps use this (and JSON shape) to avoid treating arbitrary HTTP 200 pages as TimeTracker. During that phase, `GET /api/v1/info`, `GET /api/v1/health`, and `POST /api/v1/auth/login` are not redirected to the HTML setup wizard so clients still receive JSON.
+
 **Response:**
 ```json
 {
   "api_version": "v1",
   "app_version": "1.0.0",
+  "setup_required": false,
   "documentation_url": "/api/docs",
   "endpoints": {
     "projects": "/api/v1/projects",
@@ -200,6 +209,92 @@ GET /api/v1/health
 ```
 
 Check if the API is operational. No authentication required.
+
+### Admin version check (web JSON under `/api`)
+
+These routes live on the **legacy session JSON blueprint** (same prefix style as `/api/health` in the app). They are **admin-only** (`User.is_admin`, including RBAC admin roles).
+
+**Authentication:** browser **session cookie** (same-origin `fetch` after login) **or** an **API token** (`Authorization: Bearer tt_…` or `X-API-Key`). No dedicated scope is required; the server checks that the authenticated user is an administrator.
+
+#### Check installed version against latest GitHub release
+
+```
+GET /api/version/check
+```
+
+Compares the running instance version to the latest published release on GitHub (see [Version management — admin update notification](../admin/deployment/VERSION_MANAGEMENT.md#admin-github-update-notification) for configuration and caching). Returns `update_available: false` when the current install is not a comparable semantic version (for example some `dev-*` tags), when GitHub cannot be reached and no stale cache exists, or when the user has dismissed this release version.
+
+**Responses:** `401` if unauthenticated, `403` if not admin.
+
+**Example (Bearer):**
+
+```bash
+curl -s -H "Authorization: Bearer YOUR_API_TOKEN" \
+     https://your-domain.com/api/version/check
+```
+
+**Response (200):**
+
+```json
+{
+  "update_available": true,
+  "current_version": "4.0.0",
+  "latest_version": "4.1.0",
+  "release_notes": "…",
+  "published_at": "2026-04-01T10:00:00Z",
+  "release_url": "https://github.com/DRYTRIX/TimeTracker/releases/tag/v4.1.0"
+}
+```
+
+#### Dismiss update prompt for a release version
+
+```
+POST /api/version/dismiss
+```
+
+**Body (JSON):** `{ "latest_version": "4.1.0" }` (with or without a leading `v`; stored normalized).
+
+Persists `dismissed_release_version` for the current user so `GET /api/version/check` returns `update_available: false` until a newer release appears. Returns `{ "ok": true }` on success, `400` if `latest_version` is missing or not a valid semantic version string.
+
+The web UI also mirrors dismissal in `localStorage` (`tt_dismissed_release_version`) as a client-side fallback; the database remains authoritative for `update_available`.
+
+### Dashboard productivity (web JSON under `/api`)
+
+These routes are used by the **web dashboard** after login. They live on the same legacy JSON blueprint as `/api/health` (not under `/api/v1`). **Authentication:** browser **session cookie** (`@login_required`); unauthenticated requests receive **401**.
+
+#### Value dashboard aggregates
+
+```
+GET /api/stats/value-dashboard
+```
+
+Returns productivity aggregates for the **current user** only (completed time entries: `end_time` is set). Used by the main dashboard “Value insights” widget.
+
+**Caching:** responses may be cached for up to **10 minutes** per user when Redis is available (`REDIS_URL` and working connection). If Redis is unavailable, each request recomputes from the database.
+
+**Response (200):**
+
+```json
+{
+  "total_hours": 132.5,
+  "entries_count": 248,
+  "active_days": 18,
+  "avg_session_length": 1.4,
+  "most_productive_day": "Tuesday",
+  "this_week_hours": 24.5,
+  "this_month_hours": 110.2,
+  "last_7_days": [
+    { "date": "2026-04-09", "hours": 2.5 },
+    { "date": "2026-04-10", "hours": 0.0 }
+  ],
+  "estimated_value_tracked": 1234.56,
+  "estimated_value_currency": "EUR"
+}
+```
+
+- **`most_productive_day`:** English weekday name (`Sunday`–`Saturday`) with the highest total tracked time across all history, or **`null`** when there is no qualifying data.
+- **`last_7_days`:** seven objects in chronological order for the last seven **local** calendar days (app timezone), including days with **0** hours.
+- **`estimated_value_tracked`:** `null` when the estimated billable total is zero or no rate applies; otherwise `hours ×` resolved rate using **`COALESCE(project.hourly_rate, entry client default, project client default)`** (see server implementation in `StatsService`). **`estimated_value_currency`** comes from **Settings → currency** with application default fallback.
 
 ### Search
 
@@ -229,7 +324,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
      "https://your-domain.com/api/v1/search?q=website&types=project,task"
 ```
 
-**Response:**
+**Response (200):**
 ```json
 {
   "results": [
@@ -253,9 +348,18 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
     }
   ],
   "query": "website",
-  "count": 2
+  "count": 2,
+  "partial": false,
+  "errors": {}
 }
 ```
+
+**Partial results and per-domain errors**
+
+Search runs independently for **projects**, **tasks**, **clients**, and **time entries** (see `app/services/global_search_service.py`). If one domain hits a database error (`SQLAlchemyError`), that domain is skipped, the others still return hits, and the response includes:
+
+- **`partial`:** `true` when any domain failed; otherwise `false`.
+- **`errors`:** Object whose keys are `projects`, `tasks`, `clients`, or `entries` (only keys for failed domains are present), each mapping to a short error string. Intended for observability and UI messaging, not as a stable API error code.
 
 **Search Behavior:**
 - **Projects**: Searches in name and description (active projects only)
@@ -264,11 +368,11 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 - **Time Entries**: Searches in notes and tags (non-admin users see only their own entries)
 
 **Error Responses:**
-- `400 Bad Request` - Query is too short (less than 2 characters)
+- `400 Bad Request` - Query is too short (less than 2 characters). Body includes `error`, `results` (empty array), `partial: false`, and `errors: {}`.
 - `401 Unauthorized` - Missing or invalid API token
 - `403 Forbidden` - Token lacks `read:projects` scope
 
-**Note:** The legacy endpoint `/api/search` is also available for session-based authentication (requires login).
+**Note:** The legacy endpoint **`GET /api/search`** (session cookie, Flask-Login) uses the same search logic and the same **`results` / `query` / `count` / `partial` / `errors`** shape. For queries shorter than two characters it returns **200** with empty `results` and `partial: false`. Overlapping session routes may return **`X-API-Deprecated: true`** and a **`Link`** header pointing at this v1 path; integrations should call **`GET /api/v1/search`** only.
 
 ### Projects
 

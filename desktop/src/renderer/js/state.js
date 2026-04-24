@@ -1,9 +1,14 @@
 /**
  * Application state - single source of truth for view, timer, cache, and filters.
  * Used by app.js to avoid scattered globals.
+ * API client lifecycle is owned by ConnectionManager; this field is synced for legacy call sites.
  */
-module.exports = {
+const state = {
   apiClient: null,
+  /** Count consecutive background checks that failed with auth (401) while on main UI */
+  authFailureStreak: 0,
+  /** Last timer poll error shown to user (avoid spam) */
+  lastTimerPollUserMessageAt: 0,
   currentView: 'dashboard',
   timerInterval: null,
   isTimerRunning: false,
@@ -19,3 +24,12 @@ module.exports = {
     expenses: { page: 1, perPage: 20, totalPages: 1, total: 0 },
   },
 };
+
+function clearViewCaches() {
+  state.cachedInvoices = [];
+  state.cachedExpenses = [];
+  state.cachedWorkforce = { periods: [], capacity: [], timeOffRequests: [], balances: [] };
+}
+
+state.clearViewCaches = clearViewCaches;
+module.exports = state;

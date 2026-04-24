@@ -27,7 +27,7 @@ This audit summarizes the state of TimeTracker documentation as of the audit dat
 | Item | Location | Fix |
 |------|----------|-----|
 | Version numbers | README "What's New" / "Current version" | Point to setup.py + CHANGELOG only; remove or generalize hardcoded v4.14.0, v4.6.0. |
-| Hardcoded version | docs/development/PROJECT_STRUCTURE.md | Replace "version='4.20.9'" with "version in setup.py (single source of truth)". |
+| Hardcoded version | docs/development/PROJECT_STRUCTURE.md | **Resolved:** OpenAPI `info.version` uses `get_version_from_setup()` + env overrides; see PROJECT_STRUCTURE versioning section. |
 | Hardcoded version | docs/FEATURES_COMPLETE.md | Remove "Version: 4.20.6" or replace with "See setup.py". |
 | Docker access URL | docs/development/CONTRIBUTING.md | Default `docker-compose up --build` → https://localhost. For http://localhost:8080 use docker-compose.example.yml or docker-compose.local-test.yml. |
 | Compose role | docs/development/PROJECT_STRUCTURE.md | Describe docker-compose.yml as "Default stack (HTTPS via nginx)"; add docker-compose.example.yml (HTTP 8080) and docker-compose.local-test.yml (SQLite). |

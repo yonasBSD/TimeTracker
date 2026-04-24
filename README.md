@@ -801,10 +801,11 @@ TimeTracker includes **optional** analytics and monitoring features to help impr
 #### 4. **Product Analytics** (Optional - Grafana OTLP)
 - Tracks feature usage and user behavior patterns with advanced features:
   - **Person Properties**: Role, auth method, login history
-  - **Feature Flags**: Gradual rollouts, A/B testing, kill switches
   - **Group Analytics**: Segment by version, platform, deployment
   - **Rich Context**: Browser, device, environment on every event
 - **Sink config:** Set `GRAFANA_OTLP_ENDPOINT` and `GRAFANA_OTLP_TOKEN`
+
+**Rollouts and kill switches** in this application are not driven by remote PostHog feature flags. Use **environment variables** and [`app/config.py`](app/config.py) (for example `DEMO_MODE`, `ALLOW_SELF_REGISTER`, `ENABLE_TELEMETRY`, `SINGLE_ACTIVE_TIMER`). **Per-user UI visibility** preferences are stored on the user record in the database, not in PostHog.
 
 #### 5. **Installation Telemetry** (Optional, Anonymous)
 - Sends anonymous installation data via Grafana OTLP with:

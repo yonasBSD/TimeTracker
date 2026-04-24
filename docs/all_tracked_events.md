@@ -73,6 +73,16 @@ This document lists events tracked via PostHog and JSON logging.
 | `export.csv` | User exports data to CSV | `user_id`, `export_type`, `row_count` |
 | `export.pdf` | User exports data to PDF | `user_id`, `export_type` |
 
+## Support & donation funnel (opt-in layer)
+
+| Event Name | Description | Properties |
+|-----------|-------------|-------------|
+| `support.modal_opened` | User opened the support modal | `variant`, `source` |
+| `support.donation_clicked` | User chose a donation tier from the modal | `variant` (tier key), `source` |
+| `support.license_clicked` | User opened supporter checkout / license from the modal | `source` |
+| `support.prompt_shown` | Soft support toast or prompt was shown | `variant`, `source` |
+| `support.prompt_dismissed` | User dismissed a soft support prompt | `variant`, `source` |
+
 ## Comment Events
 
 | Event Name | Description | Properties |

@@ -5,6 +5,8 @@ Canonical interaction_type values (funnel):
   - banner_impression: support banner was shown (measured client-side)
   - banner_dismissed: user dismissed the banner
   - link_clicked: user clicked a support CTA (donate or key; segment by source)
+  - support_modal_opened, support_donation_clicked, support_license_clicked: support modal funnel
+  - support_prompt_shown, support_prompt_dismissed: soft prompt funnel
 
 Canonical source values for CTR per placement:
   - header, banner, banner_bmc, banner_paypal, banner_key
@@ -76,17 +78,15 @@ class DonationInteraction(db.Model):
 
     @staticmethod
     def has_recent_donation_click(user_id: int, days: int = 30) -> bool:
-        """Check if user clicked donation link in last N days"""
+        """Check if user clicked a donation/support outbound link in last N days."""
         cutoff = datetime.utcnow() - timedelta(days=days)
+        interaction_types = ("link_clicked", "banner_clicked")
         return (
-            DonationInteraction.query.filter_by(user_id=user_id, interaction_type="banner_clicked")
-            .filter(DonationInteraction.created_at >= cutoff)
-            .first()
-            is not None
-        ) or (
-            DonationInteraction.query.filter_by(user_id=user_id, interaction_type="link_clicked")
-            .filter(DonationInteraction.created_at >= cutoff)
-            .first()
+            DonationInteraction.query.filter(
+                DonationInteraction.user_id == user_id,
+                DonationInteraction.interaction_type.in_(interaction_types),
+                DonationInteraction.created_at >= cutoff,
+            ).first()
             is not None
         )
 

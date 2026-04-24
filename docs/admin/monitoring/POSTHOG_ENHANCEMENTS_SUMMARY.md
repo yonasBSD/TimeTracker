@@ -111,48 +111,7 @@ posthog.group_identify(
 - ✅ Understand deployment patterns
 - ✅ Correlate issues with specific configurations
 
-### 4. **Feature Flags System** 🚩
-
-**What:** Complete feature flag utilities for gradual rollouts and A/B testing.
-
-**New File:** `app/utils/posthog_features.py`
-
-**Features:**
-- `get_feature_flag()` - Check if feature is enabled
-- `get_feature_flag_payload()` - Remote configuration
-- `get_all_feature_flags()` - Get all flags for a user
-- `feature_flag_required()` - Decorator for route protection
-- `inject_feature_flags_to_frontend()` - Frontend integration
-- `track_feature_flag_interaction()` - Track feature usage
-- `FeatureFlags` class - Centralized flag definitions
-
-**Example Usage:**
-```python
-from app.utils.posthog_features import get_feature_flag, feature_flag_required
-
-# Simple check
-if get_feature_flag(user.id, "new-dashboard"):
-    return render_template("dashboard_v2.html")
-
-# Route protection
-@app.route('/beta/feature')
-@feature_flag_required('beta-features')
-def beta_feature():
-    return "Beta!"
-
-# Frontend injection
-feature_flags = inject_feature_flags_to_frontend(user.id)
-return render_template("app.html", feature_flags=feature_flags)
-```
-
-**Benefits:**
-- ✅ Gradual feature rollouts (0% → 10% → 50% → 100%)
-- ✅ A/B testing different UI variations
-- ✅ Emergency kill switches
-- ✅ Target features to specific user segments
-- ✅ Remote configuration without deployment
-
-### 5. **Automatic User Identification on Login** 🔐
+### 4. **Automatic User Identification on Login** 🔐
 
 **What:** Users are automatically identified when they log in (both local and OIDC).
 
@@ -191,23 +150,17 @@ return render_template("app.html", feature_flags=feature_flags)
    - Added `identify_user()` calls on OIDC login
    - Set person properties on every login
 
-### New Files
-4. **`app/utils/posthog_features.py`** (NEW)
-   - Complete feature flag system
-   - Predefined flag constants
-   - Helper functions and decorators
-
 ### Documentation
-5. **`POSTHOG_ADVANCED_FEATURES.md`** (NEW)
+4. **`POSTHOG_ADVANCED_FEATURES.md`** (NEW)
    - Complete guide to all features
    - Usage examples and best practices
    - PostHog query examples
 
-6. **`POSTHOG_ENHANCEMENTS_SUMMARY.md`** (THIS FILE)
+5. **`POSTHOG_ENHANCEMENTS_SUMMARY.md`** (THIS FILE)
    - Summary of all changes
 
 ### Tests
-7. **`tests/test_telemetry.py`**
+6. **`tests/test_telemetry.py`**
    - Updated to match enhanced property names
 
 ## 🚀 What You Can Do Now
@@ -217,61 +170,26 @@ return render_template("app.html", feature_flags=feature_flags)
 - Group installations by version, platform, deployment method
 - Build cohorts for targeted analysis
 
-### 2. **Gradual Rollouts**
-```python
-# In PostHog: Create flag "new-timer-ui" at 10%
-if get_feature_flag(user.id, "new-timer-ui"):
-    # Show new UI to 10% of users
-    pass
-```
+### 2. **Deployment toggles (not PostHog)**
 
-### 3. **A/B Testing**
-```python
-experiments = get_active_experiments(user.id)
-if experiments.get("onboarding-flow") == "variant-b":
-    # Show variant B
-    pass
-```
+Rollouts, kill switches, and route-level gates use **environment variables** and [`app/config.py`](../../../app/config.py), not a PostHog feature-flag module.
 
-### 4. **Emergency Kill Switches**
-```python
-if not get_feature_flag(user.id, "enable-exports", default=True):
-    abort(503, "Exports temporarily disabled")
-```
-
-### 5. **Remote Configuration**
-```python
-config = get_feature_flag_payload(user.id, "dashboard-config")
-theme = config.get("theme", "light")
-widgets = config.get("enabled_widgets", [])
-```
-
-### 6. **Frontend Feature Flags**
-```html
-<script>
-    window.featureFlags = {{ feature_flags|tojson }};
-    if (window.featureFlags['new-ui']) {
-        // Enable new UI
-    }
-</script>
-```
-
-### 7. **Version Analytics**
+### 3. **Version Analytics**
 - Track how many installations are on each version
 - Identify installations that need updates
 - Measure update adoption speed
 
-### 8. **Platform Analytics**
+### 4. **Platform Analytics**
 - Compare behavior across Linux, Windows, macOS
 - Identify platform-specific issues
 - Optimize for most common platforms
 
-### 9. **User Behavior Analysis**
+### 5. **User Behavior Analysis**
 - Filter events by user role
 - Analyze admin vs regular user behavior
 - Track feature adoption by user segment
 
-### 10. **Installation Health**
+### 6. **Installation Health**
 - Monitor active installations (telemetry.health events)
 - Track deployment methods (Docker vs native)
 - Geographic distribution via timezone
@@ -317,24 +235,7 @@ Compare to: All users
 
 ## 🎨 Setting Up in PostHog
 
-### 1. **Create Feature Flags**
-
-Go to PostHog → Feature Flags → New feature flag
-
-**Example: Gradual Rollout**
-- Key: `new-dashboard`
-- Rollout: 10% of users
-- Increase over time: 10% → 50% → 100%
-
-**Example: Admin Only**
-- Key: `admin-tools`
-- Condition: Person property `is_admin` = `true`
-
-**Example: Docker Users**
-- Key: `docker-optimizations`
-- Condition: Person property `deployment_method` = `docker`
-
-### 2. **Create Cohorts**
+### 1. **Create Cohorts**
 
 **Docker Admins:**
 ```
@@ -351,7 +252,7 @@ Events:
   telemetry.install within last 30 days
 ```
 
-### 3. **Build Dashboards**
+### 2. **Build Dashboards**
 
 **Installation Health:**
 - Active installations (last 24h)
@@ -388,7 +289,7 @@ pytest tests/test_telemetry.py -v
 
 No linter errors:
 ```bash
-pylint app/utils/telemetry.py app/utils/posthog_features.py
+pylint app/utils/telemetry.py
 # ✅ No errors
 ```
 
@@ -405,14 +306,10 @@ With these enhancements, you now have:
 
 ✅ **World-class product analytics** with person properties  
 ✅ **Group analytics** for cohort analysis  
-✅ **Feature flags** for gradual rollouts & A/B testing  
-✅ **Kill switches** for emergency feature control  
-✅ **Remote configuration** without deployments  
 ✅ **Rich context** on every event  
 ✅ **Installation tracking** with version/platform groups  
 ✅ **User segmentation** by role, auth, platform  
 ✅ **Automatic identification** on login  
-✅ **Frontend integration** for client-side flags  
 ✅ **Comprehensive docs** and examples  
 ✅ **Production-ready** with tests passing  
 
@@ -424,20 +321,11 @@ With these enhancements, you now have:
    POSTHOG_HOST=https://app.posthog.com
    ```
 
-2. **Create Feature Flags** in PostHog dashboard
+2. **Build Dashboards** for your metrics
 
-3. **Build Dashboards** for your metrics
+3. **Analyze Data** in PostHog to make data-driven decisions
 
-4. **Start Using Flags** in your code:
-   ```python
-   from app.utils.posthog_features import FeatureFlags, get_feature_flag
-   
-   if get_feature_flag(user.id, FeatureFlags.NEW_DASHBOARD):
-       # New feature!
-       pass
-   ```
-
-5. **Analyze Data** in PostHog to make data-driven decisions
+4. **Gate features in the app** using `app/config.py` and environment variables when you need deploy-time toggles
 
 ---
 

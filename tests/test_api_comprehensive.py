@@ -144,27 +144,25 @@ def test_get_invoice_details(authenticated_client, invoice):
 @pytest.mark.api
 @pytest.mark.integration
 def test_get_time_report(authenticated_client):
-    """Test getting time report."""
-    response = authenticated_client.get(
-        "/api/reports/time",
-        query_string={
-            "start_date": (datetime.utcnow() - timedelta(days=7)).strftime("%Y-%m-%d"),
-            "end_date": datetime.utcnow().strftime("%Y-%m-%d"),
-        },
-    )
+    """Test hours-by-day analytics (replaces removed /api/reports/time)."""
+    response = authenticated_client.get("/api/analytics/hours-by-day", query_string={"days": 7})
 
-    # Should return report or appropriate error
-    assert response.status_code in [200, 404, 500]
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "labels" in data
+    assert "datasets" in data
 
 
 @pytest.mark.api
 @pytest.mark.integration
 def test_get_project_report(authenticated_client, project):
-    """Test getting project report."""
-    response = authenticated_client.get(f"/api/reports/projects/{project.id}")
+    """Test hours-by-project analytics (replaces removed /api/reports/projects/<id>)."""
+    response = authenticated_client.get("/api/analytics/hours-by-project", query_string={"days": 7})
 
-    # Should return report or appropriate error
-    assert response.status_code in [200, 404]
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "labels" in data
+    assert "datasets" in data
 
 
 # ============================================================================
@@ -194,12 +192,11 @@ def test_get_task_details(authenticated_client, task):
 
 @pytest.mark.api
 @pytest.mark.integration
-def test_get_project_tasks_excludes_done_and_cancelled(authenticated_client, project, user, app):
-    """Test that /api/projects/<project_id>/tasks excludes done and cancelled tasks."""
-    from app.models import Task
+def test_get_project_tasks_includes_all_statuses(authenticated_client, project, user, app):
+    """Test that /api/projects/<project_id>/tasks returns all tasks (incl. done/cancelled) for time-entry UI."""
     from app import db
+    from app.models import Task
 
-    # Create tasks with different statuses
     active_task = Task(name="Active Task", project_id=project.id, status="todo", created_by=user.id)
     in_progress_task = Task(name="In Progress Task", project_id=project.id, status="in_progress", created_by=user.id)
     review_task = Task(name="Review Task", project_id=project.id, status="review", created_by=user.id)
@@ -209,7 +206,6 @@ def test_get_project_tasks_excludes_done_and_cancelled(authenticated_client, pro
     db.session.add_all([active_task, in_progress_task, review_task, done_task, cancelled_task])
     db.session.commit()
 
-    # Get tasks for the project
     response = authenticated_client.get(f"/api/projects/{project.id}/tasks")
 
     assert response.status_code == 200
@@ -217,16 +213,17 @@ def test_get_project_tasks_excludes_done_and_cancelled(authenticated_client, pro
     assert "tasks" in data
     assert data["success"] is True
 
-    # Verify only active tasks are returned
     task_names = [t["name"] for t in data["tasks"]]
-    assert "Active Task" in task_names
-    assert "In Progress Task" in task_names
-    assert "Review Task" in task_names
-    assert "Done Task" not in task_names
-    assert "Cancelled Task" not in task_names
+    for name in (
+        "Active Task",
+        "In Progress Task",
+        "Review Task",
+        "Done Task",
+        "Cancelled Task",
+    ):
+        assert name in task_names
 
-    # Verify we got exactly 3 tasks
-    assert len(data["tasks"]) == 3
+    assert len(data["tasks"]) == 5
 
 
 # ============================================================================

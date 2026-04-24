@@ -42,4 +42,4 @@ This document records the API consistency audit performed for the TimeTracker ba
 ## 6. References
 
 - **REST API reference**: [REST_API.md](REST_API.md) — endpoints, request/response formats, pagination, errors.
-- **OpenAPI**: `/api/openapi.json` and Swagger UI at `/api/docs` — aligned with this contract where updated.
+- **OpenAPI**: `/api/openapi.json` and Swagger UI at `/api/docs` — aligned with this contract where updated. **`info.version`** follows `get_version_from_setup()` (from `setup.py`, with optional **`TIMETRACKER_VERSION`** / **`APP_VERSION`** overrides); see `app/routes/api_docs.py`.

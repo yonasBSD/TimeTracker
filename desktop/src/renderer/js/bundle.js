@@ -64,6 +64,12 @@
           return false;
         }
       }
+      function normalizeServerUrlInput2(input) {
+        const trimmed = String(input || "").trim();
+        if (!trimmed) return trimmed;
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        return "https://" + trimmed;
+      }
       function debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -83,6 +89,7 @@
           formatDateTime: formatDateTime2,
           parseISODate,
           isValidUrl: isValidUrl2,
+          normalizeServerUrlInput: normalizeServerUrlInput2,
           debounce
         };
       }
@@ -94,6 +101,7 @@
           formatDateTime: formatDateTime2,
           parseISODate,
           isValidUrl: isValidUrl2,
+          normalizeServerUrlInput: normalizeServerUrlInput2,
           debounce
         };
       }
@@ -160,17 +168,37 @@
       };
       var isDate = kindOfTest("Date");
       var isFile = kindOfTest("File");
+      var isReactNativeBlob = (value) => {
+        return !!(value && typeof value.uri !== "undefined");
+      };
+      var isReactNative = (formData) => formData && typeof formData.getParts !== "undefined";
       var isBlob = kindOfTest("Blob");
       var isFileList = kindOfTest("FileList");
       var isStream = (val) => isObject(val) && isFunction$1(val.pipe);
+      function getGlobal() {
+        if (typeof globalThis !== "undefined") return globalThis;
+        if (typeof self !== "undefined") return self;
+        if (typeof window !== "undefined") return window;
+        if (typeof global !== "undefined") return global;
+        return {};
+      }
+      var G = getGlobal();
+      var FormDataCtor = typeof G.FormData !== "undefined" ? G.FormData : void 0;
       var isFormData = (thing) => {
         let kind;
-        return thing && (typeof FormData === "function" && thing instanceof FormData || isFunction$1(thing.append) && ((kind = kindOf(thing)) === "formdata" || // detect form-data instance
+        return thing && (FormDataCtor && thing instanceof FormDataCtor || isFunction$1(thing.append) && ((kind = kindOf(thing)) === "formdata" || // detect form-data instance
         kind === "object" && isFunction$1(thing.toString) && thing.toString() === "[object FormData]"));
       };
       var isURLSearchParams = kindOfTest("URLSearchParams");
-      var [isReadableStream, isRequest, isResponse, isHeaders] = ["ReadableStream", "Request", "Response", "Headers"].map(kindOfTest);
-      var trim = (str) => str.trim ? str.trim() : str.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
+      var [isReadableStream, isRequest, isResponse, isHeaders] = [
+        "ReadableStream",
+        "Request",
+        "Response",
+        "Headers"
+      ].map(kindOfTest);
+      var trim = (str) => {
+        return str.trim ? str.trim() : str.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
+      };
       function forEach(obj, fn, { allOwnKeys = false } = {}) {
         if (obj === null || typeof obj === "undefined") {
           return;
@@ -222,6 +250,9 @@
         const { caseless, skipUndefined } = isContextDefined(this) && this || {};
         const result = {};
         const assignValue = (val, key) => {
+          if (key === "__proto__" || key === "constructor" || key === "prototype") {
+            return;
+          }
           const targetKey = caseless && findKey(result, key) || key;
           if (isPlainObject(result[targetKey]) && isPlainObject(val)) {
             result[targetKey] = merge(result[targetKey], val);
@@ -239,13 +270,27 @@
         return result;
       }
       var extend2 = (a, b, thisArg, { allOwnKeys } = {}) => {
-        forEach(b, (val, key) => {
-          if (thisArg && isFunction$1(val)) {
-            a[key] = bind(val, thisArg);
-          } else {
-            a[key] = val;
-          }
-        }, { allOwnKeys });
+        forEach(
+          b,
+          (val, key) => {
+            if (thisArg && isFunction$1(val)) {
+              Object.defineProperty(a, key, {
+                value: bind(val, thisArg),
+                writable: true,
+                enumerable: true,
+                configurable: true
+              });
+            } else {
+              Object.defineProperty(a, key, {
+                value: val,
+                writable: true,
+                enumerable: true,
+                configurable: true
+              });
+            }
+          },
+          { allOwnKeys }
+        );
         return a;
       };
       var stripBOM = (content) => {
@@ -254,9 +299,14 @@
         }
         return content;
       };
-      var inherits = (constructor, superConstructor, props2, descriptors2) => {
-        constructor.prototype = Object.create(superConstructor.prototype, descriptors2);
-        constructor.prototype.constructor = constructor;
+      var inherits = (constructor, superConstructor, props2, descriptors) => {
+        constructor.prototype = Object.create(superConstructor.prototype, descriptors);
+        Object.defineProperty(constructor.prototype, "constructor", {
+          value: constructor,
+          writable: true,
+          enumerable: false,
+          configurable: true
+        });
         Object.defineProperty(constructor, "super", {
           value: superConstructor.prototype
         });
@@ -327,19 +377,16 @@
       };
       var isHTMLForm = kindOfTest("HTMLFormElement");
       var toCamelCase = (str) => {
-        return str.toLowerCase().replace(
-          /[-_\s]([a-z\d])(\w*)/g,
-          function replacer(m, p1, p2) {
-            return p1.toUpperCase() + p2;
-          }
-        );
+        return str.toLowerCase().replace(/[-_\s]([a-z\d])(\w*)/g, function replacer(m, p1, p2) {
+          return p1.toUpperCase() + p2;
+        });
       };
       var hasOwnProperty = (({ hasOwnProperty: hasOwnProperty2 }) => (obj, prop) => hasOwnProperty2.call(obj, prop))(Object.prototype);
       var isRegExp = kindOfTest("RegExp");
       var reduceDescriptors = (obj, reducer) => {
-        const descriptors2 = Object.getOwnPropertyDescriptors(obj);
+        const descriptors = Object.getOwnPropertyDescriptors(obj);
         const reducedDescriptors = {};
-        forEach(descriptors2, (descriptor, name) => {
+        forEach(descriptors, (descriptor, name) => {
           let ret;
           if ((ret = reducer(descriptor, name, obj)) !== false) {
             reducedDescriptors[name] = ret || descriptor;
@@ -416,20 +463,21 @@
           return setImmediate;
         }
         return postMessageSupported ? ((token, callbacks) => {
-          _global2.addEventListener("message", ({ source, data }) => {
-            if (source === _global2 && data === token) {
-              callbacks.length && callbacks.shift()();
-            }
-          }, false);
+          _global2.addEventListener(
+            "message",
+            ({ source, data }) => {
+              if (source === _global2 && data === token) {
+                callbacks.length && callbacks.shift()();
+              }
+            },
+            false
+          );
           return (cb) => {
             callbacks.push(cb);
             _global2.postMessage(token, "*");
           };
         })(`axios@${Math.random()}`, []) : (cb) => setTimeout(cb);
-      })(
-        typeof setImmediate === "function",
-        isFunction$1(_global2.postMessage)
-      );
+      })(typeof setImmediate === "function", isFunction$1(_global2.postMessage));
       var asap2 = typeof queueMicrotask !== "undefined" ? queueMicrotask.bind(_global2) : typeof process !== "undefined" && process.nextTick || _setImmediate;
       var isIterable = (thing) => thing != null && isFunction$1(thing[iterator]);
       var utils$1 = {
@@ -451,6 +499,8 @@
         isUndefined,
         isDate,
         isFile,
+        isReactNativeBlob,
+        isReactNative,
         isBlob,
         isRegExp,
         isFunction: isFunction$1,
@@ -492,25 +542,47 @@
         asap: asap2,
         isIterable
       };
-      function AxiosError(message, code, config, request, response) {
-        Error.call(this);
-        if (Error.captureStackTrace) {
-          Error.captureStackTrace(this, this.constructor);
-        } else {
-          this.stack = new Error().stack;
+      var AxiosError = class _AxiosError extends Error {
+        static from(error, code, config, request, response, customProps) {
+          const axiosError = new _AxiosError(error.message, code || error.code, config, request, response);
+          axiosError.cause = error;
+          axiosError.name = error.name;
+          if (error.status != null && axiosError.status == null) {
+            axiosError.status = error.status;
+          }
+          customProps && Object.assign(axiosError, customProps);
+          return axiosError;
         }
-        this.message = message;
-        this.name = "AxiosError";
-        code && (this.code = code);
-        config && (this.config = config);
-        request && (this.request = request);
-        if (response) {
-          this.response = response;
-          this.status = response.status ? response.status : null;
+        /**
+         * Create an Error with the specified message, config, error code, request and response.
+         *
+         * @param {string} message The error message.
+         * @param {string} [code] The error code (for example, 'ECONNABORTED').
+         * @param {Object} [config] The config.
+         * @param {Object} [request] The request.
+         * @param {Object} [response] The response.
+         *
+         * @returns {Error} The created error.
+         */
+        constructor(message, code, config, request, response) {
+          super(message);
+          Object.defineProperty(this, "message", {
+            value: message,
+            enumerable: true,
+            writable: true,
+            configurable: true
+          });
+          this.name = "AxiosError";
+          this.isAxiosError = true;
+          code && (this.code = code);
+          config && (this.config = config);
+          request && (this.request = request);
+          if (response) {
+            this.response = response;
+            this.status = response.status;
+          }
         }
-      }
-      utils$1.inherits(AxiosError, Error, {
-        toJSON: function toJSON() {
+        toJSON() {
           return {
             // Standard
             message: this.message,
@@ -529,45 +601,19 @@
             status: this.status
           };
         }
-      });
-      var prototype$1 = AxiosError.prototype;
-      var descriptors = {};
-      [
-        "ERR_BAD_OPTION_VALUE",
-        "ERR_BAD_OPTION",
-        "ECONNABORTED",
-        "ETIMEDOUT",
-        "ERR_NETWORK",
-        "ERR_FR_TOO_MANY_REDIRECTS",
-        "ERR_DEPRECATED",
-        "ERR_BAD_RESPONSE",
-        "ERR_BAD_REQUEST",
-        "ERR_CANCELED",
-        "ERR_NOT_SUPPORT",
-        "ERR_INVALID_URL"
-        // eslint-disable-next-line func-names
-      ].forEach((code) => {
-        descriptors[code] = { value: code };
-      });
-      Object.defineProperties(AxiosError, descriptors);
-      Object.defineProperty(prototype$1, "isAxiosError", { value: true });
-      AxiosError.from = (error, code, config, request, response, customProps) => {
-        const axiosError = Object.create(prototype$1);
-        utils$1.toFlatObject(error, axiosError, function filter(obj) {
-          return obj !== Error.prototype;
-        }, (prop) => {
-          return prop !== "isAxiosError";
-        });
-        const msg = error && error.message ? error.message : "Error";
-        const errCode = code == null && error ? error.code : code;
-        AxiosError.call(axiosError, msg, errCode, config, request, response);
-        if (error && axiosError.cause == null) {
-          Object.defineProperty(axiosError, "cause", { value: error, configurable: true });
-        }
-        axiosError.name = error && error.name || "Error";
-        customProps && Object.assign(axiosError, customProps);
-        return axiosError;
       };
+      AxiosError.ERR_BAD_OPTION_VALUE = "ERR_BAD_OPTION_VALUE";
+      AxiosError.ERR_BAD_OPTION = "ERR_BAD_OPTION";
+      AxiosError.ECONNABORTED = "ECONNABORTED";
+      AxiosError.ETIMEDOUT = "ETIMEDOUT";
+      AxiosError.ERR_NETWORK = "ERR_NETWORK";
+      AxiosError.ERR_FR_TOO_MANY_REDIRECTS = "ERR_FR_TOO_MANY_REDIRECTS";
+      AxiosError.ERR_DEPRECATED = "ERR_DEPRECATED";
+      AxiosError.ERR_BAD_RESPONSE = "ERR_BAD_RESPONSE";
+      AxiosError.ERR_BAD_REQUEST = "ERR_BAD_REQUEST";
+      AxiosError.ERR_CANCELED = "ERR_CANCELED";
+      AxiosError.ERR_NOT_SUPPORT = "ERR_NOT_SUPPORT";
+      AxiosError.ERR_INVALID_URL = "ERR_INVALID_URL";
       var httpAdapter = null;
       function isVisitable(thing) {
         return utils$1.isPlainObject(thing) || utils$1.isArray(thing);
@@ -593,13 +639,18 @@
           throw new TypeError("target must be an object");
         }
         formData = formData || new FormData();
-        options = utils$1.toFlatObject(options, {
-          metaTokens: true,
-          dots: false,
-          indexes: false
-        }, false, function defined(option, source) {
-          return !utils$1.isUndefined(source[option]);
-        });
+        options = utils$1.toFlatObject(
+          options,
+          {
+            metaTokens: true,
+            dots: false,
+            indexes: false
+          },
+          false,
+          function defined(option, source) {
+            return !utils$1.isUndefined(source[option]);
+          }
+        );
         const metaTokens = options.metaTokens;
         const visitor = options.visitor || defaultVisitor;
         const dots = options.dots;
@@ -627,6 +678,10 @@
         }
         function defaultVisitor(value, key, path) {
           let arr = value;
+          if (utils$1.isReactNative(formData) && utils$1.isReactNativeBlob(value)) {
+            formData.append(renderKey(path, key, dots), convertValue(value));
+            return false;
+          }
           if (value && !path && typeof value === "object") {
             if (utils$1.endsWith(key, "{}")) {
               key = metaTokens ? key : key.slice(0, -2);
@@ -662,13 +717,7 @@
           }
           stack.push(value);
           utils$1.forEach(value, function each(el, key) {
-            const result = !(utils$1.isUndefined(el) || el === null) && visitor.call(
-              formData,
-              el,
-              utils$1.isString(key) ? key.trim() : key,
-              path,
-              exposedHelpers
-            );
+            const result = !(utils$1.isUndefined(el) || el === null) && visitor.call(formData, el, utils$1.isString(key) ? key.trim() : key, path, exposedHelpers);
             if (result === true) {
               build(el, path ? path.concat(key) : [key]);
             }
@@ -719,17 +768,15 @@
           return url;
         }
         const _encode = options && options.encode || encode;
-        if (utils$1.isFunction(options)) {
-          options = {
-            serialize: options
-          };
-        }
-        const serializeFn = options && options.serialize;
+        const _options = utils$1.isFunction(options) ? {
+          serialize: options
+        } : options;
+        const serializeFn = _options && _options.serialize;
         let serializedParams;
         if (serializeFn) {
-          serializedParams = serializeFn(params, options);
+          serializedParams = serializeFn(params, _options);
         } else {
-          serializedParams = utils$1.isURLSearchParams(params) ? params.toString() : new AxiosURLSearchParams(params, options).toString(_encode);
+          serializedParams = utils$1.isURLSearchParams(params) ? params.toString() : new AxiosURLSearchParams(params, _options).toString(_encode);
         }
         if (serializedParams) {
           const hashmarkIndex = url.indexOf("#");
@@ -749,6 +796,7 @@
          *
          * @param {Function} fulfilled The function to handle `then` for a `Promise`
          * @param {Function} rejected The function to handle `reject` for a `Promise`
+         * @param {Object} options The options for the interceptor, synchronous and runWhen
          *
          * @return {Number} An ID used to remove interceptor later
          */
@@ -801,11 +849,11 @@
           });
         }
       };
-      var InterceptorManager$1 = InterceptorManager;
       var transitionalDefaults = {
         silentJSONParsing: true,
         forcedJSONParsing: true,
-        clarifyTimeoutError: false
+        clarifyTimeoutError: false,
+        legacyInterceptorReqResOrdering: true
       };
       var URLSearchParams$1 = typeof URLSearchParams !== "undefined" ? URLSearchParams : AxiosURLSearchParams;
       var FormData$1 = typeof FormData !== "undefined" ? FormData : null;
@@ -830,8 +878,8 @@
       var utils = /* @__PURE__ */ Object.freeze({
         __proto__: null,
         hasBrowserEnv,
-        hasStandardBrowserWebWorkerEnv,
         hasStandardBrowserEnv,
+        hasStandardBrowserWebWorkerEnv,
         navigator: _navigator,
         origin
       });
@@ -917,70 +965,74 @@
       var defaults = {
         transitional: transitionalDefaults,
         adapter: ["xhr", "http", "fetch"],
-        transformRequest: [function transformRequest(data, headers) {
-          const contentType = headers.getContentType() || "";
-          const hasJSONContentType = contentType.indexOf("application/json") > -1;
-          const isObjectPayload = utils$1.isObject(data);
-          if (isObjectPayload && utils$1.isHTMLForm(data)) {
-            data = new FormData(data);
-          }
-          const isFormData2 = utils$1.isFormData(data);
-          if (isFormData2) {
-            return hasJSONContentType ? JSON.stringify(formDataToJSON(data)) : data;
-          }
-          if (utils$1.isArrayBuffer(data) || utils$1.isBuffer(data) || utils$1.isStream(data) || utils$1.isFile(data) || utils$1.isBlob(data) || utils$1.isReadableStream(data)) {
-            return data;
-          }
-          if (utils$1.isArrayBufferView(data)) {
-            return data.buffer;
-          }
-          if (utils$1.isURLSearchParams(data)) {
-            headers.setContentType("application/x-www-form-urlencoded;charset=utf-8", false);
-            return data.toString();
-          }
-          let isFileList2;
-          if (isObjectPayload) {
-            if (contentType.indexOf("application/x-www-form-urlencoded") > -1) {
-              return toURLEncodedForm(data, this.formSerializer).toString();
+        transformRequest: [
+          function transformRequest(data, headers) {
+            const contentType = headers.getContentType() || "";
+            const hasJSONContentType = contentType.indexOf("application/json") > -1;
+            const isObjectPayload = utils$1.isObject(data);
+            if (isObjectPayload && utils$1.isHTMLForm(data)) {
+              data = new FormData(data);
             }
-            if ((isFileList2 = utils$1.isFileList(data)) || contentType.indexOf("multipart/form-data") > -1) {
-              const _FormData = this.env && this.env.FormData;
-              return toFormData(
-                isFileList2 ? { "files[]": data } : data,
-                _FormData && new _FormData(),
-                this.formSerializer
-              );
+            const isFormData2 = utils$1.isFormData(data);
+            if (isFormData2) {
+              return hasJSONContentType ? JSON.stringify(formDataToJSON(data)) : data;
             }
-          }
-          if (isObjectPayload || hasJSONContentType) {
-            headers.setContentType("application/json", false);
-            return stringifySafely(data);
-          }
-          return data;
-        }],
-        transformResponse: [function transformResponse(data) {
-          const transitional = this.transitional || defaults.transitional;
-          const forcedJSONParsing = transitional && transitional.forcedJSONParsing;
-          const JSONRequested = this.responseType === "json";
-          if (utils$1.isResponse(data) || utils$1.isReadableStream(data)) {
-            return data;
-          }
-          if (data && utils$1.isString(data) && (forcedJSONParsing && !this.responseType || JSONRequested)) {
-            const silentJSONParsing = transitional && transitional.silentJSONParsing;
-            const strictJSONParsing = !silentJSONParsing && JSONRequested;
-            try {
-              return JSON.parse(data, this.parseReviver);
-            } catch (e) {
-              if (strictJSONParsing) {
-                if (e.name === "SyntaxError") {
-                  throw AxiosError.from(e, AxiosError.ERR_BAD_RESPONSE, this, null, this.response);
-                }
-                throw e;
+            if (utils$1.isArrayBuffer(data) || utils$1.isBuffer(data) || utils$1.isStream(data) || utils$1.isFile(data) || utils$1.isBlob(data) || utils$1.isReadableStream(data)) {
+              return data;
+            }
+            if (utils$1.isArrayBufferView(data)) {
+              return data.buffer;
+            }
+            if (utils$1.isURLSearchParams(data)) {
+              headers.setContentType("application/x-www-form-urlencoded;charset=utf-8", false);
+              return data.toString();
+            }
+            let isFileList2;
+            if (isObjectPayload) {
+              if (contentType.indexOf("application/x-www-form-urlencoded") > -1) {
+                return toURLEncodedForm(data, this.formSerializer).toString();
+              }
+              if ((isFileList2 = utils$1.isFileList(data)) || contentType.indexOf("multipart/form-data") > -1) {
+                const _FormData = this.env && this.env.FormData;
+                return toFormData(
+                  isFileList2 ? { "files[]": data } : data,
+                  _FormData && new _FormData(),
+                  this.formSerializer
+                );
               }
             }
+            if (isObjectPayload || hasJSONContentType) {
+              headers.setContentType("application/json", false);
+              return stringifySafely(data);
+            }
+            return data;
           }
-          return data;
-        }],
+        ],
+        transformResponse: [
+          function transformResponse(data) {
+            const transitional = this.transitional || defaults.transitional;
+            const forcedJSONParsing = transitional && transitional.forcedJSONParsing;
+            const JSONRequested = this.responseType === "json";
+            if (utils$1.isResponse(data) || utils$1.isReadableStream(data)) {
+              return data;
+            }
+            if (data && utils$1.isString(data) && (forcedJSONParsing && !this.responseType || JSONRequested)) {
+              const silentJSONParsing = transitional && transitional.silentJSONParsing;
+              const strictJSONParsing = !silentJSONParsing && JSONRequested;
+              try {
+                return JSON.parse(data, this.parseReviver);
+              } catch (e) {
+                if (strictJSONParsing) {
+                  if (e.name === "SyntaxError") {
+                    throw AxiosError.from(e, AxiosError.ERR_BAD_RESPONSE, this, null, this.response);
+                  }
+                  throw e;
+                }
+              }
+            }
+            return data;
+          }
+        ],
         /**
          * A timeout in milliseconds to abort a request. If set to 0 (default) a
          * timeout is not created.
@@ -999,7 +1051,7 @@
         },
         headers: {
           common: {
-            "Accept": "application/json, text/plain, */*",
+            Accept: "application/json, text/plain, */*",
             "Content-Type": void 0
           }
         }
@@ -1007,7 +1059,6 @@
       utils$1.forEach(["delete", "get", "head", "post", "put", "patch"], (method) => {
         defaults.headers[method] = {};
       });
-      var defaults$1 = defaults;
       var ignoreDuplicateOf = utils$1.toObjectSet([
         "age",
         "authorization",
@@ -1051,15 +1102,39 @@
         });
         return parsed;
       };
-      var $internals = Symbol("internals");
+      var $internals = /* @__PURE__ */ Symbol("internals");
+      var isValidHeaderValue = (value) => !/[\r\n]/.test(value);
+      function assertValidHeaderValue(value, header) {
+        if (value === false || value == null) {
+          return;
+        }
+        if (utils$1.isArray(value)) {
+          value.forEach((v) => assertValidHeaderValue(v, header));
+          return;
+        }
+        if (!isValidHeaderValue(String(value))) {
+          throw new Error(`Invalid character in header content ["${header}"]`);
+        }
+      }
       function normalizeHeader(header) {
         return header && String(header).trim().toLowerCase();
+      }
+      function stripTrailingCRLF(str) {
+        let end = str.length;
+        while (end > 0) {
+          const charCode = str.charCodeAt(end - 1);
+          if (charCode !== 10 && charCode !== 13) {
+            break;
+          }
+          end -= 1;
+        }
+        return end === str.length ? str : str.slice(0, end);
       }
       function normalizeValue(value) {
         if (value === false || value == null) {
           return value;
         }
-        return utils$1.isArray(value) ? value.map(normalizeValue) : String(value);
+        return utils$1.isArray(value) ? value.map(normalizeValue) : stripTrailingCRLF(String(value));
       }
       function parseTokens(str) {
         const tokens = /* @__PURE__ */ Object.create(null);
@@ -1115,6 +1190,7 @@
             }
             const key = utils$1.findKey(self2, lHeader);
             if (!key || self2[key] === void 0 || _rewrite === true || _rewrite === void 0 && self2[key] !== false) {
+              assertValidHeaderValue(_value, _header);
               self2[key || _header] = normalizeValue(_value);
             }
           }
@@ -1266,7 +1342,14 @@
           return this;
         }
       };
-      AxiosHeaders.accessor(["Content-Type", "Content-Length", "Accept", "Accept-Encoding", "User-Agent", "Authorization"]);
+      AxiosHeaders.accessor([
+        "Content-Type",
+        "Content-Length",
+        "Accept",
+        "Accept-Encoding",
+        "User-Agent",
+        "Authorization"
+      ]);
       utils$1.reduceDescriptors(AxiosHeaders.prototype, ({ value }, key) => {
         let mapped = key[0].toUpperCase() + key.slice(1);
         return {
@@ -1277,11 +1360,10 @@
         };
       });
       utils$1.freezeMethods(AxiosHeaders);
-      var AxiosHeaders$1 = AxiosHeaders;
       function transformData(fns, response) {
-        const config = this || defaults$1;
+        const config = this || defaults;
         const context = response || config;
-        const headers = AxiosHeaders$1.from(context.headers);
+        const headers = AxiosHeaders.from(context.headers);
         let data = context.data;
         utils$1.forEach(fns, function transform(fn) {
           data = fn.call(config, data, headers.normalize(), response ? response.status : void 0);
@@ -1292,25 +1374,36 @@
       function isCancel(value) {
         return !!(value && value.__CANCEL__);
       }
-      function CanceledError(message, config, request) {
-        AxiosError.call(this, message == null ? "canceled" : message, AxiosError.ERR_CANCELED, config, request);
-        this.name = "CanceledError";
-      }
-      utils$1.inherits(CanceledError, AxiosError, {
-        __CANCEL__: true
-      });
+      var CanceledError = class extends AxiosError {
+        /**
+         * A `CanceledError` is an object that is thrown when an operation is canceled.
+         *
+         * @param {string=} message The message.
+         * @param {Object=} config The config.
+         * @param {Object=} request The request.
+         *
+         * @returns {CanceledError} The created error.
+         */
+        constructor(message, config, request) {
+          super(message == null ? "canceled" : message, AxiosError.ERR_CANCELED, config, request);
+          this.name = "CanceledError";
+          this.__CANCEL__ = true;
+        }
+      };
       function settle(resolve, reject, response) {
         const validateStatus = response.config.validateStatus;
         if (!response.status || !validateStatus || validateStatus(response.status)) {
           resolve(response);
         } else {
-          reject(new AxiosError(
-            "Request failed with status code " + response.status,
-            [AxiosError.ERR_BAD_REQUEST, AxiosError.ERR_BAD_RESPONSE][Math.floor(response.status / 100) - 4],
-            response.config,
-            response.request,
-            response
-          ));
+          reject(
+            new AxiosError(
+              "Request failed with status code " + response.status,
+              [AxiosError.ERR_BAD_REQUEST, AxiosError.ERR_BAD_RESPONSE][Math.floor(response.status / 100) - 4],
+              response.config,
+              response.request,
+              response
+            )
+          );
         }
       }
       function parseProtocol(url) {
@@ -1408,11 +1501,14 @@
       };
       var progressEventDecorator = (total, throttled) => {
         const lengthComputable = total != null;
-        return [(loaded) => throttled[0]({
-          lengthComputable,
-          total,
-          loaded
-        }), throttled[1]];
+        return [
+          (loaded) => throttled[0]({
+            lengthComputable,
+            total,
+            loaded
+          }),
+          throttled[1]
+        ];
       };
       var asyncDecorator = (fn) => (...args) => utils$1.asap(() => fn(...args));
       var isURLSameOrigin = platform.hasStandardBrowserEnv ? /* @__PURE__ */ ((origin2, isMSIE) => (url) => {
@@ -1467,6 +1563,9 @@
         }
       );
       function isAbsoluteURL(url) {
+        if (typeof url !== "string") {
+          return false;
+        }
         return /^([a-z][a-z\d+\-.]*:)?\/\//i.test(url);
       }
       function combineURLs(baseURL, relativeURL) {
@@ -1479,7 +1578,7 @@
         }
         return requestedURL;
       }
-      var headersToObject = (thing) => thing instanceof AxiosHeaders$1 ? { ...thing } : thing;
+      var headersToObject = (thing) => thing instanceof AxiosHeaders ? { ...thing } : thing;
       function mergeConfig(config1, config2) {
         config2 = config2 || {};
         const config = {};
@@ -1551,7 +1650,8 @@
           headers: (a, b, prop) => mergeDeepProperties(headersToObject(a), headersToObject(b), prop, true)
         };
         utils$1.forEach(Object.keys({ ...config1, ...config2 }), function computeConfigValue(prop) {
-          const merge2 = mergeMap[prop] || mergeDeepProperties;
+          if (prop === "__proto__" || prop === "constructor" || prop === "prototype") return;
+          const merge2 = utils$1.hasOwnProp(mergeMap, prop) ? mergeMap[prop] : mergeDeepProperties;
           const configValue = merge2(config1[prop], config2[prop], prop);
           utils$1.isUndefined(configValue) && merge2 !== mergeDirectKeys || (config[prop] = configValue);
         });
@@ -1560,12 +1660,18 @@
       var resolveConfig = (config) => {
         const newConfig = mergeConfig({}, config);
         let { data, withXSRFToken, xsrfHeaderName, xsrfCookieName, headers, auth } = newConfig;
-        newConfig.headers = headers = AxiosHeaders$1.from(headers);
-        newConfig.url = buildURL(buildFullPath(newConfig.baseURL, newConfig.url, newConfig.allowAbsoluteUrls), config.params, config.paramsSerializer);
+        newConfig.headers = headers = AxiosHeaders.from(headers);
+        newConfig.url = buildURL(
+          buildFullPath(newConfig.baseURL, newConfig.url, newConfig.allowAbsoluteUrls),
+          config.params,
+          config.paramsSerializer
+        );
         if (auth) {
           headers.set(
             "Authorization",
-            "Basic " + btoa((auth.username || "") + ":" + (auth.password ? unescape(encodeURIComponent(auth.password)) : ""))
+            "Basic " + btoa(
+              (auth.username || "") + ":" + (auth.password ? unescape(encodeURIComponent(auth.password)) : "")
+            )
           );
         }
         if (utils$1.isFormData(data)) {
@@ -1597,7 +1703,7 @@
         return new Promise(function dispatchXhrRequest(resolve, reject) {
           const _config = resolveConfig(config);
           let requestData = _config.data;
-          const requestHeaders = AxiosHeaders$1.from(_config.headers).normalize();
+          const requestHeaders = AxiosHeaders.from(_config.headers).normalize();
           let { responseType, onUploadProgress, onDownloadProgress } = _config;
           let onCanceled;
           let uploadThrottled, downloadThrottled;
@@ -1615,7 +1721,7 @@
             if (!request) {
               return;
             }
-            const responseHeaders = AxiosHeaders$1.from(
+            const responseHeaders = AxiosHeaders.from(
               "getAllResponseHeaders" in request && request.getAllResponseHeaders()
             );
             const responseData = !responseType || responseType === "text" || responseType === "json" ? request.responseText : request.response;
@@ -1627,13 +1733,17 @@
               config,
               request
             };
-            settle(function _resolve(value) {
-              resolve(value);
-              done();
-            }, function _reject(err) {
-              reject(err);
-              done();
-            }, response);
+            settle(
+              function _resolve(value) {
+                resolve(value);
+                done();
+              },
+              function _reject(err) {
+                reject(err);
+                done();
+              },
+              response
+            );
             request = null;
           }
           if ("onloadend" in request) {
@@ -1669,12 +1779,14 @@
             if (_config.timeoutErrorMessage) {
               timeoutErrorMessage = _config.timeoutErrorMessage;
             }
-            reject(new AxiosError(
-              timeoutErrorMessage,
-              transitional.clarifyTimeoutError ? AxiosError.ETIMEDOUT : AxiosError.ECONNABORTED,
-              config,
-              request
-            ));
+            reject(
+              new AxiosError(
+                timeoutErrorMessage,
+                transitional.clarifyTimeoutError ? AxiosError.ETIMEDOUT : AxiosError.ECONNABORTED,
+                config,
+                request
+              )
+            );
             request = null;
           };
           requestData === void 0 && requestHeaders.setContentType(null);
@@ -1714,7 +1826,13 @@
           }
           const protocol = parseProtocol(_config.url);
           if (protocol && platform.protocols.indexOf(protocol) === -1) {
-            reject(new AxiosError("Unsupported protocol " + protocol + ":", AxiosError.ERR_BAD_REQUEST, config));
+            reject(
+              new AxiosError(
+                "Unsupported protocol " + protocol + ":",
+                AxiosError.ERR_BAD_REQUEST,
+                config
+              )
+            );
             return;
           }
           request.send(requestData || null);
@@ -1730,12 +1848,14 @@
               aborted = true;
               unsubscribe();
               const err = reason instanceof Error ? reason : this.reason;
-              controller.abort(err instanceof AxiosError ? err : new CanceledError(err instanceof Error ? err.message : err));
+              controller.abort(
+                err instanceof AxiosError ? err : new CanceledError(err instanceof Error ? err.message : err)
+              );
             }
           };
           let timer = timeout && setTimeout(() => {
             timer = null;
-            onabort(new AxiosError(`timeout ${timeout} of ms exceeded`, AxiosError.ETIMEDOUT));
+            onabort(new AxiosError(`timeout of ${timeout}ms exceeded`, AxiosError.ETIMEDOUT));
           }, timeout);
           const unsubscribe = () => {
             if (signals) {
@@ -1753,10 +1873,9 @@
           return signal;
         }
       };
-      var composeSignals$1 = composeSignals;
       var streamChunk = function* (chunk, chunkSize) {
         let len = chunk.byteLength;
-        if (!chunkSize || len < chunkSize) {
+        if (len < chunkSize) {
           yield chunk;
           return;
         }
@@ -1801,33 +1920,36 @@
             onFinish && onFinish(e);
           }
         };
-        return new ReadableStream({
-          async pull(controller) {
-            try {
-              const { done: done2, value } = await iterator2.next();
-              if (done2) {
-                _onFinish();
-                controller.close();
-                return;
+        return new ReadableStream(
+          {
+            async pull(controller) {
+              try {
+                const { done: done2, value } = await iterator2.next();
+                if (done2) {
+                  _onFinish();
+                  controller.close();
+                  return;
+                }
+                let len = value.byteLength;
+                if (onProgress) {
+                  let loadedBytes = bytes += len;
+                  onProgress(loadedBytes);
+                }
+                controller.enqueue(new Uint8Array(value));
+              } catch (err) {
+                _onFinish(err);
+                throw err;
               }
-              let len = value.byteLength;
-              if (onProgress) {
-                let loadedBytes = bytes += len;
-                onProgress(loadedBytes);
-              }
-              controller.enqueue(new Uint8Array(value));
-            } catch (err) {
-              _onFinish(err);
-              throw err;
+            },
+            cancel(reason) {
+              _onFinish(reason);
+              return iterator2.return();
             }
           },
-          cancel(reason) {
-            _onFinish(reason);
-            return iterator2.return();
+          {
+            highWaterMark: 2
           }
-        }, {
-          highWaterMark: 2
-        });
+        );
       };
       var DEFAULT_CHUNK_SIZE = 64 * 1024;
       var { isFunction } = utils$1;
@@ -1835,10 +1957,7 @@
         Request,
         Response
       }))(utils$1.global);
-      var {
-        ReadableStream: ReadableStream$1,
-        TextEncoder
-      } = utils$1.global;
+      var { ReadableStream: ReadableStream$1, TextEncoder } = utils$1.global;
       var test = (fn, ...args) => {
         try {
           return !!fn(...args);
@@ -1847,9 +1966,13 @@
         }
       };
       var factory = (env) => {
-        env = utils$1.merge.call({
-          skipUndefined: true
-        }, globalFetchAPI, env);
+        env = utils$1.merge.call(
+          {
+            skipUndefined: true
+          },
+          globalFetchAPI,
+          env
+        );
         const { fetch: envFetch, Request, Response } = env;
         const isFetchSupported = envFetch ? isFunction(envFetch) : typeof fetch === "function";
         const isRequestSupported = isFunction(Request);
@@ -1861,14 +1984,16 @@
         const encodeText = isFetchSupported && (typeof TextEncoder === "function" ? /* @__PURE__ */ ((encoder) => (str) => encoder.encode(str))(new TextEncoder()) : async (str) => new Uint8Array(await new Request(str).arrayBuffer()));
         const supportsRequestStream = isRequestSupported && isReadableStreamSupported && test(() => {
           let duplexAccessed = false;
+          const body = new ReadableStream$1();
           const hasContentType = new Request(platform.origin, {
-            body: new ReadableStream$1(),
+            body,
             method: "POST",
             get duplex() {
               duplexAccessed = true;
               return "half";
             }
           }).headers.has("Content-Type");
+          body.cancel();
           return duplexAccessed && !hasContentType;
         });
         const supportsResponseStream = isResponseSupported && isReadableStreamSupported && test(() => utils$1.isReadableStream(new Response("").body));
@@ -1882,7 +2007,11 @@
               if (method) {
                 return method.call(res);
               }
-              throw new AxiosError(`Response type '${type2}' is not supported`, AxiosError.ERR_NOT_SUPPORT, config);
+              throw new AxiosError(
+                `Response type '${type2}' is not supported`,
+                AxiosError.ERR_NOT_SUPPORT,
+                config
+              );
             });
           });
         })();
@@ -1931,7 +2060,10 @@
           } = resolveConfig(config);
           let _fetch = envFetch || fetch;
           responseType = responseType ? (responseType + "").toLowerCase() : "text";
-          let composedSignal = composeSignals$1([signal, cancelToken && cancelToken.toAbortSignal()], timeout);
+          let composedSignal = composeSignals(
+            [signal, cancelToken && cancelToken.toAbortSignal()],
+            timeout
+          );
           let request = null;
           const unsubscribe = composedSignal && composedSignal.unsubscribe && (() => {
             composedSignal.unsubscribe();
@@ -1991,12 +2123,15 @@
               );
             }
             responseType = responseType || "text";
-            let responseData = await resolvers[utils$1.findKey(resolvers, responseType) || "text"](response, config);
+            let responseData = await resolvers[utils$1.findKey(resolvers, responseType) || "text"](
+              response,
+              config
+            );
             !isStreamResponse && unsubscribe && unsubscribe();
             return await new Promise((resolve, reject) => {
               settle(resolve, reject, {
                 data: responseData,
-                headers: AxiosHeaders$1.from(response.headers),
+                headers: AxiosHeaders.from(response.headers),
                 status: response.status,
                 statusText: response.statusText,
                 config,
@@ -2007,13 +2142,19 @@
             unsubscribe && unsubscribe();
             if (err && err.name === "TypeError" && /Load failed|fetch/i.test(err.message)) {
               throw Object.assign(
-                new AxiosError("Network Error", AxiosError.ERR_NETWORK, config, request),
+                new AxiosError(
+                  "Network Error",
+                  AxiosError.ERR_NETWORK,
+                  config,
+                  request,
+                  err && err.response
+                ),
                 {
                   cause: err.cause || err
                 }
               );
             }
-            throw AxiosError.from(err, err && err.code, config, request);
+            throw AxiosError.from(err, err && err.code, config, request, err && err.response);
           }
         };
       };
@@ -2021,11 +2162,7 @@
       var getFetch = (config) => {
         let env = config && config.env || {};
         const { fetch: fetch2, Request, Response } = env;
-        const seeds = [
-          Request,
-          Response,
-          fetch2
-        ];
+        const seeds = [Request, Response, fetch2];
         let len = seeds.length, i = len, seed, target, map = seedCache;
         while (i--) {
           seed = seeds[i];
@@ -2109,40 +2246,36 @@
       }
       function dispatchRequest(config) {
         throwIfCancellationRequested(config);
-        config.headers = AxiosHeaders$1.from(config.headers);
-        config.data = transformData.call(
-          config,
-          config.transformRequest
-        );
+        config.headers = AxiosHeaders.from(config.headers);
+        config.data = transformData.call(config, config.transformRequest);
         if (["post", "put", "patch"].indexOf(config.method) !== -1) {
           config.headers.setContentType("application/x-www-form-urlencoded", false);
         }
-        const adapter = adapters.getAdapter(config.adapter || defaults$1.adapter, config);
-        return adapter(config).then(function onAdapterResolution(response) {
-          throwIfCancellationRequested(config);
-          response.data = transformData.call(
-            config,
-            config.transformResponse,
-            response
-          );
-          response.headers = AxiosHeaders$1.from(response.headers);
-          return response;
-        }, function onAdapterRejection(reason) {
-          if (!isCancel(reason)) {
+        const adapter = adapters.getAdapter(config.adapter || defaults.adapter, config);
+        return adapter(config).then(
+          function onAdapterResolution(response) {
             throwIfCancellationRequested(config);
-            if (reason && reason.response) {
-              reason.response.data = transformData.call(
-                config,
-                config.transformResponse,
-                reason.response
-              );
-              reason.response.headers = AxiosHeaders$1.from(reason.response.headers);
+            response.data = transformData.call(config, config.transformResponse, response);
+            response.headers = AxiosHeaders.from(response.headers);
+            return response;
+          },
+          function onAdapterRejection(reason) {
+            if (!isCancel(reason)) {
+              throwIfCancellationRequested(config);
+              if (reason && reason.response) {
+                reason.response.data = transformData.call(
+                  config,
+                  config.transformResponse,
+                  reason.response
+                );
+                reason.response.headers = AxiosHeaders.from(reason.response.headers);
+              }
             }
+            return Promise.reject(reason);
           }
-          return Promise.reject(reason);
-        });
+        );
       }
-      var VERSION = "1.13.2";
+      var VERSION = "1.15.0";
       var validators$1 = {};
       ["object", "boolean", "number", "function", "string", "symbol"].forEach((type2, i) => {
         validators$1[type2] = function validator2(thing) {
@@ -2192,7 +2325,10 @@
             const value = options[opt];
             const result = value === void 0 || validator2(value, opt, options);
             if (result !== true) {
-              throw new AxiosError("option " + opt + " must be " + result, AxiosError.ERR_BAD_OPTION_VALUE);
+              throw new AxiosError(
+                "option " + opt + " must be " + result,
+                AxiosError.ERR_BAD_OPTION_VALUE
+              );
             }
             continue;
           }
@@ -2210,8 +2346,8 @@
         constructor(instanceConfig) {
           this.defaults = instanceConfig || {};
           this.interceptors = {
-            request: new InterceptorManager$1(),
-            response: new InterceptorManager$1()
+            request: new InterceptorManager(),
+            response: new InterceptorManager()
           };
         }
         /**
@@ -2229,12 +2365,23 @@
             if (err instanceof Error) {
               let dummy = {};
               Error.captureStackTrace ? Error.captureStackTrace(dummy) : dummy = new Error();
-              const stack = dummy.stack ? dummy.stack.replace(/^.+\n/, "") : "";
+              const stack = (() => {
+                if (!dummy.stack) {
+                  return "";
+                }
+                const firstNewlineIndex = dummy.stack.indexOf("\n");
+                return firstNewlineIndex === -1 ? "" : dummy.stack.slice(firstNewlineIndex + 1);
+              })();
               try {
                 if (!err.stack) {
                   err.stack = stack;
-                } else if (stack && !String(err.stack).endsWith(stack.replace(/^.+\n.+\n/, ""))) {
-                  err.stack += "\n" + stack;
+                } else if (stack) {
+                  const firstNewlineIndex = stack.indexOf("\n");
+                  const secondNewlineIndex = firstNewlineIndex === -1 ? -1 : stack.indexOf("\n", firstNewlineIndex + 1);
+                  const stackWithoutTwoTopLines = secondNewlineIndex === -1 ? "" : stack.slice(secondNewlineIndex + 1);
+                  if (!String(err.stack).endsWith(stackWithoutTwoTopLines)) {
+                    err.stack += "\n" + stack;
+                  }
                 }
               } catch (e) {
               }
@@ -2252,11 +2399,16 @@
           config = mergeConfig(this.defaults, config);
           const { transitional, paramsSerializer, headers } = config;
           if (transitional !== void 0) {
-            validator.assertOptions(transitional, {
-              silentJSONParsing: validators.transitional(validators.boolean),
-              forcedJSONParsing: validators.transitional(validators.boolean),
-              clarifyTimeoutError: validators.transitional(validators.boolean)
-            }, false);
+            validator.assertOptions(
+              transitional,
+              {
+                silentJSONParsing: validators.transitional(validators.boolean),
+                forcedJSONParsing: validators.transitional(validators.boolean),
+                clarifyTimeoutError: validators.transitional(validators.boolean),
+                legacyInterceptorReqResOrdering: validators.transitional(validators.boolean)
+              },
+              false
+            );
           }
           if (paramsSerializer != null) {
             if (utils$1.isFunction(paramsSerializer)) {
@@ -2264,10 +2416,14 @@
                 serialize: paramsSerializer
               };
             } else {
-              validator.assertOptions(paramsSerializer, {
-                encode: validators.function,
-                serialize: validators.function
-              }, true);
+              validator.assertOptions(
+                paramsSerializer,
+                {
+                  encode: validators.function,
+                  serialize: validators.function
+                },
+                true
+              );
             }
           }
           if (config.allowAbsoluteUrls !== void 0) ;
@@ -2276,22 +2432,20 @@
           } else {
             config.allowAbsoluteUrls = true;
           }
-          validator.assertOptions(config, {
-            baseUrl: validators.spelling("baseURL"),
-            withXsrfToken: validators.spelling("withXSRFToken")
-          }, true);
+          validator.assertOptions(
+            config,
+            {
+              baseUrl: validators.spelling("baseURL"),
+              withXsrfToken: validators.spelling("withXSRFToken")
+            },
+            true
+          );
           config.method = (config.method || this.defaults.method || "get").toLowerCase();
-          let contextHeaders = headers && utils$1.merge(
-            headers.common,
-            headers[config.method]
-          );
-          headers && utils$1.forEach(
-            ["delete", "get", "head", "post", "put", "patch", "common"],
-            (method) => {
-              delete headers[method];
-            }
-          );
-          config.headers = AxiosHeaders$1.concat(contextHeaders, headers);
+          let contextHeaders = headers && utils$1.merge(headers.common, headers[config.method]);
+          headers && utils$1.forEach(["delete", "get", "head", "post", "put", "patch", "common"], (method) => {
+            delete headers[method];
+          });
+          config.headers = AxiosHeaders.concat(contextHeaders, headers);
           const requestInterceptorChain = [];
           let synchronousRequestInterceptors = true;
           this.interceptors.request.forEach(function unshiftRequestInterceptors(interceptor) {
@@ -2299,7 +2453,13 @@
               return;
             }
             synchronousRequestInterceptors = synchronousRequestInterceptors && interceptor.synchronous;
-            requestInterceptorChain.unshift(interceptor.fulfilled, interceptor.rejected);
+            const transitional2 = config.transitional || transitionalDefaults;
+            const legacyInterceptorReqResOrdering = transitional2 && transitional2.legacyInterceptorReqResOrdering;
+            if (legacyInterceptorReqResOrdering) {
+              requestInterceptorChain.unshift(interceptor.fulfilled, interceptor.rejected);
+            } else {
+              requestInterceptorChain.push(interceptor.fulfilled, interceptor.rejected);
+            }
           });
           const responseInterceptorChain = [];
           this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
@@ -2351,30 +2511,33 @@
       };
       utils$1.forEach(["delete", "get", "head", "options"], function forEachMethodNoData(method) {
         Axios.prototype[method] = function(url, config) {
-          return this.request(mergeConfig(config || {}, {
-            method,
-            url,
-            data: (config || {}).data
-          }));
+          return this.request(
+            mergeConfig(config || {}, {
+              method,
+              url,
+              data: (config || {}).data
+            })
+          );
         };
       });
       utils$1.forEach(["post", "put", "patch"], function forEachMethodWithData(method) {
         function generateHTTPMethod(isForm) {
           return function httpMethod(url, data, config) {
-            return this.request(mergeConfig(config || {}, {
-              method,
-              headers: isForm ? {
-                "Content-Type": "multipart/form-data"
-              } : {},
-              url,
-              data
-            }));
+            return this.request(
+              mergeConfig(config || {}, {
+                method,
+                headers: isForm ? {
+                  "Content-Type": "multipart/form-data"
+                } : {},
+                url,
+                data
+              })
+            );
           };
         }
         Axios.prototype[method] = generateHTTPMethod();
         Axios.prototype[method + "Form"] = generateHTTPMethod(true);
       });
-      var Axios$1 = Axios;
       var CancelToken = class _CancelToken {
         constructor(executor) {
           if (typeof executor !== "function") {
@@ -2470,7 +2633,6 @@
           };
         }
       };
-      var CancelToken$1 = CancelToken;
       function spread(callback) {
         return function wrap2(arr) {
           return callback.apply(null, arr);
@@ -2553,21 +2715,20 @@
       Object.entries(HttpStatusCode).forEach(([key, value]) => {
         HttpStatusCode[value] = key;
       });
-      var HttpStatusCode$1 = HttpStatusCode;
       function createInstance(defaultConfig) {
-        const context = new Axios$1(defaultConfig);
-        const instance = bind(Axios$1.prototype.request, context);
-        utils$1.extend(instance, Axios$1.prototype, context, { allOwnKeys: true });
+        const context = new Axios(defaultConfig);
+        const instance = bind(Axios.prototype.request, context);
+        utils$1.extend(instance, Axios.prototype, context, { allOwnKeys: true });
         utils$1.extend(instance, context, null, { allOwnKeys: true });
         instance.create = function create(instanceConfig) {
           return createInstance(mergeConfig(defaultConfig, instanceConfig));
         };
         return instance;
       }
-      var axios = createInstance(defaults$1);
-      axios.Axios = Axios$1;
+      var axios = createInstance(defaults);
+      axios.Axios = Axios;
       axios.CanceledError = CanceledError;
-      axios.CancelToken = CancelToken$1;
+      axios.CancelToken = CancelToken;
       axios.isCancel = isCancel;
       axios.VERSION = VERSION;
       axios.toFormData = toFormData;
@@ -2579,10 +2740,10 @@
       axios.spread = spread;
       axios.isAxiosError = isAxiosError;
       axios.mergeConfig = mergeConfig;
-      axios.AxiosHeaders = AxiosHeaders$1;
+      axios.AxiosHeaders = AxiosHeaders;
       axios.formToJSON = (thing) => formDataToJSON(utils$1.isHTMLForm(thing) ? new FormData(thing) : thing);
       axios.getAdapter = adapters.getAdapter;
-      axios.HttpStatusCode = HttpStatusCode$1;
+      axios.HttpStatusCode = HttpStatusCode;
       axios.default = axios;
       module.exports = axios;
     }
@@ -2625,38 +2786,172 @@
     }
   });
 
+  // src/renderer/js/connection/request_policy.js
+  var require_request_policy = __commonJS({
+    "src/renderer/js/connection/request_policy.js"(exports, module) {
+      var SAFE_METHODS = /* @__PURE__ */ new Set(["get", "head"]);
+      function isRetryableTransportOrServer(error) {
+        if (!error || !error.config) return false;
+        if (error.code === "ECONNABORTED") return true;
+        if (error.code === "ECONNRESET" || error.code === "ETIMEDOUT") return true;
+        if (!error.response) return true;
+        const s = error.response.status;
+        return s === 502 || s === 503 || s === 504;
+      }
+      function attachIdempotentRetryInterceptors(axiosInstance, options = {}) {
+        const maxRetries = options.maxRetries ?? 3;
+        const baseDelayMs = options.baseDelayMs ?? 400;
+        axiosInstance.interceptors.response.use(
+          (response) => response,
+          async (error) => {
+            const config = error.config;
+            if (!config) return Promise.reject(error);
+            const method = String(config.method || "get").toLowerCase();
+            if (!SAFE_METHODS.has(method)) return Promise.reject(error);
+            const count = config.__retryCount || 0;
+            if (count >= maxRetries) return Promise.reject(error);
+            if (!isRetryableTransportOrServer(error)) return Promise.reject(error);
+            config.__retryCount = count + 1;
+            const backoff = baseDelayMs * 2 ** (config.__retryCount - 1);
+            const jitter = Math.random() * 250;
+            await new Promise((r) => setTimeout(r, backoff + jitter));
+            return axiosInstance(config);
+          }
+        );
+      }
+      module.exports = { attachIdempotentRetryInterceptors, isRetryableTransportOrServer, SAFE_METHODS };
+    }
+  });
+
   // src/renderer/js/api/client.js
   var require_client = __commonJS({
     "src/renderer/js/api/client.js"(exports, module) {
       var axios = require_axios();
-      var cfg = typeof window !== "undefined" && window.config ? window.config : function() {
+      var cfg = typeof window !== "undefined" && window.config ? window.config : (function() {
         try {
           return require_config();
         } catch (_) {
           return {};
         }
-      }();
+      })();
       var storeGet2 = cfg.storeGet || (async (k) => null);
       var storeSet2 = cfg.storeSet || (async (k, v) => {
       });
-      var ApiClient2 = class {
-        constructor(baseUrl) {
-          this.baseUrl = baseUrl;
+      function isTlsRelatedError(error) {
+        const code = error && error.code;
+        const msg = error && error.message || "";
+        const tlsCodes = /* @__PURE__ */ new Set([
+          "DEPTH_ZERO_SELF_SIGNED_CERT",
+          "CERT_HAS_EXPIRED",
+          "CERT_NOT_YET_VALID",
+          "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+          "ERR_TLS_CERT_ALTNAME_INVALID",
+          "SELF_SIGNED_CERT_IN_CHAIN",
+          "UNABLE_TO_GET_ISSUER_CERT_LOCALLY"
+        ]);
+        if (code && tlsCodes.has(code)) return true;
+        if (/certificate|ssl|tls|UNABLE_TO_VERIFY/i.test(msg)) return true;
+        return false;
+      }
+      function classifyAxiosError2(error) {
+        if (isTlsRelatedError(error)) {
+          return {
+            code: "TLS",
+            message: "SSL/TLS certificate could not be verified. If the server uses a self-signed certificate, install a trusted CA or use http:// only on trusted networks."
+          };
+        }
+        if (error.response) {
+          const status = error.response.status;
+          const data = error.response.data;
+          if (status === 401) {
+            return {
+              code: "UNAUTHORIZED",
+              message: "Authentication failed. Check your API token."
+            };
+          }
+          if (status === 403) {
+            return {
+              code: "FORBIDDEN",
+              message: "Access denied. Your token may not have the required permissions (e.g. read:users)."
+            };
+          }
+          if (status === 404) {
+            return {
+              code: "NOT_FOUND",
+              message: data?.error || "Resource not found. Is the base URL correct (no extra path)?"
+            };
+          }
+          if (status >= 500) {
+            return { code: "SERVER_ERROR", message: "Server error. Please try again later." };
+          }
+          if (data && typeof data === "object" && data.error) {
+            return { code: "HTTP_" + status, message: String(data.error) };
+          }
+          return { code: "HTTP_" + status, message: `Server returned HTTP ${status}.` };
+        }
+        if (error.code === "ECONNABORTED") {
+          return {
+            code: "TIMEOUT",
+            message: "Request timed out. Check the server URL, firewall, and network."
+          };
+        }
+        if (error.code === "ENOTFOUND") {
+          return {
+            code: "DNS",
+            message: "Host not found (DNS). Check the hostname in your server URL."
+          };
+        }
+        if (error.code === "ECONNREFUSED") {
+          return {
+            code: "REFUSED",
+            message: "Connection refused. Check the host, port, and that the TimeTracker server is running."
+          };
+        }
+        if (error.code === "ENETUNREACH" || error.code === "EHOSTUNREACH") {
+          return {
+            code: "UNREACHABLE",
+            message: "Network unreachable. Check your connection and server address."
+          };
+        }
+        const msg = error.message || "Unknown error";
+        if (!error.response) {
+          return {
+            code: "UNKNOWN",
+            message: "Server not reachable. Check the URL, VPN, firewall, and that the TimeTracker server is running."
+          };
+        }
+        return { code: "UNKNOWN", message: msg };
+      }
+      function isTimeTrackerInfoPayload(data) {
+        return data !== null && typeof data === "object" && !Array.isArray(data) && data.api_version === "v1" && typeof data.endpoints === "object";
+      }
+      var { attachIdempotentRetryInterceptors } = require_request_policy();
+      var ApiClient2 = class _ApiClient {
+        /**
+         * @param {string} baseUrl
+         * @param {{ enableIdempotentRetry?: boolean }} [options]
+         */
+        constructor(baseUrl, options = {}) {
+          const normalized = _ApiClient.normalizeBaseUrl(baseUrl);
+          this.baseUrl = normalized;
           this.client = axios.create({
-            baseURL: baseUrl,
+            baseURL: normalized,
             timeout: 1e4,
             headers: {
               "Content-Type": "application/json",
-              "Accept": "application/json"
+              Accept: "application/json"
             }
           });
           this.setupInterceptors();
+          if (options.enableIdempotentRetry !== false) {
+            attachIdempotentRetryInterceptors(this.client);
+          }
         }
         setupInterceptors() {
           this.client.interceptors.request.use(async (config) => {
             const token = await storeGet2("api_token");
             if (token) {
-              config.headers["Authorization"] = `Bearer ${token}`;
+              config.headers.Authorization = `Bearer ${token}`;
             }
             return config;
           });
@@ -2681,27 +2976,136 @@
                 error.message = "Request timeout. Please check your internet connection.";
               } else if (error.code === "ENOTFOUND" || error.code === "ECONNREFUSED") {
                 error.message = "Unable to connect to server. Please check the server URL and your internet connection.";
+              } else if (isTlsRelatedError(error)) {
+                error.message = "SSL/TLS error: certificate could not be verified. Use a trusted certificate or verify the server URL.";
               }
               return Promise.reject(error);
             }
           );
         }
+        static normalizeBaseUrl(url) {
+          let u = String(url || "").trim();
+          if (!u) return u;
+          u = u.replace(/\/+$/, "");
+          return u;
+        }
+        /**
+         * Unauthenticated check: reachable TimeTracker JSON at GET /api/v1/info.
+         * @param {string} baseUrl
+         * @returns {Promise<ValidationResult>}
+         */
+        static async testPublicServerInfo(baseUrl) {
+          const normalized = _ApiClient.normalizeBaseUrl(baseUrl);
+          if (!normalized) {
+            return { ok: false, code: "NO_URL", message: "Please enter a server URL." };
+          }
+          let parsed;
+          try {
+            parsed = new URL(normalized);
+          } catch (_) {
+            return { ok: false, code: "BAD_URL", message: "Server URL is not valid." };
+          }
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return { ok: false, code: "BAD_URL", message: "Server URL must start with http:// or https://." };
+          }
+          const plain = axios.create({
+            baseURL: normalized,
+            timeout: 1e4,
+            headers: { Accept: "application/json" }
+          });
+          try {
+            const response = await plain.get("/api/v1/info");
+            if (response.status !== 200) {
+              return {
+                ok: false,
+                code: "HTTP_" + response.status,
+                message: `Server returned HTTP ${response.status}. Check the URL and port.`
+              };
+            }
+            const data = response.data;
+            if (!isTimeTrackerInfoPayload(data)) {
+              return {
+                ok: false,
+                code: "NOT_TIMETRACKER",
+                message: "This address did not return a TimeTracker API response. Check the URL (base URL only, no path) and port."
+              };
+            }
+            if (data.setup_required === true) {
+              return {
+                ok: false,
+                code: "SETUP_REQUIRED",
+                message: "TimeTracker is not fully set up yet. Open this server URL in a browser, complete initial setup, then try again."
+              };
+            }
+            const appVersion = typeof data.app_version === "string" ? data.app_version : null;
+            return { ok: true, app_version: appVersion };
+          } catch (error) {
+            const { code, message } = classifyAxiosError2(error);
+            return { ok: false, code, message };
+          }
+        }
         async setAuthToken(token) {
           await storeSet2("api_token", token);
         }
-        async validateToken() {
+        /**
+         * Authenticated session check: prefers GET /api/v1/users/me (read:users).
+         * Falls back to GET /api/v1/timer/status (read:time_entries) for narrower tokens.
+         * @returns {Promise<ValidationResult>}
+         */
+        async validateSession() {
           try {
-            const response = await this.client.get("/api/v1/info");
-            return response.status === 200;
+            const response = await this.client.get("/api/v1/users/me");
+            if (response.status !== 200) {
+              return {
+                ok: false,
+                code: "HTTP_" + response.status,
+                message: `Unexpected HTTP ${response.status} from the server.`
+              };
+            }
+            const data = response.data;
+            if (!data || typeof data !== "object" || !data.user) {
+              return {
+                ok: false,
+                code: "INVALID_RESPONSE",
+                message: "Server response was not a valid TimeTracker user payload."
+              };
+            }
+            return { ok: true };
           } catch (error) {
-            return false;
+            const status = error.response && error.response.status;
+            if (status === 401) {
+              const { code: code2, message: message2 } = classifyAxiosError2(error);
+              return { ok: false, code: code2, message: message2 };
+            }
+            if (status === 403) {
+              try {
+                const res2 = await this.client.get("/api/v1/timer/status");
+                if (res2.status === 200 && res2.data && typeof res2.data.active === "boolean") {
+                  return { ok: true };
+                }
+              } catch (e2) {
+                const { code: code2, message: message2 } = classifyAxiosError2(e2);
+                return { ok: false, code: code2, message: message2 };
+              }
+              return {
+                ok: false,
+                code: "FORBIDDEN",
+                message: "This API token cannot access your profile or timer. Use a token with read:users or read:time_entries."
+              };
+            }
+            const { code, message } = classifyAxiosError2(error);
+            return { ok: false, code, message };
           }
+        }
+        /** @deprecated Prefer validateSession() for correct auth + error detail */
+        async validateToken() {
+          const r = await this.validateSession();
+          return r.ok;
         }
         async getUsersMe() {
           const response = await this.client.get("/api/v1/users/me");
           return response.data;
         }
-        // Timer endpoints
         async getTimerStatus() {
           return await this.client.get("/api/v1/timer/status");
         }
@@ -2715,7 +3119,6 @@
         async stopTimer() {
           return await this.client.post("/api/v1/timer/stop");
         }
-        // Time entries endpoints
         async getTimeEntries({ projectId, startDate, endDate, billable, page, perPage }) {
           const params = {};
           if (projectId) params.project_id = projectId;
@@ -2735,7 +3138,6 @@
         async deleteTimeEntry(id) {
           return await this.client.delete(`/api/v1/time-entries/${id}`);
         }
-        // Projects endpoints
         async getProjects({ status, clientId, page, perPage }) {
           const params = {};
           if (status) params.status = status;
@@ -2754,7 +3156,6 @@
           if (perPage) params.per_page = perPage;
           return await this.client.get("/api/v1/clients", { params });
         }
-        // Tasks endpoints
         async getTasks({ projectId, status, page, perPage }) {
           const params = {};
           if (projectId) params.project_id = projectId;
@@ -2766,11 +3167,9 @@
         async getTask(id) {
           return await this.client.get(`/api/v1/tasks/${id}`);
         }
-        // Get time entry by ID
         async getTimeEntry(id) {
           return await this.client.get(`/api/v1/time-entries/${id}`);
         }
-        // Invoices endpoints
         async getInvoices({ status, clientId, projectId, page, perPage }) {
           const params = {};
           if (status) params.status = status;
@@ -2789,7 +3188,6 @@
         async updateInvoice(id, data) {
           return await this.client.put(`/api/v1/invoices/${id}`, data);
         }
-        // Expenses endpoints
         async getExpenses({ projectId, category, startDate, endDate, page, perPage }) {
           const params = {};
           if (projectId) params.project_id = projectId;
@@ -2873,7 +3271,444 @@
       };
       if (typeof module !== "undefined" && module.exports) {
         module.exports = ApiClient2;
+        module.exports.classifyAxiosError = classifyAxiosError2;
+        module.exports.isTimeTrackerInfoPayload = isTimeTrackerInfoPayload;
       }
+    }
+  });
+
+  // src/renderer/js/connection/connection_state.js
+  var require_connection_state = __commonJS({
+    "src/renderer/js/connection/connection_state.js"(exports, module) {
+      var CONNECTION_STATE2 = {
+        NOT_CONFIGURED: "NOT_CONFIGURED",
+        CONNECTING: "CONNECTING",
+        CONNECTED: "CONNECTED",
+        ERROR: "ERROR",
+        OFFLINE: "OFFLINE"
+      };
+      module.exports = { CONNECTION_STATE: CONNECTION_STATE2 };
+    }
+  });
+
+  // src/renderer/js/connection/connection_manager.js
+  var require_connection_manager = __commonJS({
+    "src/renderer/js/connection/connection_manager.js"(exports, module) {
+      var ApiClient2 = require_client();
+      var { CONNECTION_STATE: CONNECTION_STATE2 } = require_connection_state();
+      var STORE_SERVER = "server_url";
+      var STORE_TOKEN = "api_token";
+      var STORE_TOKEN_SERVER = "api_token_server_url";
+      function createConnectionManager2(deps) {
+        const storeGet2 = deps.storeGet;
+        const storeSet2 = deps.storeSet;
+        const storeDelete2 = deps.storeDelete;
+        const storeClear2 = deps.storeClear;
+        const onCacheClear = deps.onCacheClear || (() => {
+        });
+        let apiClient = null;
+        const listeners = /* @__PURE__ */ new Set();
+        let offlineListenerBound = false;
+        let snapshot = {
+          state: CONNECTION_STATE2.NOT_CONFIGURED,
+          serverUrl: null,
+          lastError: null,
+          lastConnectedAt: null,
+          serverVersion: null
+        };
+        function getSnapshot() {
+          return { ...snapshot };
+        }
+        function getClient() {
+          return apiClient;
+        }
+        function notify() {
+          const s = getSnapshot();
+          for (const fn of listeners) {
+            try {
+              fn(s);
+            } catch (e) {
+              console.error("ConnectionManager listener error:", e);
+            }
+          }
+        }
+        function setSnap(partial) {
+          snapshot = { ...snapshot, ...partial };
+          notify();
+        }
+        function tearDownClient() {
+          apiClient = null;
+        }
+        function attachWindowListeners() {
+          if (typeof window === "undefined" || offlineListenerBound) return;
+          offlineListenerBound = true;
+          window.addEventListener("online", () => {
+            if (snapshot.state === CONNECTION_STATE2.OFFLINE && apiClient) {
+              setSnap({ state: CONNECTION_STATE2.CONNECTING, lastError: null });
+            }
+          });
+          window.addEventListener("offline", () => {
+            setSnap({
+              state: CONNECTION_STATE2.OFFLINE,
+              lastError: "Network offline."
+            });
+          });
+        }
+        async function testServer(baseUrl) {
+          const normalized = ApiClient2.normalizeBaseUrl(String(baseUrl || "").trim());
+          if (!normalized) {
+            return { ok: false, code: "NO_URL", message: "Please enter a server URL." };
+          }
+          return ApiClient2.testPublicServerInfo(normalized);
+        }
+        async function bootstrapFromStore() {
+          attachWindowListeners();
+          const serverRaw = await storeGet2(STORE_SERVER);
+          const token = await storeGet2(STORE_TOKEN);
+          const serverUrlEarly = serverRaw ? ApiClient2.normalizeBaseUrl(String(serverRaw)) : null;
+          if (typeof navigator !== "undefined" && navigator.onLine === false) {
+            tearDownClient();
+            setSnap({
+              state: CONNECTION_STATE2.OFFLINE,
+              serverUrl: serverUrlEarly,
+              lastError: "Network offline."
+            });
+            return {
+              ok: false,
+              reason: "offline",
+              hadCredentials: Boolean(serverUrlEarly && token)
+            };
+          }
+          const tokenServer = await storeGet2(STORE_TOKEN_SERVER);
+          let serverUrl = serverRaw ? ApiClient2.normalizeBaseUrl(String(serverRaw)) : null;
+          if (serverUrl && serverRaw && serverUrl !== String(serverRaw).trim()) {
+            await storeSet2(STORE_SERVER, serverUrl);
+          }
+          if (!serverUrl) {
+            tearDownClient();
+            setSnap({
+              state: CONNECTION_STATE2.NOT_CONFIGURED,
+              serverUrl: null,
+              lastError: null,
+              serverVersion: null
+            });
+            return { ok: false, reason: "no_server" };
+          }
+          if (!token) {
+            tearDownClient();
+            setSnap({
+              state: CONNECTION_STATE2.NOT_CONFIGURED,
+              serverUrl,
+              lastError: null,
+              serverVersion: null
+            });
+            return { ok: false, reason: "no_token" };
+          }
+          const tokenNorm = tokenServer ? ApiClient2.normalizeBaseUrl(String(tokenServer)) : null;
+          if (tokenNorm && tokenNorm !== serverUrl) {
+            await storeDelete2(STORE_TOKEN);
+            await storeDelete2(STORE_TOKEN_SERVER);
+            tearDownClient();
+            onCacheClear();
+            setSnap({
+              state: CONNECTION_STATE2.NOT_CONFIGURED,
+              serverUrl,
+              lastError: "This API token was saved for a different server. Please sign in again.",
+              serverVersion: null
+            });
+            return { ok: false, reason: "token_server_mismatch" };
+          }
+          apiClient = new ApiClient2(serverUrl);
+          await apiClient.setAuthToken(String(token));
+          setSnap({
+            state: CONNECTION_STATE2.CONNECTING,
+            serverUrl,
+            lastError: null
+          });
+          const session = await apiClient.validateSession();
+          if (session.ok) {
+            if (!tokenNorm) {
+              await storeSet2(STORE_TOKEN_SERVER, serverUrl);
+            }
+            const now = Date.now();
+            setSnap({
+              state: CONNECTION_STATE2.CONNECTED,
+              serverUrl,
+              lastError: null,
+              lastConnectedAt: now,
+              serverVersion: null
+            });
+            return { ok: true, session };
+          }
+          tearDownClient();
+          await storeDelete2(STORE_TOKEN);
+          await storeDelete2(STORE_TOKEN_SERVER);
+          onCacheClear();
+          setSnap({
+            state: CONNECTION_STATE2.ERROR,
+            serverUrl,
+            lastError: session.message || "Session invalid",
+            serverVersion: null
+          });
+          return { ok: false, reason: "session", session };
+        }
+        async function login(serverUrl, token) {
+          const normalized = ApiClient2.normalizeBaseUrl(String(serverUrl || "").trim());
+          const pub = await ApiClient2.testPublicServerInfo(normalized);
+          if (!pub.ok) {
+            setSnap({
+              state: CONNECTION_STATE2.ERROR,
+              serverUrl: normalized,
+              lastError: pub.message
+            });
+            return { ok: false, step: "server", ...pub };
+          }
+          const probe = new ApiClient2(normalized);
+          await probe.setAuthToken(token);
+          const session = await probe.validateSession();
+          if (!session.ok) {
+            setSnap({
+              state: CONNECTION_STATE2.ERROR,
+              serverUrl: normalized,
+              lastError: session.message || "Login failed",
+              serverVersion: null
+            });
+            return { ok: false, step: "auth", session };
+          }
+          await storeSet2(STORE_SERVER, normalized);
+          await storeSet2(STORE_TOKEN, token);
+          await storeSet2(STORE_TOKEN_SERVER, normalized);
+          apiClient = probe;
+          const now = Date.now();
+          setSnap({
+            state: CONNECTION_STATE2.CONNECTED,
+            serverUrl: normalized,
+            lastError: null,
+            lastConnectedAt: now,
+            serverVersion: pub.app_version || null
+          });
+          return { ok: true, session, app_version: pub.app_version || null };
+        }
+        async function logoutKeepServer() {
+          await storeDelete2(STORE_TOKEN);
+          await storeDelete2(STORE_TOKEN_SERVER);
+          tearDownClient();
+          onCacheClear();
+          const serverRaw = await storeGet2(STORE_SERVER);
+          const serverUrl = serverRaw ? ApiClient2.normalizeBaseUrl(String(serverRaw)) : null;
+          setSnap({
+            state: CONNECTION_STATE2.NOT_CONFIGURED,
+            serverUrl,
+            lastError: null,
+            serverVersion: null
+          });
+        }
+        async function fullStoreReset() {
+          await storeClear2();
+          tearDownClient();
+          onCacheClear();
+          snapshot = {
+            state: CONNECTION_STATE2.NOT_CONFIGURED,
+            serverUrl: null,
+            lastError: null,
+            lastConnectedAt: null,
+            serverVersion: null
+          };
+          notify();
+        }
+        async function validateSessionRefresh() {
+          if (typeof navigator !== "undefined" && navigator.onLine === false) {
+            setSnap({
+              state: CONNECTION_STATE2.OFFLINE,
+              lastError: "Network offline."
+            });
+            return { ok: false, code: "OFFLINE", message: "Network offline." };
+          }
+          if (!apiClient) {
+            setSnap({
+              state: CONNECTION_STATE2.NOT_CONFIGURED,
+              lastError: null
+            });
+            return { ok: false, code: "NO_CLIENT", message: "Not connected." };
+          }
+          const session = await apiClient.validateSession();
+          if (session.ok) {
+            const now = Date.now();
+            setSnap({
+              state: CONNECTION_STATE2.CONNECTED,
+              lastError: null,
+              lastConnectedAt: now
+            });
+            return session;
+          }
+          if (session.code === "UNAUTHORIZED") {
+            setSnap({
+              state: CONNECTION_STATE2.ERROR,
+              lastError: session.message || "Unauthorized"
+            });
+            return session;
+          }
+          const transportish = session.code === "TIMEOUT" || session.code === "REFUSED" || session.code === "UNREACHABLE" || session.code === "DNS" || session.code === "TLS" || session.code === "UNKNOWN";
+          if (transportish) {
+            setSnap({
+              state: CONNECTION_STATE2.ERROR,
+              lastError: session.message || "Server not reachable"
+            });
+            return session;
+          }
+          setSnap({
+            state: CONNECTION_STATE2.ERROR,
+            lastError: session.message || "Connection error"
+          });
+          return session;
+        }
+        async function saveServerAndToken(serverUrl, token, syncExtras) {
+          const normalized = ApiClient2.normalizeBaseUrl(String(serverUrl || "").trim());
+          const pub = await ApiClient2.testPublicServerInfo(normalized);
+          if (!pub.ok) {
+            setSnap({
+              state: CONNECTION_STATE2.ERROR,
+              lastError: pub.message
+            });
+            return { ok: false, step: "server", ...pub };
+          }
+          const probe = new ApiClient2(normalized);
+          await probe.setAuthToken(token);
+          const session = await probe.validateSession();
+          if (!session.ok) {
+            setSnap({
+              state: CONNECTION_STATE2.ERROR,
+              lastError: session.message || "Session check failed. Settings were not saved."
+            });
+            return { ok: false, step: "auth", session };
+          }
+          if (syncExtras) {
+            if (syncExtras.auto_sync !== void 0) await storeSet2("auto_sync", syncExtras.auto_sync);
+            if (syncExtras.sync_interval !== void 0) await storeSet2("sync_interval", syncExtras.sync_interval);
+          }
+          await storeSet2(STORE_SERVER, normalized);
+          await storeSet2(STORE_TOKEN, token);
+          await storeSet2(STORE_TOKEN_SERVER, normalized);
+          apiClient = probe;
+          const now = Date.now();
+          setSnap({
+            state: CONNECTION_STATE2.CONNECTED,
+            serverUrl: normalized,
+            lastError: null,
+            lastConnectedAt: now,
+            serverVersion: pub.app_version || null
+          });
+          return { ok: true, session };
+        }
+        async function testServerAndSession(serverUrl, token) {
+          const normalized = ApiClient2.normalizeBaseUrl(String(serverUrl || "").trim());
+          const pub = await ApiClient2.testPublicServerInfo(normalized);
+          if (!pub.ok) return pub;
+          const probe = new ApiClient2(normalized);
+          await probe.setAuthToken(token);
+          const session = await probe.validateSession();
+          if (!session.ok) return session;
+          return { ok: true, app_version: pub.app_version || null };
+        }
+        function subscribe(fn) {
+          listeners.add(fn);
+          try {
+            fn(getSnapshot());
+          } catch (e) {
+            console.error("ConnectionManager subscribe initial error:", e);
+          }
+          return () => listeners.delete(fn);
+        }
+        function signalError(message) {
+          if (!apiClient) return;
+          setSnap({
+            state: CONNECTION_STATE2.ERROR,
+            lastError: message || "Connection error"
+          });
+        }
+        return {
+          CONNECTION_STATE: CONNECTION_STATE2,
+          getSnapshot,
+          getClient,
+          subscribe,
+          testServer,
+          testServerAndSession,
+          bootstrapFromStore,
+          login,
+          logoutKeepServer,
+          fullStoreReset,
+          validateSessionRefresh,
+          saveServerAndToken,
+          tearDownClient,
+          signalError,
+          /** Expose for tests */
+          _setSnapForTest: setSnap
+        };
+      }
+      module.exports = { createConnectionManager: createConnectionManager2, STORE_SERVER, STORE_TOKEN, STORE_TOKEN_SERVER };
+    }
+  });
+
+  // src/renderer/js/connection/timer_operations.js
+  var require_timer_operations = __commonJS({
+    "src/renderer/js/connection/timer_operations.js"(exports, module) {
+      var _startFlight = null;
+      var _stopFlight = null;
+      async function startTimerWithReconcile2(apiClient, payload) {
+        if (_startFlight) return _startFlight;
+        _startFlight = (async () => {
+          try {
+            return await apiClient.startTimer(payload);
+          } catch (err) {
+            const ambiguous = !err.response || err.code === "ECONNABORTED" || err.code === "ECONNRESET" || err.code === "ETIMEDOUT";
+            if (!ambiguous) throw err;
+            try {
+              const status = await apiClient.getTimerStatus();
+              if (status.data && status.data.active && status.data.timer) {
+                return { data: { message: "Timer already running", timer: status.data.timer }, _reconciled: true };
+              }
+            } catch (reconcileErr) {
+              console.error("startTimer reconcile failed:", reconcileErr);
+            }
+            throw err;
+          }
+        })();
+        try {
+          return await _startFlight;
+        } finally {
+          _startFlight = null;
+        }
+      }
+      async function stopTimerWithReconcile2(apiClient) {
+        if (_stopFlight) return _stopFlight;
+        _stopFlight = (async () => {
+          try {
+            return await apiClient.stopTimer();
+          } catch (err) {
+            const statusCode = err.response && err.response.status;
+            if (statusCode === 400 && err.response.data && err.response.data.error_code === "no_active_timer") {
+              return { data: err.response.data, _reconciled: true };
+            }
+            const ambiguous = !err.response || err.code === "ECONNABORTED" || err.code === "ECONNRESET" || err.code === "ETIMEDOUT";
+            if (!ambiguous) throw err;
+            try {
+              const status = await apiClient.getTimerStatus();
+              if (status.data && !status.data.active) {
+                return { data: { message: "Timer already stopped" }, _reconciled: true };
+              }
+            } catch (reconcileErr) {
+              console.error("stopTimer reconcile failed:", reconcileErr);
+            }
+            throw err;
+          }
+        })();
+        try {
+          return await _stopFlight;
+        } finally {
+          _stopFlight = null;
+        }
+      }
+      module.exports = { startTimerWithReconcile: startTimerWithReconcile2, stopTimerWithReconcile: stopTimerWithReconcile2 };
     }
   });
 
@@ -7792,8 +8627,12 @@
   // src/renderer/js/state.js
   var require_state = __commonJS({
     "src/renderer/js/state.js"(exports, module) {
-      module.exports = {
+      var state2 = {
         apiClient: null,
+        /** Count consecutive background checks that failed with auth (401) while on main UI */
+        authFailureStreak: 0,
+        /** Last timer poll error shown to user (avoid spam) */
+        lastTimerPollUserMessageAt: 0,
         currentView: "dashboard",
         timerInterval: null,
         isTimerRunning: false,
@@ -7809,6 +8648,13 @@
           expenses: { page: 1, perPage: 20, totalPages: 1, total: 0 }
         }
       };
+      function clearViewCaches() {
+        state2.cachedInvoices = [];
+        state2.cachedExpenses = [];
+        state2.cachedWorkforce = { periods: [], capacity: [], timeOffRequests: [], balances: [] };
+      }
+      state2.clearViewCaches = clearViewCaches;
+      module.exports = state2;
     }
   });
 
@@ -7816,29 +8662,71 @@
   require_helpers();
   var { storeGet, storeSet, storeDelete, storeClear } = window.config || {};
   var ApiClient = require_client();
+  var { createConnectionManager } = require_connection_manager();
+  var { CONNECTION_STATE } = require_connection_state();
+  var { startTimerWithReconcile, stopTimerWithReconcile } = require_timer_operations();
+  var { classifyAxiosError } = require_client();
   var StorageService = require_storage();
   var { showError, showSuccess } = require_notifications();
   var state = require_state();
+  var connectionManager = null;
+  var loginWizardStep = "welcome";
+  function truncateUrl(url, maxLen) {
+    const s = String(url || "");
+    const m = maxLen || 42;
+    if (s.length <= m) return s;
+    return s.slice(0, m - 1) + "\u2026";
+  }
   async function initApp() {
-    const serverUrl = await storeGet("server_url");
-    const apiToken = await storeGet("api_token");
-    if (serverUrl && apiToken) {
-      state.apiClient = new ApiClient(serverUrl);
-      await state.apiClient.setAuthToken(apiToken);
-      const isValid = await state.apiClient.validateToken();
-      if (isValid) {
-        await loadCurrentUserProfile();
-        showMainScreen();
-        loadDashboard();
-      } else {
-        showLoginScreen();
+    connectionManager = createConnectionManager({
+      storeGet,
+      storeSet,
+      storeDelete,
+      storeClear,
+      onCacheClear: () => {
+        if (typeof state.clearViewCaches === "function") state.clearViewCaches();
       }
+    });
+    connectionManager.subscribe(() => {
+      state.apiClient = connectionManager.getClient();
+      updateConnectionFromManager();
+    });
+    const boot = await connectionManager.bootstrapFromStore();
+    if (boot.ok) {
+      state.authFailureStreak = 0;
+      await loadCurrentUserProfile();
+      showMainScreen();
+      loadDashboard();
+    } else if (boot.reason === "offline" && boot.hadCredentials) {
+      showLoginScreen({
+        prefillServerUrl: connectionManager.getSnapshot().serverUrl || "",
+        openTokenStep: true,
+        bannerMessage: "You appear to be offline. Reconnect to the network, then use Log in."
+      });
+    } else if (boot.reason === "session" && boot.session) {
+      showLoginScreen({ prefillServerUrl: connectionManager.getSnapshot().serverUrl || "", sessionError: boot.session });
+    } else if (boot.reason === "token_server_mismatch") {
+      showLoginScreen({
+        prefillServerUrl: connectionManager.getSnapshot().serverUrl || "",
+        bannerMessage: connectionManager.getSnapshot().lastError || "Please sign in again."
+      });
     } else {
-      showLoginScreen();
+      showLoginScreen({ prefillServerUrl: connectionManager.getSnapshot().serverUrl || "" });
     }
     setupEventListeners();
     startConnectionCheck();
     setupTrayListeners();
+    window.addEventListener("online", async () => {
+      if (!connectionManager.getClient()) {
+        const retry = await connectionManager.bootstrapFromStore();
+        if (retry.ok && document.getElementById("main-screen")?.classList.contains("active")) {
+          state.authFailureStreak = 0;
+          await loadCurrentUserProfile();
+          loadDashboard();
+        }
+      }
+      await checkConnection();
+    });
   }
   function setupTrayListeners() {
     if (window.electronAPI && window.electronAPI.onTrayAction) {
@@ -7858,15 +8746,34 @@
     checkConnection();
   }
   async function checkConnection() {
+    if (typeof navigator !== "undefined" && navigator.onLine && !connectionManager.getClient()) {
+      const snap = connectionManager.getSnapshot();
+      if (snap.serverUrl && await storeGet("api_token")) {
+        const boot = await connectionManager.bootstrapFromStore();
+        if (boot.ok && document.getElementById("main-screen")?.classList.contains("active")) {
+          state.authFailureStreak = 0;
+          await loadCurrentUserProfile();
+        }
+      }
+    }
     if (!state.apiClient) {
-      updateConnectionStatus("disconnected");
+      updateConnectionFromManager();
       return;
     }
-    try {
-      const isValid = await state.apiClient.validateToken();
-      updateConnectionStatus(isValid ? "connected" : "error");
-    } catch (error) {
-      updateConnectionStatus("error");
+    const session = await connectionManager.validateSessionRefresh();
+    if (session.ok) {
+      state.authFailureStreak = 0;
+      updateConnectionFromManager();
+      return;
+    }
+    updateConnectionFromManager();
+    if (session.code === "UNAUTHORIZED") {
+      state.authFailureStreak = (state.authFailureStreak || 0) + 1;
+      if (state.authFailureStreak >= 2 && document.getElementById("main-screen")?.classList.contains("active")) {
+        await forceRelogin(session.message || "Your session is no longer valid. Please sign in again.");
+      }
+    } else {
+      state.authFailureStreak = 0;
     }
   }
   async function loadCurrentUserProfile() {
@@ -7881,41 +8788,130 @@
         is_admin: Boolean(user.is_admin),
         can_approve: Boolean(user.is_admin) || roleCanApprove
       };
-    } catch (_) {
+    } catch (err) {
+      console.error("loadCurrentUserProfile failed:", err);
+      if (err && err.stack) console.error(err.stack);
       state.currentUserProfile = { id: null, is_admin: false, can_approve: false };
+      const { message } = classifyAxiosError(err);
+      showError(message || "Could not load your user profile. Some actions may be unavailable until the connection improves.");
     }
   }
-  function updateConnectionStatus(status) {
+  function updateConnectionFromManager() {
+    if (!connectionManager) return;
+    const snap = connectionManager.getSnapshot();
     const statusEl = document.getElementById("connection-status");
+    const urlEl = document.getElementById("connection-url-label");
+    const timeEl = document.getElementById("connection-last-ok");
     if (!statusEl) return;
-    statusEl.className = "connection-status connection-" + status;
-    var label = "Connection status: ";
-    switch (status) {
-      case "connected":
-        statusEl.textContent = "\u25CF";
-        statusEl.title = "Connected";
+    let cssSuffix = "disconnected";
+    let title = "";
+    let label = "Connection status: ";
+    switch (snap.state) {
+      case CONNECTION_STATE.CONNECTED:
+        cssSuffix = "connected";
+        title = snap.serverUrl || "Connected";
         label += "Connected";
-        break;
-      case "error":
         statusEl.textContent = "\u25CF";
-        statusEl.title = "Connection error";
-        label += "Error";
         break;
-      case "disconnected":
-        statusEl.textContent = "\u25CB";
-        statusEl.title = "Disconnected";
-        label += "Disconnected";
+      case CONNECTION_STATE.OFFLINE:
+        cssSuffix = "offline";
+        title = snap.lastError || "Offline";
+        label += "Offline";
+        statusEl.textContent = "\u25CF";
+        break;
+      case CONNECTION_STATE.CONNECTING:
+        cssSuffix = "connecting";
+        title = snap.lastError || "Connecting\u2026";
+        label += "Connecting";
+        statusEl.textContent = "\u25D0";
+        break;
+      case CONNECTION_STATE.ERROR:
+        cssSuffix = "error";
+        title = snap.lastError || "Connection error";
+        label += "Error";
+        statusEl.textContent = "\u25CF";
         break;
       default:
-        label += "Unknown";
+        title = snap.serverUrl || "Not configured";
+        label += "Not configured";
+        statusEl.textContent = "\u25CB";
     }
+    statusEl.className = "connection-status connection-" + cssSuffix;
+    statusEl.title = title;
     statusEl.setAttribute("aria-label", label);
+    if (urlEl) {
+      urlEl.textContent = snap.serverUrl ? truncateUrl(snap.serverUrl) : "\u2014";
+      urlEl.title = snap.serverUrl || "";
+    }
+    if (timeEl) {
+      timeEl.textContent = snap.lastConnectedAt ? formatDateTime(new Date(snap.lastConnectedAt)) : "\u2014";
+    }
+  }
+  async function forceRelogin(message) {
+    state.authFailureStreak = 0;
+    const url = await storeGet("server_url");
+    if (state.isTimerRunning) {
+      state.isTimerRunning = false;
+      stopTimerPolling();
+    }
+    await connectionManager.logoutKeepServer();
+    showLoginScreen({
+      prefillServerUrl: url ? ApiClient.normalizeBaseUrl(String(url)) : "",
+      openTokenStep: true,
+      bannerMessage: message
+    });
+  }
+  function showWizardWelcomeStep() {
+    loginWizardStep = "welcome";
+    const w = document.getElementById("wizard-step-welcome");
+    const s1 = document.getElementById("wizard-step-server");
+    const s2 = document.getElementById("wizard-step-token");
+    if (w) w.style.display = "";
+    if (s1) s1.style.display = "none";
+    if (s2) s2.style.display = "none";
+  }
+  function showWizardServerStep() {
+    loginWizardStep = "server";
+    const w = document.getElementById("wizard-step-welcome");
+    const s1 = document.getElementById("wizard-step-server");
+    const s2 = document.getElementById("wizard-step-token");
+    if (w) w.style.display = "none";
+    if (s1) s1.style.display = "";
+    if (s2) s2.style.display = "none";
+  }
+  function showWizardTokenStep() {
+    loginWizardStep = "token";
+    const w = document.getElementById("wizard-step-welcome");
+    const s1 = document.getElementById("wizard-step-server");
+    const s2 = document.getElementById("wizard-step-token");
+    if (w) w.style.display = "none";
+    if (s1) s1.style.display = "none";
+    if (s2) s2.style.display = "";
+  }
+  function resetLoginWizard() {
+    showWizardWelcomeStep();
+    const contServer = document.getElementById("login-wizard-continue-server");
+    if (contServer) contServer.disabled = true;
+    const testBtn = document.getElementById("login-test-server-btn");
+    if (testBtn) testBtn.disabled = false;
+    clearLoginError();
+  }
+  function clearLoginError() {
+    showLoginError("");
   }
   function setupEventListeners() {
     const loginForm = document.getElementById("login-form");
     if (loginForm) {
       loginForm.addEventListener("submit", handleLogin);
     }
+    const loginTestServerBtn = document.getElementById("login-test-server-btn");
+    const loginWizardContinue = document.getElementById("login-wizard-continue");
+    const loginWizardContinueServer = document.getElementById("login-wizard-continue-server");
+    const loginWizardBack = document.getElementById("login-wizard-back");
+    if (loginTestServerBtn) loginTestServerBtn.addEventListener("click", handleLoginTestServer);
+    if (loginWizardContinue) loginWizardContinue.addEventListener("click", handleLoginWizardContinue);
+    if (loginWizardContinueServer) loginWizardContinueServer.addEventListener("click", handleLoginWizardContinue);
+    if (loginWizardBack) loginWizardBack.addEventListener("click", handleLoginWizardBack);
     document.querySelectorAll(".nav-btn").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         const view = e.target.dataset.view;
@@ -7939,6 +8935,8 @@
     const autoSyncInput = document.getElementById("auto-sync");
     if (saveSettingsBtn) saveSettingsBtn.addEventListener("click", handleSaveSettings);
     if (testConnectionBtn) testConnectionBtn.addEventListener("click", handleTestConnection);
+    const resetConfigBtn = document.getElementById("reset-configuration-btn");
+    if (resetConfigBtn) resetConfigBtn.addEventListener("click", handleResetConfiguration);
     if (autoSyncInput) {
       autoSyncInput.addEventListener("change", () => updateSyncIntervalState());
     }
@@ -7988,46 +8986,149 @@
     if (expensePrevPageBtn) expensePrevPageBtn.addEventListener("click", () => changeExpensePage(-1));
     if (expenseNextPageBtn) expenseNextPageBtn.addEventListener("click", () => changeExpensePage(1));
   }
+  async function handleLoginTestServer() {
+    clearLoginError();
+    const raw = document.getElementById("server-url")?.value.trim() || "";
+    const normalizedInput = normalizeServerUrlInput(raw);
+    if (!normalizedInput || !isValidUrl(normalizedInput)) {
+      showLoginError("Enter a valid server URL (e.g. https://your-server.com or http://192.168.1.10:5000)");
+      return;
+    }
+    const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
+    const testBtn = document.getElementById("login-test-server-btn");
+    const contServer = document.getElementById("login-wizard-continue-server");
+    if (testBtn) testBtn.disabled = true;
+    if (contServer) contServer.disabled = true;
+    const pub = await connectionManager.testServer(serverUrl);
+    if (testBtn) testBtn.disabled = false;
+    if (contServer) contServer.disabled = true;
+    if (!pub.ok) {
+      showLoginError(pub.message);
+      return;
+    }
+    const ver = pub.app_version ? ` (server version ${pub.app_version})` : "";
+    showSuccess(`TimeTracker server detected${ver}. Continue to enter your API token.`);
+    if (contServer) contServer.disabled = false;
+  }
+  async function handleLoginWizardContinue() {
+    clearLoginError();
+    if (loginWizardStep === "welcome") {
+      showWizardServerStep();
+      return;
+    }
+    const raw = document.getElementById("server-url")?.value.trim() || "";
+    const normalizedInput = normalizeServerUrlInput(raw);
+    if (!normalizedInput || !isValidUrl(normalizedInput)) {
+      showLoginError("Enter a valid server URL");
+      return;
+    }
+    const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
+    const contServer = document.getElementById("login-wizard-continue-server");
+    if (contServer) contServer.disabled = true;
+    const pub = await connectionManager.testServer(serverUrl);
+    if (!pub.ok) {
+      if (contServer) contServer.disabled = true;
+      showLoginError(pub.message);
+      return;
+    }
+    if (contServer) contServer.disabled = false;
+    showWizardTokenStep();
+  }
+  function handleLoginWizardBack() {
+    clearLoginError();
+    if (loginWizardStep === "token") {
+      showWizardServerStep();
+      return;
+    }
+    if (loginWizardStep === "server") {
+      showWizardWelcomeStep();
+      return;
+    }
+    showWizardWelcomeStep();
+  }
   async function handleLogin(e) {
     e.preventDefault();
-    const serverUrl = document.getElementById("server-url").value.trim();
-    const apiToken = document.getElementById("api-token").value.trim();
-    const errorDiv = document.getElementById("login-error");
-    if (!serverUrl || !isValidUrl(serverUrl)) {
+    const raw = document.getElementById("server-url")?.value.trim() || "";
+    const normalizedInput = normalizeServerUrlInput(raw);
+    if (!normalizedInput || !isValidUrl(normalizedInput)) {
       showLoginError("Please enter a valid server URL");
       return;
     }
+    const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
+    const apiToken = document.getElementById("api-token")?.value.trim() || "";
     if (!apiToken || !apiToken.startsWith("tt_")) {
-      showError("Please enter a valid API token (must start with tt_)");
+      showLoginError("Please enter a valid API token (must start with tt_)");
       return;
     }
-    await storeSet("server_url", serverUrl);
-    await storeSet("api_token", apiToken);
-    state.apiClient = new ApiClient(serverUrl);
-    await state.apiClient.setAuthToken(apiToken);
-    const isValid = await state.apiClient.validateToken();
-    if (isValid) {
+    const result = await connectionManager.login(serverUrl, apiToken);
+    if (result.ok) {
+      state.authFailureStreak = 0;
       await loadCurrentUserProfile();
-      updateConnectionStatus("connected");
       showMainScreen();
       loadDashboard();
     } else {
-      updateConnectionStatus("error");
-      showLoginError("Invalid API token. Please check your token.");
-      await storeDelete("api_token");
+      const msg = result.session?.message || result.message || "Login failed";
+      showLoginError(msg);
+      if (result.step === "auth" && (result.session?.code === "UNAUTHORIZED" || result.session?.code === "FORBIDDEN")) {
+        const contServer = document.getElementById("login-wizard-continue-server");
+        if (contServer) contServer.disabled = false;
+        showWizardTokenStep();
+      } else if (result.step === "server") {
+        showWizardServerStep();
+      } else {
+        showWizardServerStep();
+      }
     }
   }
   function showLoginError(message) {
     const errorDiv = document.getElementById("login-error");
-    if (errorDiv) {
-      errorDiv.textContent = message;
+    if (!errorDiv) return;
+    errorDiv.textContent = message || "";
+    if (message) {
       errorDiv.classList.add("show");
+    } else {
+      errorDiv.classList.remove("show");
     }
   }
-  function showLoginScreen() {
+  function showLoginScreen(options = {}) {
     document.getElementById("loading-screen").classList.remove("active");
     document.getElementById("login-screen").classList.add("active");
     document.getElementById("main-screen").classList.remove("active");
+    state.authFailureStreak = 0;
+    const su = document.getElementById("server-url");
+    if (su && options.prefillServerUrl !== void 0 && options.prefillServerUrl !== null) {
+      su.value = String(options.prefillServerUrl || "");
+    }
+    if (options.openTokenStep) {
+      const contServer = document.getElementById("login-wizard-continue-server");
+      if (contServer) contServer.disabled = false;
+      showWizardTokenStep();
+      if (options.bannerMessage) {
+        showLoginError(options.bannerMessage);
+      } else {
+        clearLoginError();
+      }
+      return;
+    }
+    if (options.bannerMessage && !options.sessionError) {
+      resetLoginWizard();
+      showLoginError(options.bannerMessage);
+      return;
+    }
+    if (options.sessionError) {
+      const se = options.sessionError;
+      if (se.code === "UNAUTHORIZED" || se.code === "FORBIDDEN") {
+        const contServer = document.getElementById("login-wizard-continue-server");
+        if (contServer) contServer.disabled = false;
+        showWizardTokenStep();
+        showLoginError(se.message || "Authentication failed");
+        return;
+      }
+      resetLoginWizard();
+      showLoginError(se.message || "Could not reach the server");
+      return;
+    }
+    resetLoginWizard();
   }
   function showMainScreen() {
     document.getElementById("loading-screen").classList.remove("active");
@@ -8079,6 +9180,9 @@
       loadRecentEntries();
     } catch (error) {
       console.error("Error loading dashboard:", error);
+      if (error && error.stack) console.error(error.stack);
+      const { message } = classifyAxiosError(error);
+      showError(message || "Could not load the dashboard.");
     }
   }
   async function loadRecentEntries() {
@@ -8102,6 +9206,9 @@
     `).join("");
     } catch (error) {
       console.error("Error loading recent entries:", error);
+      if (error && error.stack) console.error(error.stack);
+      const { message } = classifyAxiosError(error);
+      showError(message || "Could not load recent entries.");
     }
   }
   async function loadProjects() {
@@ -8122,6 +9229,9 @@
     `).join("");
     } catch (error) {
       console.error("Error loading projects:", error);
+      if (error && error.stack) console.error(error.stack);
+      const { message } = classifyAxiosError(error);
+      showError(message || "Could not load projects.");
     }
   }
   var currentFilters = {
@@ -8172,7 +9282,7 @@
     const result = await showStartTimerDialog();
     if (!result) return;
     try {
-      const response = await state.apiClient.startTimer({
+      const response = await startTimerWithReconcile(state.apiClient, {
         projectId: result.projectId,
         taskId: result.taskId,
         notes: result.notes
@@ -8185,7 +9295,10 @@
         document.getElementById("stop-timer-btn").style.display = "block";
       }
     } catch (error) {
-      showError("Failed to start timer: " + (error.response?.data?.error || error.message));
+      console.error("Failed to start timer:", error);
+      if (error && error.stack) console.error(error.stack);
+      const { message } = classifyAxiosError(error);
+      showError(message || "Failed to start timer: " + (error.response?.data?.error || error.message));
     }
   }
   async function showStartTimerDialog() {
@@ -8193,16 +9306,24 @@
       let projects = [];
       let requirements = { require_task: false, require_description: false, description_min_length: 20 };
       try {
-        const [projectsResponse, usersMeResponse] = await Promise.all([
-          state.apiClient.getProjects({ status: "active" }),
-          state.apiClient.getUsersMe().catch(() => ({}))
-        ]);
+        const projectsResponse = await state.apiClient.getProjects({ status: "active" });
         projects = projectsResponse.data.projects || [];
-        if (usersMeResponse.time_entry_requirements) {
-          requirements = usersMeResponse.time_entry_requirements;
+        try {
+          const usersMeResponse = await state.apiClient.getUsersMe();
+          if (usersMeResponse && usersMeResponse.time_entry_requirements) {
+            requirements = usersMeResponse.time_entry_requirements;
+          }
+        } catch (meErr) {
+          console.error("getUsersMe for timer dialog:", meErr);
+          if (meErr && meErr.stack) console.error(meErr.stack);
+          const { message } = classifyAxiosError(meErr);
+          showError(message || "Could not load time entry rules; using defaults.");
         }
       } catch (error) {
-        showError("Failed to load projects");
+        console.error("Failed to load projects for timer dialog:", error);
+        if (error && error.stack) console.error(error.stack);
+        const { message } = classifyAxiosError(error);
+        showError(message || "Failed to load projects");
         resolve(null);
         return;
       }
@@ -8300,7 +9421,7 @@
   async function handleStopTimer() {
     if (!state.apiClient) return;
     try {
-      await state.apiClient.stopTimer();
+      await stopTimerWithReconcile(state.apiClient);
       state.isTimerRunning = false;
       stopTimerPolling();
       document.getElementById("timer-display").textContent = "00:00:00";
@@ -8314,7 +9435,9 @@
       loadRecentEntries();
     } catch (error) {
       console.error("Error stopping timer:", error);
-      showError("Failed to stop timer: " + (error.response?.data?.error || error.message));
+      if (error && error.stack) console.error(error.stack);
+      const { message } = classifyAxiosError(error);
+      showError(message || "Failed to stop timer: " + (error.response?.data?.error || error.message));
     }
   }
   function startTimerPolling() {
@@ -8331,6 +9454,17 @@
         }
       } catch (error) {
         console.error("Error polling timer:", error);
+        if (error && error.stack) console.error(error.stack);
+        const { message } = classifyAxiosError(error);
+        connectionManager.signalError(message || "Lost connection while syncing the active timer.");
+        updateConnectionFromManager();
+        const now = Date.now();
+        if (!state.lastTimerPollUserMessageAt || now - state.lastTimerPollUserMessageAt > 6e4) {
+          state.lastTimerPollUserMessageAt = now;
+          showError(
+            "Lost connection while syncing the active timer. Check the connection indicator; polling will retry."
+          );
+        }
       }
     }, 5e3);
   }
@@ -8894,7 +10028,7 @@
     const autoSyncInput = document.getElementById("auto-sync");
     const syncIntervalInput = document.getElementById("sync-interval");
     if (serverUrlInput) {
-      serverUrlInput.value = serverUrl;
+      serverUrlInput.value = serverUrl ? ApiClient.normalizeBaseUrl(String(serverUrl)) : "";
     }
     if (apiTokenInput) {
       apiTokenInput.value = apiToken ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : "";
@@ -8921,14 +10055,16 @@
     const syncIntervalInput = document.getElementById("sync-interval");
     const messageDiv = document.getElementById("settings-message");
     if (!serverUrlInput || !apiTokenInput || !autoSyncInput || !syncIntervalInput) return;
-    const serverUrl = serverUrlInput.value.trim();
+    const rawServer = serverUrlInput.value.trim();
+    const normalizedInput = normalizeServerUrlInput(rawServer);
     const apiToken = apiTokenInput.value.trim();
     const autoSync = autoSyncInput.checked;
     const syncInterval = parseInt(syncIntervalInput.value, 10);
-    if (!serverUrl || !isValidUrl(serverUrl)) {
+    if (!normalizedInput || !isValidUrl(normalizedInput)) {
       showSettingsMessage("Please enter a valid server URL", "error");
       return;
     }
+    const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
     const hasExistingToken = apiTokenInput.dataset.hasToken === "true";
     let finalApiToken = apiToken;
     if (hasExistingToken && apiToken === "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022") {
@@ -8942,26 +10078,26 @@
       return;
     }
     try {
-      await storeSet("server_url", serverUrl);
-      await storeSet("api_token", finalApiToken);
-      await storeSet("auto_sync", autoSync);
-      await storeSet("sync_interval", syncInterval);
-      state.apiClient = new ApiClient(serverUrl);
-      await state.apiClient.setAuthToken(finalApiToken);
-      const isValid = await state.apiClient.validateToken();
-      if (isValid) {
-        await loadCurrentUserProfile();
-        updateConnectionStatus("connected");
-        showSettingsMessage("Settings saved successfully!", "success");
-        apiTokenInput.value = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
-        apiTokenInput.dataset.hasToken = "true";
-      } else {
-        updateConnectionStatus("error");
-        showSettingsMessage("Settings saved, but connection test failed. Please check your API token.", "warning");
+      const saved = await connectionManager.saveServerAndToken(serverUrl, finalApiToken, {
+        auto_sync: autoSync,
+        sync_interval: syncInterval
+      });
+      if (!saved.ok) {
+        showSettingsMessage(saved.message || saved.session?.message || "Could not save settings.", "error");
+        updateConnectionFromManager();
+        return;
       }
+      state.authFailureStreak = 0;
+      await loadCurrentUserProfile();
+      updateConnectionFromManager();
+      showSettingsMessage("Settings saved successfully!", "success");
+      apiTokenInput.value = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+      apiTokenInput.dataset.hasToken = "true";
+      serverUrlInput.value = serverUrl;
     } catch (error) {
       console.error("Error saving settings:", error);
-      showSettingsMessage("Error saving settings: " + error.message, "error");
+      if (error && error.stack) console.error(error.stack);
+      showSettingsMessage("Error saving settings: " + (error.message || String(error)), "error");
     }
   }
   async function handleTestConnection() {
@@ -8969,12 +10105,14 @@
     const apiTokenInput = document.getElementById("settings-api-token");
     const messageDiv = document.getElementById("settings-message");
     if (!serverUrlInput || !apiTokenInput) return;
-    const serverUrl = serverUrlInput.value.trim();
+    const rawServer = serverUrlInput.value.trim();
+    const normalizedInput = normalizeServerUrlInput(rawServer);
     let apiToken = apiTokenInput.value.trim();
-    if (!serverUrl || !isValidUrl(serverUrl)) {
+    if (!normalizedInput || !isValidUrl(normalizedInput)) {
       showSettingsMessage("Please enter a valid server URL", "error");
       return;
     }
+    const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
     const hasExistingToken = apiTokenInput.dataset.hasToken === "true";
     if (hasExistingToken && apiToken === "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022") {
       apiToken = await storeGet("api_token");
@@ -8985,19 +10123,24 @@
     }
     try {
       showSettingsMessage("Testing connection...", "info");
-      const testClient = new ApiClient(serverUrl);
-      await testClient.setAuthToken(apiToken);
-      const isValid = await testClient.validateToken();
-      if (isValid) {
-        updateConnectionStatus("connected");
-        showSettingsMessage("Connection successful!", "success");
-      } else {
-        updateConnectionStatus("error");
-        showSettingsMessage("Connection failed. Please check your server URL and API token.", "error");
+      const r = await connectionManager.testServerAndSession(serverUrl, apiToken);
+      if (!r.ok) {
+        showSettingsMessage(r.message || "Connection test failed.", "error");
+        updateConnectionFromManager();
+        return;
       }
+      const snap = connectionManager.getSnapshot();
+      if (snap.serverUrl === serverUrl && connectionManager.getClient()) {
+        await connectionManager.validateSessionRefresh();
+      }
+      updateConnectionFromManager();
+      const ver = r.app_version ? ` (${r.app_version})` : "";
+      showSettingsMessage(`Connection successful: server and API token are valid${ver}.`, "success");
     } catch (error) {
       console.error("Error testing connection:", error);
-      showSettingsMessage("Connection error: " + error.message, "error");
+      if (error && error.stack) console.error(error.stack);
+      const { message } = classifyAxiosError(error);
+      showSettingsMessage(message || "Connection error: " + error.message, "error");
     }
   }
   function showSettingsMessage(message, type2 = "info") {
@@ -9013,20 +10156,39 @@
     }
   }
   async function handleLogout() {
-    if (confirm("Are you sure you want to logout?")) {
-      await storeClear();
-      state.apiClient = null;
+    if (!confirm("Sign out and remove the API token? Your server URL will be kept.")) return;
+    if (state.isTimerRunning) {
       state.isTimerRunning = false;
       stopTimerPolling();
-      showLoginScreen();
     }
+    await connectionManager.logoutKeepServer();
+    showLoginScreen({ prefillServerUrl: connectionManager.getSnapshot().serverUrl || "" });
+  }
+  async function handleResetConfiguration() {
+    if (!confirm(
+      "Reset all app configuration (server URL, token, sync settings)? This cannot be undone."
+    )) {
+      return;
+    }
+    if (state.isTimerRunning) {
+      state.isTimerRunning = false;
+      stopTimerPolling();
+    }
+    await connectionManager.fullStoreReset();
+    showLoginScreen({ prefillServerUrl: "" });
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initApp);
   } else {
     initApp();
   }
-  var { formatDuration, formatDurationLong, formatDateTime, isValidUrl } = window.Helpers || {};
+  var {
+    formatDuration,
+    formatDurationLong,
+    formatDateTime,
+    isValidUrl,
+    normalizeServerUrlInput
+  } = window.Helpers || {};
   function toggleFilters() {
     const filtersEl = document.getElementById("entries-filters");
     if (filtersEl) {
@@ -9061,22 +10223,34 @@
       }
     } catch (error) {
       console.error("Error loading projects for filter:", error);
+      if (error && error.stack) console.error(error.stack);
+      const { message } = classifyAxiosError(error);
+      showError(message || "Could not load projects for filter.");
     }
   }
   async function showTimeEntryForm(entryId = null) {
+    if (!state.apiClient) return;
     let projects = [];
     let requirements = { require_task: false, require_description: false, description_min_length: 20 };
     try {
-      const [projectsResponse, usersMeResponse] = await Promise.all([
-        state.apiClient.getProjects({ status: "active" }),
-        state.apiClient.getUsersMe().catch(() => ({}))
-      ]);
+      const projectsResponse = await state.apiClient.getProjects({ status: "active" });
       projects = projectsResponse.data.projects || [];
-      if (usersMeResponse.time_entry_requirements) {
-        requirements = usersMeResponse.time_entry_requirements;
+      try {
+        const usersMeResponse = await state.apiClient.getUsersMe();
+        if (usersMeResponse && usersMeResponse.time_entry_requirements) {
+          requirements = usersMeResponse.time_entry_requirements;
+        }
+      } catch (meErr) {
+        console.error("getUsersMe for time entry form:", meErr);
+        if (meErr && meErr.stack) console.error(meErr.stack);
+        const { message } = classifyAxiosError(meErr);
+        showError(message || "Could not load time entry rules; using defaults.");
       }
     } catch (error) {
-      showError("Failed to load projects");
+      console.error("Failed to load projects for time entry form:", error);
+      if (error && error.stack) console.error(error.stack);
+      const { message } = classifyAxiosError(error);
+      showError(message || "Failed to load projects");
       return;
     }
     let entry = null;
@@ -9258,5 +10432,5 @@
 /*! Bundled license information:
 
 axios/dist/browser/axios.cjs:
-  (*! Axios v1.13.2 Copyright (c) 2025 Matt Zabriskie and contributors *)
+  (*! Axios v1.15.0 Copyright (c) 2026 Matt Zabriskie and contributors *)
 */

@@ -7,6 +7,7 @@ from flask import Blueprint, current_app, jsonify, make_response, request, send_
 from flask_babel import gettext as _
 from flask_login import current_user, login_required
 from sqlalchemy import or_
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import secure_filename
 
 from app import db, socketio
@@ -23,20 +24,82 @@ from app.models import (
     User,
 )
 from app.models.time_entry import local_now
+from app.services.global_search_service import run_global_search
+from app.services.time_tracking_service import TimeTrackingService
+from app.utils.api_deprecation import deprecated_session_api
 from app.utils.db import safe_commit
+from app.utils.scope_filter import apply_client_scope, apply_project_scope, user_can_access_project
 from app.utils.timezone import convert_app_datetime_to_user, parse_local_datetime, utc_to_local
 
 api_bp = Blueprint("api", __name__)
 
 
 @api_bp.route("/api/health")
+@deprecated_session_api("/api/v1/health")
 def health_check():
     """Health check endpoint for monitoring and error handling"""
     return jsonify({"status": "ok", "timestamp": datetime.utcnow().isoformat()})
 
 
+def _effective_user_for_version_api():
+    """Session user, or API token user (Bearer / X-API-Key). Used for version check routes."""
+    if getattr(current_user, "is_authenticated", False):
+        return current_user
+    from app.utils.api_auth import authenticate_token, extract_token_from_request
+
+    token = extract_token_from_request()
+    if not token:
+        return None
+    user, _api_token, _err = authenticate_token(token, record_usage=False)
+    return user
+
+
+@api_bp.route("/api/version/check")
+def api_version_check():
+    """Admin only: compare installed version to latest GitHub release (cached)."""
+    user = _effective_user_for_version_api()
+    if user is None:
+        return jsonify({"error": "unauthorized", "message": "Authentication required"}), 401
+    if not user.is_admin:
+        return jsonify({"error": "forbidden", "message": "Admin only"}), 403
+    from app.services.version_service import VersionService
+
+    return jsonify(VersionService.build_check_response(user))
+
+
+@api_bp.route("/api/version/dismiss", methods=["POST"])
+def api_version_dismiss():
+    """Admin only: remember not to show update popup for this normalized release version."""
+    user = _effective_user_for_version_api()
+    if user is None:
+        return jsonify({"error": "unauthorized", "message": "Authentication required"}), 401
+    if not user.is_admin:
+        return jsonify({"error": "forbidden", "message": "Admin only"}), 403
+    data = request.get_json(silent=True) or {}
+    raw = data.get("latest_version")
+    if not isinstance(raw, str) or not raw.strip():
+        return jsonify({"error": "latest_version is required"}), 400
+
+    from app.utils.version_compare import normalize_version_tag
+
+    norm = normalize_version_tag(raw)
+    if not norm:
+        current_app.logger.warning(
+            "Version dismiss: invalid latest_version from admin user_id=%s: %r",
+            user.id,
+            raw,
+        )
+        return jsonify({"error": "invalid latest_version"}), 400
+    user.dismissed_release_version = norm
+    db.session.add(user)
+    if not safe_commit():
+        return jsonify({"error": "save_failed"}), 500
+    return jsonify({"ok": True})
+
+
 @api_bp.route("/api/timer/status")
 @login_required
+@deprecated_session_api("/api/v1/timer/status")
 def timer_status():
     """Get current timer status"""
     active_timer = current_user.active_timer
@@ -91,8 +154,9 @@ def get_recent_tags():
 
 @api_bp.route("/api/search")
 @login_required
+@deprecated_session_api("/api/v1/search")
 def search():
-    """Global search endpoint for projects, tasks, clients, and time entries
+    """Global search endpoint for projects, tasks, clients, and time entries.
 
     Query Parameters:
         q (str): Search query (minimum 2 characters)
@@ -100,152 +164,32 @@ def search():
         types (str): Comma-separated list of types to search (project, task, client, entry)
 
     Returns:
-        JSON object with search results array
+        JSON with ``results``, ``query``, ``count``, ``partial`` (true if any search domain failed),
+        and ``errors`` (map of domain key to message: ``projects``, ``tasks``, ``clients``, ``entries``).
+        Domains that hit a database error are omitted from ``results``; other domains still return hits.
     """
     query = request.args.get("q", "").strip()
     limit = min(request.args.get("limit", 10, type=int), 50)  # Cap at 50
     types_filter = request.args.get("types", "").strip().lower()
 
     if not query or len(query) < 2:
-        return jsonify({"results": [], "query": query})
+        return jsonify({"results": [], "query": query, "count": 0, "partial": False, "errors": {}})
 
-    # Parse types filter
-    allowed_types = {"project", "task", "client", "entry"}
-    if types_filter:
-        requested_types = {t.strip() for t in types_filter.split(",") if t.strip()}
-        search_types = requested_types.intersection(allowed_types)
-    else:
-        search_types = allowed_types
-
-    results = []
-    search_pattern = f"%{query}%"
-
-    # Search projects
-    if "project" in search_types:
-        try:
-            projects = (
-                Project.query.filter(
-                    Project.status == "active",
-                    or_(Project.name.ilike(search_pattern), Project.description.ilike(search_pattern)),
-                )
-                .limit(limit)
-                .all()
-            )
-
-            for project in projects:
-                results.append(
-                    {
-                        "type": "project",
-                        "category": "project",
-                        "id": project.id,
-                        "title": project.name,
-                        "description": project.description or "",
-                        "url": f"/projects/{project.id}",
-                        "badge": "Project",
-                    }
-                )
-        except Exception as e:
-            current_app.logger.error(f"Error searching projects: {e}")
-
-    # Search tasks
-    if "task" in search_types:
-        try:
-            tasks = (
-                Task.query.join(Project)
-                .filter(
-                    Project.status == "active",
-                    or_(Task.name.ilike(search_pattern), Task.description.ilike(search_pattern)),
-                )
-                .limit(limit)
-                .all()
-            )
-
-            for task in tasks:
-                results.append(
-                    {
-                        "type": "task",
-                        "category": "task",
-                        "id": task.id,
-                        "title": task.name,
-                        "description": f"{task.project.name if task.project else 'No Project'}",
-                        "url": f"/tasks/{task.id}",
-                        "badge": task.status.replace("_", " ").title() if task.status else "Task",
-                    }
-                )
-        except Exception as e:
-            current_app.logger.error(f"Error searching tasks: {e}")
-
-    # Search clients
-    if "client" in search_types:
-        try:
-            clients = (
-                Client.query.filter(
-                    or_(
-                        Client.name.ilike(search_pattern),
-                        Client.email.ilike(search_pattern),
-                        Client.company.ilike(search_pattern),
-                    )
-                )
-                .limit(limit)
-                .all()
-            )
-
-            for client in clients:
-                results.append(
-                    {
-                        "type": "client",
-                        "category": "client",
-                        "id": client.id,
-                        "title": client.name,
-                        "description": client.company or client.email or "",
-                        "url": f"/clients/{client.id}",
-                        "badge": "Client",
-                    }
-                )
-        except Exception as e:
-            current_app.logger.error(f"Error searching clients: {e}")
-
-    # Search time entries (notes and tags)
-    if "entry" in search_types:
-        try:
-            entries = (
-                TimeEntry.query.filter(
-                    TimeEntry.user_id == current_user.id,
-                    TimeEntry.end_time.isnot(None),
-                    or_(TimeEntry.notes.ilike(search_pattern), TimeEntry.tags.ilike(search_pattern)),
-                )
-                .order_by(TimeEntry.start_time.desc())
-                .limit(limit)
-                .all()
-            )
-
-            for entry in entries:
-                title_parts = []
-                if entry.project:
-                    title_parts.append(entry.project.name)
-                if entry.task:
-                    title_parts.append(f"• {entry.task.name}")
-                title = " ".join(title_parts) if title_parts else "Time Entry"
-
-                description = entry.notes[:100] if entry.notes else ""
-                if entry.tags:
-                    description += f" [{entry.tags}]"
-
-                results.append(
-                    {
-                        "type": "entry",
-                        "category": "entry",
-                        "id": entry.id,
-                        "title": title,
-                        "description": description,
-                        "url": f"/timer/edit/{entry.id}",
-                        "badge": entry.duration_formatted,
-                    }
-                )
-        except Exception as e:
-            current_app.logger.error(f"Error searching time entries: {e}")
-
-    return jsonify({"results": results, "query": query, "count": len(results)})
+    results, errors = run_global_search(
+        current_user,
+        query,
+        limit=limit,
+        types_filter=types_filter,
+    )
+    return jsonify(
+        {
+            "results": results,
+            "query": query,
+            "count": len(results),
+            "partial": bool(errors),
+            "errors": errors,
+        }
+    )
 
 
 @api_bp.route("/api/deadlines/upcoming")
@@ -290,6 +234,7 @@ def upcoming_deadlines():
 
 @api_bp.route("/api/tasks")
 @login_required
+@deprecated_session_api("/api/v1/tasks")
 def list_tasks_for_project():
     """List tasks for a given project (optionally filter by status)."""
     project_id = request.args.get("project_id", type=int)
@@ -315,11 +260,9 @@ def list_tasks_for_project():
 
 @api_bp.route("/api/timer/start", methods=["POST"])
 @login_required
+@deprecated_session_api("/api/v1/timer/start")
 def api_start_timer():
     """Start timer via API"""
-    from app.models import Settings
-    from app.utils.time_entry_validation import validate_time_entry_requirements
-
     data = request.get_json() or {}
     project_id = data.get("project_id")
     task_id = data.get("task_id")
@@ -328,70 +271,48 @@ def api_start_timer():
     if not project_id:
         return jsonify({"error": "Project ID is required"}), 400
 
-    # Check if project exists and is active
-    project = Project.query.filter_by(id=project_id, status="active").first()
-    if not project:
-        return jsonify({"error": "Invalid project"}), 400
-
-    from app.utils.scope_filter import user_can_access_project
-
     if not user_can_access_project(current_user, project_id):
         return jsonify({"error": "You do not have access to this project"}), 403
 
-    # Validate task if provided
-    task = None
-    if task_id:
-        task = Task.query.filter_by(id=task_id, project_id=project_id).first()
-        if not task:
-            return jsonify({"error": "Invalid task for selected project"}), 400
-
-    # Validate time entry requirements (task, description)
-    settings = Settings.get_settings()
-    err = validate_time_entry_requirements(
-        settings, project_id=project_id, client_id=None, task_id=task_id, notes=notes
-    )
-    if err:
-        return jsonify({"error": err["message"]}), 400
-
-    # Check if user already has an active timer
-    active_timer = current_user.active_timer
-    if active_timer:
-        return jsonify({"error": "User already has an active timer"}), 400
-
-    # Create new timer
-    from app.models.time_entry import local_now
-
-    new_timer = TimeEntry(
+    service = TimeTrackingService()
+    result = service.start_timer(
         user_id=current_user.id,
         project_id=project_id,
-        task_id=task.id if task else None,
-        start_time=local_now(),
+        task_id=task_id,
         notes=notes,
-        source="auto",
+        template_id=None,
     )
+    if not result.get("success"):
+        return jsonify({"error": result.get("message", "Could not start timer")}), 400
 
-    db.session.add(new_timer)
-    db.session.commit()
+    new_timer = result["timer"]
+    project = new_timer.project or Project.query.get(project_id)
+    tid = new_timer.task_id
 
-    # Emit WebSocket event
     socketio.emit(
         "timer_started",
         {
             "user_id": current_user.id,
             "timer_id": new_timer.id,
-            "project_name": project.name,
-            "task_id": task.id if task else None,
+            "project_name": project.name if project else "",
+            "task_id": tid,
             "start_time": new_timer.start_time.isoformat(),
         },
     )
 
     return jsonify(
-        {"success": True, "timer_id": new_timer.id, "project_name": project.name, "task_id": task.id if task else None}
+        {
+            "success": True,
+            "timer_id": new_timer.id,
+            "project_name": project.name if project else "",
+            "task_id": tid,
+        }
     )
 
 
 @api_bp.route("/api/timer/stop", methods=["POST"])
 @login_required
+@deprecated_session_api("/api/v1/timer/stop")
 def api_stop_timer():
     """Stop timer via API"""
     active_timer = current_user.active_timer
@@ -399,23 +320,27 @@ def api_stop_timer():
     if not active_timer:
         return jsonify({"error": "No active timer to stop"}), 400
 
-    # Stop the timer
-    active_timer.stop_timer()
+    service = TimeTrackingService()
+    result = service.stop_timer(user_id=current_user.id, entry_id=active_timer.id)
+    if not result.get("success"):
+        return jsonify({"error": result.get("message", "Could not stop timer")}), 400
 
-    # Emit WebSocket event
+    entry = result["entry"]
+
     socketio.emit(
         "timer_stopped",
-        {"user_id": current_user.id, "timer_id": active_timer.id, "duration": active_timer.duration_formatted},
+        {"user_id": current_user.id, "timer_id": entry.id, "duration": entry.duration_formatted},
     )
 
     return jsonify(
-        {"success": True, "duration": active_timer.duration_formatted, "duration_hours": active_timer.duration_hours}
+        {"success": True, "duration": entry.duration_formatted, "duration_hours": entry.duration_hours}
     )
 
 
 # --- Idle control: stop at specific time ---
 @api_bp.route("/api/timer/stop_at", methods=["POST"])
 @login_required
+@deprecated_session_api("/api/v1/timer/stop")
 def api_stop_timer_at():
     """Stop the active timer at a specific timestamp (idle adjustment)."""
     active_timer = current_user.active_timer
@@ -467,6 +392,7 @@ def api_stop_timer_at():
 # --- Resume last timer/project ---
 @api_bp.route("/api/timer/resume", methods=["POST"])
 @login_required
+@deprecated_session_api("/api/v1/timer/start")
 def api_resume_timer():
     """Resume timer for last used project/task or provided project/task."""
     if current_user.active_timer:
@@ -498,12 +424,18 @@ def api_resume_timer():
         if not task:
             return jsonify({"error": "Invalid task for selected project"}), 400
 
-    # Create new timer
-    new_timer = TimeEntry(
-        user_id=current_user.id, project_id=project_id, task_id=task_id, start_time=local_now(), source="auto"
+    service = TimeTrackingService()
+    result = service.start_timer(
+        user_id=current_user.id,
+        project_id=project_id,
+        task_id=task_id,
+        notes=None,
+        template_id=None,
     )
-    db.session.add(new_timer)
-    db.session.commit()
+    if not result.get("success"):
+        return jsonify({"error": result.get("message", "Could not start timer")}), 400
+
+    new_timer = result["timer"]
 
     socketio.emit(
         "timer_started",
@@ -521,6 +453,7 @@ def api_resume_timer():
 
 @api_bp.route("/api/entries")
 @login_required
+@deprecated_session_api("/api/v1/time-entries")
 def get_entries():
     """Get time entries with pagination"""
     page = request.args.get("page", 1, type=int)
@@ -843,10 +776,10 @@ def delete_saved_filter(filter_id):
 
 @api_bp.route("/api/entries", methods=["POST"])
 @login_required
+@deprecated_session_api("/api/v1/time-entries")
 def create_entry():
     """Create a finished time entry (used by calendar drag-create)."""
     from app.models import Client
-    from app.services import TimeTrackingService
 
     data = request.get_json() or {}
     project_id = data.get("project_id")
@@ -945,6 +878,7 @@ def create_entry():
 
 @api_bp.route("/api/entries/bulk", methods=["POST"])
 @login_required
+@deprecated_session_api("/api/v1/time-entries/bulk")
 def bulk_entries_action():
     """Perform bulk actions on time entries: delete, set billable, set paid, add/remove tag."""
     from app.services.time_entry_bulk_service import apply_bulk_time_entry_actions
@@ -1256,6 +1190,7 @@ def calendar_export():
 
 @api_bp.route("/api/projects")
 @login_required
+@deprecated_session_api("/api/v1/projects")
 def get_projects():
     """Get active projects"""
     projects = Project.query.filter_by(status="active").order_by(Project.name).all()
@@ -1264,6 +1199,7 @@ def get_projects():
 
 @api_bp.route("/api/projects/<int:project_id>/tasks")
 @login_required
+@deprecated_session_api("/api/v1/tasks")
 def get_project_tasks(project_id):
     """Get tasks for a specific project"""
     # Check if project exists and is active
@@ -1412,6 +1348,7 @@ def create_task_inline():
 # Fetch a single time entry (details for edit modal)
 @api_bp.route("/api/entry/<int:entry_id>", methods=["GET"])
 @login_required
+@deprecated_session_api("/api/v1/time-entries")
 def get_entry(entry_id):
     entry = TimeEntry.query.get_or_404(entry_id)
     if entry.user_id != current_user.id and not current_user.is_admin:
@@ -1423,6 +1360,7 @@ def get_entry(entry_id):
 
 @api_bp.route("/api/users")
 @login_required
+@deprecated_session_api("/api/v1/users")
 def get_users():
     """Get active users (admin only). Uses a single aggregate query for total_hours to avoid N+1."""
     if not current_user.is_admin:
@@ -1490,8 +1428,18 @@ def get_stats():
     )
 
 
+@api_bp.route("/api/stats/value-dashboard")
+@login_required
+def value_dashboard_stats():
+    """Productivity/value aggregates for the dashboard widget (short-TTL Redis cache)."""
+    from app.services.stats_service import StatsService
+
+    return jsonify(StatsService.get_value_dashboard(current_user))
+
+
 @api_bp.route("/api/entry/<int:entry_id>", methods=["PUT"])
 @login_required
+@deprecated_session_api("/api/v1/time-entries")
 def update_entry(entry_id):
     """Update a time entry"""
     entry = TimeEntry.query.get_or_404(entry_id)
@@ -1525,8 +1473,6 @@ def update_entry(entry_id):
             return None
 
     # Use service layer for update to get enhanced audit logging
-    from app.services import TimeTrackingService
-
     service = TimeTrackingService()
 
     # Convert data to service parameters
@@ -1598,8 +1544,6 @@ def delete_entry(entry_id):
     reason = data.get("reason")  # Optional reason for deletion
 
     # Use service layer for deletion to get enhanced audit logging
-    from app.services import TimeTrackingService
-
     service = TimeTrackingService()
 
     result = service.delete_entry(
@@ -1723,6 +1667,7 @@ def serve_editor_image(filename):
 
 @api_bp.route("/api/activities")
 @login_required
+@deprecated_session_api("/api/v1/activities")
 def get_activities():
     """Get recent activities with filtering"""
     from sqlalchemy import and_
@@ -1880,28 +1825,39 @@ def dashboard_sparklines():
 @api_bp.route("/api/summary/today")
 @login_required
 def summary_today():
-    """Get today's time tracking summary for daily summary notification"""
-    from datetime import datetime, timedelta
+    """Get today's time tracking summary (user's local calendar day, not UTC midnight)."""
+    from app.services.notification_service import get_today_summary_for_user
 
-    from sqlalchemy import distinct, func
+    payload = get_today_summary_for_user(current_user)
+    return jsonify(payload)
 
-    from app.models import Project, TimeEntry
 
-    today = datetime.utcnow().date()
+@api_bp.route("/api/notifications")
+@login_required
+def api_smart_notifications():
+    """Smart in-app notification candidates (respects preferences, dismissals, caps)."""
+    from app.services.notification_service import NotificationService
 
-    # Get today's time entries for current user
-    entries = TimeEntry.query.filter(
-        TimeEntry.user_id == current_user.id, func.date(TimeEntry.start_time) == today, TimeEntry.end_time.isnot(None)
-    ).all()
+    return jsonify(NotificationService.build_for_user(current_user))
 
-    # Calculate total hours
-    total_hours = sum((entry.duration_hours or 0) for entry in entries)
 
-    # Count unique projects
-    project_ids = set(entry.project_id for entry in entries if entry.project_id)
-    project_count = len(project_ids)
+@api_bp.route("/api/notifications/dismiss", methods=["POST"])
+@login_required
+def api_smart_notifications_dismiss():
+    """Record dismissal for a notification kind on a local calendar date."""
+    from app.services.notification_service import NotificationService, user_local_today_bounds_utc
 
-    return jsonify({"hours": round(total_hours, 2), "projects": project_count})
+    data = request.get_json(silent=True) or {}
+    kind = data.get("kind")
+    local_date = data.get("local_date")
+    if not kind or not isinstance(kind, str):
+        return jsonify({"error": "kind is required"}), 400
+    if not local_date or not isinstance(local_date, str):
+        _, _, local_date = user_local_today_bounds_utc(current_user)
+    ok = NotificationService.dismiss(current_user, kind.strip(), local_date.strip()[:10])
+    if not ok:
+        return jsonify({"error": "invalid kind or local_date"}), 400
+    return jsonify({"success": True})
 
 
 @api_bp.route("/api/activity/timeline")

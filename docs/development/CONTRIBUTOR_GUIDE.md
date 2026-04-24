@@ -8,7 +8,7 @@ Single-page overview for contributors: architecture, local dev, testing, how to 
 
 - **Stack**: Flask app (server-rendered HTML + REST API), optional SocketIO/scheduler, Docker + Nginx + PostgreSQL.
 - **Layers**: Routes (`app/routes/`) → Services (`app/services/`) → Repositories (`app/repositories/`) / Models (`app/models/`). API under `/api/v1/`.
-- **Blueprint registration**: All route blueprints are registered in `app/blueprint_registry.py` (single place).
+- **Blueprint registration**: All route blueprints are registered in `app/blueprint_registry.py` (single place). Use the main registration list for required modules; optional feature blueprints go in `_register_optional_blueprints`—failures are logged with a full traceback, and the process re-raises in **development** only so optional routes are not silently missing locally.
 
 ```mermaid
 flowchart LR
@@ -56,7 +56,7 @@ Run the full test suite before opening a PR. Add tests for new behavior (e.g. in
 ## How to add a route
 
 1. Add or extend a blueprint in `app/routes/` (e.g. new file or existing `api_v1_*.py`).
-2. **Register** the blueprint in `app/blueprint_registry.py` (import and add to the list passed to `register_blueprints`).
+2. **Register** the blueprint in `app/blueprint_registry.py` (import and `app.register_blueprint(...)` in `register_all_blueprints`, or add an optional `(module_path, bp_attr)` tuple if the module may be absent in some installs).
 3. Prefer calling a **service** for business logic; keep the route thin.
 4. Add tests in `tests/test_routes/` or `tests/test_api_*` as appropriate.
 

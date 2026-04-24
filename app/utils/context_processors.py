@@ -1,5 +1,8 @@
-from flask import current_app, g, request
-from flask_babel import get_locale
+import json
+from datetime import datetime
+
+from flask import current_app, g, request, session, url_for
+from flask_babel import get_locale, gettext as _
 from flask_login import current_user
 
 from app.models import Settings
@@ -174,9 +177,101 @@ def register_context_processors(app):
                 user_stats = {}
                 support_banner_suppressed = False
 
+        is_admin_user = bool(
+            getattr(current_user, "is_authenticated", False) and getattr(current_user, "is_admin", False)
+        )
+
+        support_ui_json = None
+        layout_support_prompt = None
+        support_usage_stats_modal = None
+        if getattr(current_user, "is_authenticated", False):
+            try:
+                from app.config.support_ui import (
+                    build_support_checkout_urls,
+                    get_long_session_minutes,
+                    get_social_proof_text,
+                )
+                from app.models import Settings
+                from app.services.support_prompt_service import SupportPromptService
+                from app.services.usage_stats_service import UsageStatsService
+                from app.utils.license_utils import is_license_activated
+
+                settings_obj = Settings.get_settings()
+                is_supporter_instance = bool(settings_obj and is_license_activated(settings_obj))
+                ui_show_donate = bool(getattr(current_user, "ui_show_donate", True))
+
+                layout_support_prompt = SupportPromptService.consume_layout_prompt(
+                    session,
+                    ui_show_donate=ui_show_donate,
+                    is_supporter=is_supporter_instance,
+                    support_banner_suppressed=support_banner_suppressed,
+                )
+
+                usage_stats = UsageStatsService.get_for_user(current_user.id)
+                support_usage_stats_modal = usage_stats
+                checkout_urls = build_support_checkout_urls(current_app.config)
+                social_line = get_social_proof_text(current_app.config)
+                long_session_minutes = get_long_session_minutes()
+
+                if not session.get("support_session_started_at"):
+                    session["support_session_started_at"] = (
+                        datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+                    )
+
+                lp_message = ""
+                lp_action = _("Support")
+                if layout_support_prompt:
+                    v = layout_support_prompt.get("variant")
+                    if v == SupportPromptService.VARIANT_AFTER_REPORT:
+                        lp_message = _(
+                            "That report was quick to generate. If TimeTracker saves you time, "
+                            "consider supporting its development."
+                        )
+
+                support_ui_json = json.dumps(
+                    {
+                        "urls": checkout_urls,
+                        "stats": usage_stats,
+                        "socialProofLine": social_line,
+                        "longSessionMinutes": long_session_minutes,
+                        "isSupporter": is_supporter_instance,
+                        "sessionStartedAt": session.get("support_session_started_at"),
+                        "shareUrl": url_for("main.about", _external=True),
+                        "trackUrl": url_for("main.track_support_event"),
+                        "softPromptUrl": url_for("main.request_soft_support_prompt"),
+                        "layoutPrompt": (
+                            {
+                                "variant": layout_support_prompt.get("variant"),
+                                "message": lp_message,
+                                "actionLabel": lp_action,
+                            }
+                            if layout_support_prompt
+                            else None
+                        ),
+                        "i18n": {
+                            "offlineNote": _(
+                                "You appear to be offline. Reconnect to open donation or checkout links."
+                            ),
+                            "shareSuccess": _("Link copied to clipboard"),
+                            "shareFail": _("Could not copy link"),
+                            "supportAction": _("Support"),
+                            "longSessionToast": _(
+                                "You have been using TimeTracker actively for a while. "
+                                "If it helps your work, consider supporting its development."
+                            ),
+                        },
+                    },
+                    ensure_ascii=False,
+                )
+            except Exception:
+                support_ui_json = None
+                layout_support_prompt = None
+                support_usage_stats_modal = None
+
         return {
             "app_name": "Time Tracker",
             "app_version": version_value,
+            "is_admin_user": is_admin_user,
             "timezone": timezone_name,
             "timezone_offset": get_timezone_offset_for_timezone(timezone_name),
             "user_timezone": user_timezone,
@@ -190,6 +285,9 @@ def register_context_processors(app):
             "user_stats": user_stats,
             "support_banner_suppressed": support_banner_suppressed,
             "support_ab_variant": support_ab_variant,
+            "support_ui_json": support_ui_json,
+            "layout_support_prompt": layout_support_prompt,
+            "support_usage_stats_modal": support_usage_stats_modal,
         }
 
     @app.context_processor
