@@ -3,6 +3,18 @@
 
 let store = null;
 
+function readLocalStorageJson(key) {
+  const value = localStorage.getItem(key);
+  if (!value) return null;
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    console.warn(`Ignoring corrupt local setting "${key}":`, e);
+    localStorage.removeItem(key);
+    return null;
+  }
+}
+
 // Initialize store (called from renderer process)
 function initStore() {
   if (window.electronAPI) {
@@ -16,8 +28,7 @@ function initStore() {
   // Fallback to localStorage if electron API not available
   return {
     get: (key) => {
-      const value = localStorage.getItem(key);
-      return value ? JSON.parse(value) : null;
+      return readLocalStorageJson(key);
     },
     set: (key, value) => {
       localStorage.setItem(key, JSON.stringify(value));
@@ -35,8 +46,7 @@ const storeGet = async (key) => {
   if (window.electronAPI) {
     return await window.electronAPI.storeGet(key);
   }
-  const value = localStorage.getItem(key);
-  return value ? JSON.parse(value) : null;
+  return readLocalStorageJson(key);
 };
 
 const storeSet = async (key, value) => {

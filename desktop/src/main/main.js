@@ -1,15 +1,13 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
 const { createWindow } = require('./window');
-const { createTray } = require('./tray');
+const { createTray, destroyTray } = require('./tray');
 const Store = require('electron-store');
 
-// Initialize store
-const store = new Store();
+let store = null;
 
 // Parse command line arguments for server URL
-function parseCommandLineArgs() {
-  const args = process.argv.slice(1); // Skip electron/node path
+function parseCommandLineArgs(args = process.argv.slice(1)) {
+  if (!store) return;
   const serverUrlIndex = args.findIndex(arg => arg === '--server-url' || arg === '--server');
   if (serverUrlIndex !== -1 && args[serverUrlIndex + 1]) {
     const serverUrl = args[serverUrlIndex + 1];
@@ -39,27 +37,94 @@ function parseCommandLineArgs() {
   }
 }
 
-// Parse command line arguments before app is ready
-parseCommandLineArgs();
-
 // Keep a global reference of window and tray
 let mainWindow = null;
 let tray = null;
 const { getSplashWindow } = require('./window');
 
+const singleInstanceLock = app.requestSingleInstanceLock();
+if (!singleInstanceLock) {
+  app.quit();
+}
+
+function isLocalOrPrivateHost(hostname) {
+  const h = String(hostname || '').toLowerCase();
+  if (h === 'localhost' || h === '127.0.0.1' || h === '::1') return true;
+  if (h.endsWith('.local')) return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+  const m = h.match(/^172\.(\d{1,2})\.\d{1,3}\.\d{1,3}$/);
+  if (m) {
+    const second = Number(m[1]);
+    return second >= 16 && second <= 31;
+  }
+  return false;
+}
+
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+  let hostname = '';
+  try {
+    hostname = new URL(url).hostname;
+  } catch (_) {
+    callback(false);
+    return;
+  }
+
+  if (isLocalOrPrivateHost(hostname)) {
+    event.preventDefault();
+    callback(true);
+    return;
+  }
+
+  callback(false);
+});
+
+function isUsableWindow(win) {
+  return win && !win.isDestroyed();
+}
+
+function sendToMainWindow(channel, payload) {
+  if (!isUsableWindow(mainWindow)) return false;
+  mainWindow.webContents.send(channel, payload);
+  return true;
+}
+
+function focusMainWindow() {
+  if (!isUsableWindow(mainWindow)) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  if (!mainWindow.isVisible()) mainWindow.show();
+  mainWindow.focus();
+}
+
+function attachTray(win) {
+  destroyTray();
+  const trayResult = createTray(win);
+  tray = trayResult && trayResult.tray ? trayResult.tray : null;
+  updateTrayTooltip = trayResult && trayResult.updateTrayTooltip
+    ? trayResult.updateTrayTooltip
+    : () => {};
+  global.updateTrayMenu = trayResult && trayResult.updateTrayMenu
+    ? trayResult.updateTrayMenu
+    : null;
+}
+
+function createMainWindow(options = {}) {
+  mainWindow = createWindow(options);
+  attachTray(mainWindow);
+  mainWindow.on('closed', () => {
+    if (mainWindow && mainWindow.isDestroyed()) {
+      mainWindow = null;
+    }
+  });
+  return mainWindow;
+}
+
 // This method will be called when Electron has finished initialization
+if (singleInstanceLock) {
 app.whenReady().then(() => {
-  // Create main window
-  mainWindow = createWindow();
-  
-  // Create system tray
-  const trayResult = createTray(mainWindow);
-  if (trayResult && trayResult.updateTrayTooltip) {
-    updateTrayTooltip = trayResult.updateTrayTooltip;
-  }
-  if (trayResult && trayResult.updateTrayMenu) {
-    global.updateTrayMenu = trayResult.updateTrayMenu;
-  }
+  store = new Store();
+  parseCommandLineArgs();
+  createMainWindow({ showSplash: true });
   
   // Listen for timer status updates from renderer (via IPC)
   ipcMain.on('timer:status-update', (event, data) => {
@@ -82,17 +147,18 @@ app.whenReady().then(() => {
   
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      mainWindow = createWindow();
-      const trayResult = createTray(mainWindow);
-      if (trayResult && trayResult.updateTrayTooltip) {
-        updateTrayTooltip = trayResult.updateTrayTooltip;
-      }
-      if (trayResult && trayResult.updateTrayMenu) {
-        global.updateTrayMenu = trayResult.updateTrayMenu;
-      }
+      createMainWindow({ showSplash: false });
+    } else {
+      focusMainWindow();
     }
   });
 });
+
+app.on('second-instance', (event, argv) => {
+  parseCommandLineArgs(argv.slice(1));
+  focusMainWindow();
+});
+}
 
 // Quit when all windows are closed, except on macOS
 app.on('window-all-closed', () => {
@@ -108,18 +174,24 @@ ipcMain.handle('app:get-version', () => {
 });
 
 ipcMain.handle('store:get', (event, key) => {
-  return store.get(key);
+  if (!isAllowedStoreKey(key)) return undefined;
+  return store ? store.get(key) : undefined;
 });
 
 ipcMain.handle('store:set', (event, key, value) => {
+  if (!isAllowedStoreKey(key)) return;
+  if (!store) return;
   store.set(key, value);
 });
 
 ipcMain.handle('store:delete', (event, key) => {
+  if (!isAllowedStoreKey(key)) return;
+  if (!store) return;
   store.delete(key);
 });
 
 ipcMain.handle('store:clear', () => {
+  if (!store) return;
   store.clear();
 });
 
@@ -131,14 +203,18 @@ ipcMain.on('timer:start', async (event, data) => {
   // Timer start logic would go here
   // For now, just notify renderer
   currentTimer = { ...data, startTime: new Date() };
-  mainWindow.webContents.send('timer:start', currentTimer);
+  sendToMainWindow('timer:start', currentTimer);
   
   // Start polling timer status
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     if (currentTimer) {
       const elapsed = Math.floor((new Date() - currentTimer.startTime) / 1000);
-      mainWindow.webContents.send('timer:update', { elapsed });
+      if (!sendToMainWindow('timer:update', { elapsed })) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        return;
+      }
       if (tray) {
         updateTrayTooltip(`Running: ${formatDuration(elapsed)}`);
       }
@@ -152,7 +228,7 @@ ipcMain.on('timer:stop', async (event) => {
     timerInterval = null;
   }
   currentTimer = null;
-  mainWindow.webContents.send('timer:stop');
+  sendToMainWindow('timer:stop');
   if (tray) {
     updateTrayTooltip('TimeTracker');
   }
@@ -176,13 +252,27 @@ let updateTrayTooltip = (text) => {
   // Will be set by tray module
 };
 
+const ALLOWED_STORE_KEYS = new Set([
+  'server_url',
+  'api_token',
+  'api_token_server_url',
+  'username',
+  'theme_mode',
+  'auto_sync',
+  'sync_interval',
+]);
+
+function isAllowedStoreKey(key) {
+  return typeof key === 'string' && ALLOWED_STORE_KEYS.has(key);
+}
+
 // Window management
 ipcMain.on('window:minimize', () => {
-  if (mainWindow) mainWindow.minimize();
+  if (isUsableWindow(mainWindow)) mainWindow.minimize();
 });
 
 ipcMain.on('window:maximize', () => {
-  if (mainWindow) {
+  if (isUsableWindow(mainWindow)) {
     if (mainWindow.isMaximized()) {
       mainWindow.unmaximize();
     } else {
@@ -192,15 +282,15 @@ ipcMain.on('window:maximize', () => {
 });
 
 ipcMain.on('window:close', () => {
-  if (mainWindow) mainWindow.close();
+  if (isUsableWindow(mainWindow)) mainWindow.close();
 });
 
 ipcMain.on('window:hide', () => {
-  if (mainWindow) mainWindow.hide();
+  if (isUsableWindow(mainWindow)) mainWindow.hide();
 });
 
 ipcMain.on('window:show', () => {
-  if (mainWindow) mainWindow.show();
+  focusMainWindow();
 });
 
 // Splash screen handler

@@ -60,8 +60,9 @@ electron-icon-maker --input=../app/static/images/timetracker-logo.svg --output=.
 
 ## Current Status
 
-- ⚠️ Icon files need to be generated from the SVG logo
-- ✅ Configuration in `package.json` is set up correctly
+- ✅ `logo.svg` is tracked for renderer branding
+- ✅ `icon.png`, `icon.ico`, `icon.icns`, and `tray-icon.png` are tracked for packaged runtime/builds
+- ✅ Configuration in `package.json` includes `assets/**/*`
 - ✅ Favicon is configured in `index.html`
 
 ## Notes

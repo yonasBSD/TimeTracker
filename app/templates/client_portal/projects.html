@@ -19,17 +19,17 @@
 {% if project_stats %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for stat in project_stats %}
-    <div class="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden group">
+    <div class="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden group min-w-0">
         <!-- Project Header -->
-        <div class="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-6 text-white">
-            <div class="flex items-start justify-between mb-2">
-                <h3 class="text-xl font-bold line-clamp-2 flex-1">{{ stat.project.name }}</h3>
-                <span class="ml-2 px-2.5 py-1 text-xs font-semibold rounded-full bg-white/20 backdrop-blur-sm">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-6 text-white min-w-0">
+            <div class="flex items-start justify-between mb-2 min-w-0 gap-2">
+                <h3 class="text-xl font-bold line-clamp-2 flex-1 min-w-0 break-words">{{ stat.project.name }}</h3>
+                <span class="shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full bg-white/20 backdrop-blur-sm">
                     {{ stat.project.status|capitalize }}
                 </span>
             </div>
             {% if stat.project.description %}
-            <p class="text-sm text-blue-100 line-clamp-2 mt-2">{{ stat.project.description }}</p>
+            <p class="text-sm text-blue-100 line-clamp-2 mt-2 break-words">{{ stat.project.description }}</p>
             {% endif %}
         </div>
         

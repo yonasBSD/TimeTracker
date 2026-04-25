@@ -805,7 +805,7 @@ TimeTracker includes **optional** analytics and monitoring features to help impr
   - **Rich Context**: Browser, device, environment on every event
 - **Sink config:** Set `GRAFANA_OTLP_ENDPOINT` and `GRAFANA_OTLP_TOKEN`
 
-**Rollouts and kill switches** in this application are not driven by remote PostHog feature flags. Use **environment variables** and [`app/config.py`](app/config.py) (for example `DEMO_MODE`, `ALLOW_SELF_REGISTER`, `ENABLE_TELEMETRY`, `SINGLE_ACTIVE_TIMER`). **Per-user UI visibility** preferences are stored on the user record in the database, not in PostHog.
+**Rollouts and kill switches** in this application are not driven by remote PostHog feature flags. Use **environment variables** and [`app/config.py`](app/config.py) (for example `DEMO_MODE`, `ALLOW_SELF_REGISTER`, `ENABLE_TELEMETRY`, `SINGLE_ACTIVE_TIMER`). **Per-user UI visibility** preferences are stored on the user record in the database, not in PostHog. With **`DEMO_MODE`**, the auto-created login is a standard **user** (no admin or settings access); see [`docs/deploy/RENDER.md`](docs/deploy/RENDER.md) for demo setup and upgrading old demo databases.
 
 #### 5. **Installation Telemetry** (Optional, Anonymous)
 - Sends anonymous installation data via Grafana OTLP with:

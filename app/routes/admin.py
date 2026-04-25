@@ -12,7 +12,6 @@ from flask import (
     jsonify,
     redirect,
     render_template,
-    render_template_string,
     request,
     send_file,
     send_from_directory,
@@ -27,6 +26,7 @@ from werkzeug.utils import secure_filename
 import app as app_module
 from app import db, limiter
 from app.config.analytics_defaults import get_analytics_config
+from app.utils.safe_template_render import render_sandboxed_string
 from app.models import (
     DonationInteraction,
     Invoice,
@@ -3044,8 +3044,9 @@ def pdf_layout_preview():
         current_app.logger.info(
             f"[PDF_PREVIEW] Rendering template string - PageSize: '{page_size}', InvoiceID: {invoice_id}, Sanitized HTML length: {len(sanitized)}"
         )
-        body_html = render_template_string(
+        body_html = render_sandboxed_string(
             sanitized,
+            autoescape=True,
             invoice=invoice,
             settings=settings_obj,
             Path=_Path,
@@ -3628,8 +3629,9 @@ def quote_pdf_layout_preview():
         current_app.logger.info(
             f"[PDF_PREVIEW] Rendering quote template string - PageSize: '{page_size}', QuoteID: {quote_id}, Sanitized HTML length: {len(sanitized)}"
         )
-        body_html = render_template_string(
+        body_html = render_sandboxed_string(
             sanitized,
+            autoescape=True,
             quote=quote,
             settings=settings_obj,
             Path=_Path,

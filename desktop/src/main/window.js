@@ -1,5 +1,6 @@
-const { BrowserWindow, screen } = require('electron');
+const { app, BrowserWindow, screen } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 let windowState = {
   width: 1200,
@@ -9,23 +10,24 @@ let windowState = {
   isMaximized: false,
 };
 
-// Try to restore window state
-try {
-  const fs = require('fs');
-  const userDataPath = require('electron').app.getPath('userData');
-  const stateFile = path.join(userDataPath, 'window-state.json');
-  if (fs.existsSync(stateFile)) {
-    windowState = { ...windowState, ...JSON.parse(fs.readFileSync(stateFile, 'utf8')) };
+let windowStateLoaded = false;
+
+function loadWindowState() {
+  if (windowStateLoaded) return;
+  windowStateLoaded = true;
+  try {
+    const stateFile = path.join(app.getPath('userData'), 'window-state.json');
+    if (fs.existsSync(stateFile)) {
+      windowState = { ...windowState, ...JSON.parse(fs.readFileSync(stateFile, 'utf8')) };
+    }
+  } catch (e) {
+    // Ignore errors loading window state
   }
-} catch (e) {
-  // Ignore errors loading window state
 }
 
 function saveWindowState() {
   try {
-    const fs = require('fs');
-    const userDataPath = require('electron').app.getPath('userData');
-    const stateFile = path.join(userDataPath, 'window-state.json');
+    const stateFile = path.join(app.getPath('userData'), 'window-state.json');
     fs.writeFileSync(stateFile, JSON.stringify(windowState));
   } catch (e) {
     // Ignore errors saving window state
@@ -34,12 +36,14 @@ function saveWindowState() {
 
 let splashWindow = null;
 
-function createWindow() {
+function createWindow(options = {}) {
+  loadWindowState();
+
   // Create splash screen first (only if splash.html exists)
   const splashPath = path.join(__dirname, '../renderer/splash.html');
-  const fs = require('fs');
+  const showSplash = options.showSplash !== false;
   
-  if (fs.existsSync(splashPath)) {
+  if (showSplash && fs.existsSync(splashPath)) {
     splashWindow = new BrowserWindow({
       width: 500,
       height: 400,
@@ -49,6 +53,7 @@ function createWindow() {
       skipTaskbar: true,
       backgroundColor: '#00000000',
       webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: false,
@@ -80,6 +85,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false,
+      webSecurity: false,
     },
     // Icon path - use .ico on Windows, .icns on macOS, .png on Linux
     icon: (() => {
@@ -142,13 +148,16 @@ function createWindow() {
     saveWindowState();
   });
 
-  // Load the HTML file
+  // Load the Vite-built React renderer. The old renderer source remains in src/renderer
+  // during the migration, but Electron loads dist-renderer.
   const isDev = process.argv.includes('--dev');
+  const rendererIndex = path.join(__dirname, '../../dist-renderer/index.html');
+  const legacyIndex = path.join(__dirname, '../renderer/index.html');
   if (isDev) {
-    mainWindow.loadURL('http://localhost:3000');
+    mainWindow.loadFile(fs.existsSync(rendererIndex) ? rendererIndex : legacyIndex);
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+    mainWindow.loadFile(fs.existsSync(rendererIndex) ? rendererIndex : legacyIndex);
   }
 
   return mainWindow;

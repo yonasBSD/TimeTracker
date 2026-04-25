@@ -821,11 +821,11 @@ class ReportLabTemplateRenderer:
 
     def _process_template_variables(self, text: str) -> str:
         """Process Jinja2-style template variables in text"""
-        from flask import render_template_string
+        from app.utils.safe_template_render import render_sandboxed_string
 
         try:
             # Render with context
-            rendered = render_template_string(text, **self.context)
+            rendered = render_sandboxed_string(text, autoescape=False, **self.context)
             return rendered
         except Exception as e:
             if current_app:
@@ -886,10 +886,10 @@ class ReportLabTemplateRenderer:
             return str(getattr(item, field, ""))
 
         # Process template with item in context
-        from flask import render_template_string
+        from app.utils.safe_template_render import render_sandboxed_string
 
         try:
-            return render_template_string(template, item=item, **self.context)
+            return render_sandboxed_string(template, autoescape=False, item=item, **self.context)
         except Exception as e:
             if current_app:
                 current_app.logger.error(f"Error processing row template: {e}")

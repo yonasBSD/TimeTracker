@@ -575,6 +575,16 @@ def create_app(config=None):
         except Exception:
             pass
 
+    @app.before_request
+    def handle_api_cors_preflight():
+        if request.method == "OPTIONS" and request.path.startswith("/api/v1/"):
+            response = app.response_class(status=204)
+            response.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin") or "*"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, X-Request-ID"
+            response.headers["Access-Control-Max-Age"] = "600"
+            return response
+
     # Start timer for Prometheus metrics
     @app.before_request
     def prom_start_timer():
@@ -746,6 +756,15 @@ def create_app(config=None):
         # CSRF cookie/token handling
         # If CSRF is enabled, ensure CSRF cookie exists for HTML GET responses
         # If CSRF is disabled, explicitly clear any existing CSRF cookie to avoid confusion
+        try:
+            if request.path.startswith("/api/v1/"):
+                response.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin") or "*"
+                response.headers["Vary"] = "Origin"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+                response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, X-Request-ID"
+        except Exception:
+            pass
+
         if app.config.get("WTF_CSRF_ENABLED"):
             try:
                 # Only for safe, HTML page responses
@@ -1253,20 +1272,38 @@ def create_app(config=None):
             # Create default admin user or demo user if it doesn't exist
             if app.config.get("DEMO_MODE"):
                 demo_username = (app.config.get("DEMO_USERNAME") or "demo").strip().lower()
-                if not User.query.filter_by(username=demo_username).first():
-                    from app.models import Role
+                from app.models import Role
 
-                    demo_user = User(username=demo_username, role="admin")
+                demo_user = User.query.filter_by(username=demo_username).first()
+                if not demo_user:
+                    demo_user = User(username=demo_username, role="user")
                     demo_user.is_active = True
                     demo_user.set_password(app.config.get("DEMO_PASSWORD", "demo"))
 
-                    admin_role = Role.query.filter_by(name="admin").first()
-                    if admin_role:
-                        demo_user.roles.append(admin_role)
+                    user_role = Role.query.filter_by(name="user").first()
+                    if user_role:
+                        demo_user.roles.append(user_role)
 
                     db.session.add(demo_user)
                     db.session.commit()
                     print(f"Created demo user: {demo_username}")
+                else:
+                    # One-time upgrade: older installs created the demo account as admin (SSTI risk).
+                    user_role = Role.query.filter_by(name="user").first()
+                    changed = False
+                    if demo_user.role != "user":
+                        demo_user.role = "user"
+                        changed = True
+                    for r in list(demo_user.roles):
+                        if r.name in ("admin", "super_admin"):
+                            demo_user.roles.remove(r)
+                            changed = True
+                    if user_role and user_role not in demo_user.roles:
+                        demo_user.roles.append(user_role)
+                        changed = True
+                    if changed:
+                        db.session.commit()
+                        print(f"Updated demo user privileges: {demo_username}")
             else:
                 admin_username = app.config.get("ADMIN_USERNAMES", ["admin"])[0]
                 if not User.query.filter_by(username=admin_username).first():
@@ -1313,20 +1350,38 @@ def init_database(app):
             # Create default admin user or demo user if it doesn't exist
             if app.config.get("DEMO_MODE"):
                 demo_username = (app.config.get("DEMO_USERNAME") or "demo").strip().lower()
-                if not User.query.filter_by(username=demo_username).first():
-                    from app.models import Role
+                from app.models import Role
 
-                    demo_user = User(username=demo_username, role="admin")
+                demo_user = User.query.filter_by(username=demo_username).first()
+                if not demo_user:
+                    demo_user = User(username=demo_username, role="user")
                     demo_user.is_active = True
                     demo_user.set_password(app.config.get("DEMO_PASSWORD", "demo"))
 
-                    admin_role = Role.query.filter_by(name="admin").first()
-                    if admin_role:
-                        demo_user.roles.append(admin_role)
+                    user_role = Role.query.filter_by(name="user").first()
+                    if user_role:
+                        demo_user.roles.append(user_role)
 
                     db.session.add(demo_user)
                     db.session.commit()
                     print(f"Created demo user: {demo_username}")
+                else:
+                    # One-time upgrade: older installs created the demo account as admin (SSTI risk).
+                    user_role = Role.query.filter_by(name="user").first()
+                    changed = False
+                    if demo_user.role != "user":
+                        demo_user.role = "user"
+                        changed = True
+                    for r in list(demo_user.roles):
+                        if r.name in ("admin", "super_admin"):
+                            demo_user.roles.remove(r)
+                            changed = True
+                    if user_role and user_role not in demo_user.roles:
+                        demo_user.roles.append(user_role)
+                        changed = True
+                    if changed:
+                        db.session.commit()
+                        print(f"Updated demo user privileges: {demo_username}")
             else:
                 admin_username = app.config.get("ADMIN_USERNAMES", ["admin"])[0]
                 if not User.query.filter_by(username=admin_username).first():

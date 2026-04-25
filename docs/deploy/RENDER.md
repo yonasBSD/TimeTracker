@@ -58,8 +58,11 @@ In demo mode:
 - The login page shows the demo username and password.
 - Self-registration and admin user creation are disabled; OIDC cannot create new users.
 - The demo user is created automatically on first run if it does not exist.
+- The demo account has the standard **user** role only (not an administrator), so settings, PDF layout editing, and similar admin routes are unavailable on the demo login.
 
 **Security:** Use a strong **DEMO_PASSWORD** for any public demo. Do not use `DEMO_MODE=true` for production multi-user deployments.
+
+**Upgrading older demos:** If your database was created before this change and the demo user still has admin access, redeploying a current image runs a one-time adjustment on startup: the demo user is moved to the **user** role and `admin` / `super_admin` RBAC roles are removed. If you disabled `DEMO_MODE` and need a real administrator, create one via CLI or temporarily disable demo mode and use `ADMIN_USERNAMES` as documented in the main README.
 
 ## Optional: Run without the Blueprint
 

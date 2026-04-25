@@ -4,6 +4,7 @@ const { CONNECTION_STATE } = require('./connection_state');
 const STORE_SERVER = 'server_url';
 const STORE_TOKEN = 'api_token';
 const STORE_TOKEN_SERVER = 'api_token_server_url';
+const STORE_USERNAME = 'username';
 
 /**
  * Single source of truth for server URL, API client lifecycle, and connection state.
@@ -65,6 +66,17 @@ function createConnectionManager(deps) {
 
   function tearDownClient() {
     apiClient = null;
+  }
+
+  function isTransportSessionError(code) {
+    return [
+      'TIMEOUT',
+      'REFUSED',
+      'UNREACHABLE',
+      'DNS',
+      'TLS',
+      'UNKNOWN',
+    ].includes(code);
   }
 
   function attachWindowListeners() {
@@ -153,13 +165,16 @@ function createConnectionManager(deps) {
       setSnap({
         state: CONNECTION_STATE.NOT_CONFIGURED,
         serverUrl,
-        lastError: 'This API token was saved for a different server. Please sign in again.',
+        lastError: 'This saved sign-in was for a different server. Please sign in again.',
         serverVersion: null,
       });
       return { ok: false, reason: 'token_server_mismatch' };
     }
 
-    apiClient = new ApiClient(serverUrl);
+    apiClient = new ApiClient(serverUrl, {
+      enableIdempotentRetry: false,
+      timeoutMs: 15000,
+    });
     await apiClient.setAuthToken(String(token));
 
     setSnap({
@@ -169,6 +184,7 @@ function createConnectionManager(deps) {
     });
 
     const session = await apiClient.validateSession();
+
     if (session.ok) {
       if (!tokenNorm) {
         await storeSet(STORE_TOKEN_SERVER, serverUrl);
@@ -182,6 +198,17 @@ function createConnectionManager(deps) {
         serverVersion: null,
       });
       return { ok: true, session };
+    }
+
+    if (isTransportSessionError(session.code)) {
+      tearDownClient();
+      setSnap({
+        state: CONNECTION_STATE.ERROR,
+        serverUrl,
+        lastError: session.message || 'Server not reachable.',
+        serverVersion: null,
+      });
+      return { ok: false, reason: 'session_unreachable', session, message: session.message };
     }
 
     tearDownClient();
@@ -198,11 +225,12 @@ function createConnectionManager(deps) {
   }
 
   /**
-   * Validate server + token, then persist. No partial token writes on auth failure.
+   * Validate server + username/password, then persist the issued token.
    * @param {string} serverUrl
-   * @param {string} token
+   * @param {string} username
+   * @param {string} password
    */
-  async function login(serverUrl, token) {
+  async function login(serverUrl, username, password) {
     const normalized = ApiClient.normalizeBaseUrl(String(serverUrl || '').trim());
     const pub = await ApiClient.testPublicServerInfo(normalized);
     if (!pub.ok) {
@@ -214,8 +242,19 @@ function createConnectionManager(deps) {
       return { ok: false, step: 'server', ...pub };
     }
 
+    const auth = await ApiClient.loginWithPassword(normalized, username, password);
+    if (!auth.ok) {
+      setSnap({
+        state: CONNECTION_STATE.ERROR,
+        serverUrl: normalized,
+        lastError: auth.message || 'Login failed',
+        serverVersion: pub.app_version || null,
+      });
+      return { ok: false, step: 'auth', session: auth };
+    }
+
     const probe = new ApiClient(normalized);
-    await probe.setAuthToken(token);
+    await probe.setAuthToken(auth.token);
     const session = await probe.validateSession();
     if (!session.ok) {
       setSnap({
@@ -228,8 +267,9 @@ function createConnectionManager(deps) {
     }
 
     await storeSet(STORE_SERVER, normalized);
-    await storeSet(STORE_TOKEN, token);
+    await storeSet(STORE_TOKEN, auth.token);
     await storeSet(STORE_TOKEN_SERVER, normalized);
+    await storeSet(STORE_USERNAME, String(username || '').trim());
 
     apiClient = probe;
     const now = Date.now();
@@ -333,12 +373,13 @@ function createConnectionManager(deps) {
   }
 
   /**
-   * Validate server + token, then persist (including optional sync prefs). No partial writes on failure.
+   * Validate server + username/password, then persist the issued token (including optional sync prefs).
    * @param {string} serverUrl
-   * @param {string} token
+   * @param {string} username
+   * @param {string} password
    * @param {{ auto_sync?: boolean, sync_interval?: number }|null} syncExtras
    */
-  async function saveServerAndToken(serverUrl, token, syncExtras) {
+  async function saveServerAndCredentials(serverUrl, username, password, syncExtras) {
     const normalized = ApiClient.normalizeBaseUrl(String(serverUrl || '').trim());
     const pub = await ApiClient.testPublicServerInfo(normalized);
     if (!pub.ok) {
@@ -349,8 +390,17 @@ function createConnectionManager(deps) {
       return { ok: false, step: 'server', ...pub };
     }
 
+    const auth = await ApiClient.loginWithPassword(normalized, username, password);
+    if (!auth.ok) {
+      setSnap({
+        state: CONNECTION_STATE.ERROR,
+        lastError: auth.message || 'Login failed. Settings were not saved.',
+      });
+      return { ok: false, step: 'auth', session: auth };
+    }
+
     const probe = new ApiClient(normalized);
-    await probe.setAuthToken(token);
+    await probe.setAuthToken(auth.token);
     const session = await probe.validateSession();
     if (!session.ok) {
       setSnap({
@@ -366,8 +416,9 @@ function createConnectionManager(deps) {
     }
 
     await storeSet(STORE_SERVER, normalized);
-    await storeSet(STORE_TOKEN, token);
+    await storeSet(STORE_TOKEN, auth.token);
     await storeSet(STORE_TOKEN_SERVER, normalized);
+    await storeSet(STORE_USERNAME, String(username || '').trim());
 
     apiClient = probe;
     const now = Date.now();
@@ -382,14 +433,16 @@ function createConnectionManager(deps) {
   }
 
   /**
-   * Test server + token without persisting.
+   * Test server + username/password without persisting.
    */
-  async function testServerAndSession(serverUrl, token) {
+  async function testServerAndCredentials(serverUrl, username, password) {
     const normalized = ApiClient.normalizeBaseUrl(String(serverUrl || '').trim());
     const pub = await ApiClient.testPublicServerInfo(normalized);
     if (!pub.ok) return pub;
+    const auth = await ApiClient.loginWithPassword(normalized, username, password);
+    if (!auth.ok) return auth;
     const probe = new ApiClient(normalized);
-    await probe.setAuthToken(token);
+    await probe.setAuthToken(auth.token);
     const session = await probe.validateSession();
     if (!session.ok) return session;
     return { ok: true, app_version: pub.app_version || null };
@@ -420,13 +473,13 @@ function createConnectionManager(deps) {
     getClient,
     subscribe,
     testServer,
-    testServerAndSession,
+    testServerAndCredentials,
     bootstrapFromStore,
     login,
     logoutKeepServer,
     fullStoreReset,
     validateSessionRefresh,
-    saveServerAndToken,
+    saveServerAndCredentials,
     tearDownClient,
     signalError,
     /** Expose for tests */

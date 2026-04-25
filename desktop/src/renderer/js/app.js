@@ -1,15 +1,23 @@
 // Main application logic
 // First-run depends on ../shared/config.js exposing window.config before this bundle (see index.html).
 require('./utils/helpers');
-const { storeGet, storeSet, storeDelete, storeClear } = window.config || {};
 const ApiClient = require('./api/client');
 const { createConnectionManager } = require('./connection/connection_manager');
 const { CONNECTION_STATE } = require('./connection/connection_state');
 const { startTimerWithReconcile, stopTimerWithReconcile } = require('./connection/timer_operations');
 const { classifyAxiosError } = require('./api/client');
-const StorageService = require('./storage/storage');
 const { showError, showSuccess } = require('./ui/notifications');
 const state = require('./state');
+
+const {
+  formatDuration,
+  formatDurationLong,
+  formatDateTime,
+  isValidUrl,
+  normalizeServerUrlInput,
+} = window.Helpers || {};
+
+const { storeGet, storeSet, storeDelete, storeClear } = window.config || {};
 
 /** @type {ReturnType<typeof createConnectionManager> | null} */
 let connectionManager = null;
@@ -26,6 +34,15 @@ function truncateUrl(url, maxLen) {
 
 // Initialize app
 async function initApp() {
+  if (
+    typeof storeGet !== 'function' ||
+    typeof storeSet !== 'function' ||
+    typeof storeDelete !== 'function' ||
+    typeof storeClear !== 'function'
+  ) {
+    throw new Error('Desktop configuration bridge is unavailable.');
+  }
+
   connectionManager = createConnectionManager({
     storeGet,
     storeSet,
@@ -41,13 +58,15 @@ async function initApp() {
     updateConnectionFromManager();
   });
 
+  setupEventListeners();
+  setupTrayListeners();
+
   const boot = await connectionManager.bootstrapFromStore();
 
   if (boot.ok) {
     state.authFailureStreak = 0;
-    await loadCurrentUserProfile();
     showMainScreen();
-    loadDashboard();
+    await loadInitialData();
   } else if (boot.reason === 'offline' && boot.hadCredentials) {
     showLoginScreen({
       prefillServerUrl: connectionManager.getSnapshot().serverUrl || '',
@@ -61,25 +80,54 @@ async function initApp() {
       prefillServerUrl: connectionManager.getSnapshot().serverUrl || '',
       bannerMessage: connectionManager.getSnapshot().lastError || 'Please sign in again.',
     });
+  } else if (boot.reason === 'no_server') {
+    showLoginScreen({ prefillServerUrl: '', startAtServer: true });
+  } else if (boot.reason === 'no_token') {
+    showLoginScreen({
+      prefillServerUrl: connectionManager.getSnapshot().serverUrl || '',
+      openTokenStep: true,
+    });
+  } else if (boot.reason === 'bootstrap_timeout') {
+    showLoginScreen({
+      prefillServerUrl: connectionManager.getSnapshot().serverUrl || '',
+      openTokenStep: true,
+      bannerMessage: boot.message || 'Server did not respond in time. Check the URL or network, then try signing in again.',
+    });
+  } else if (boot.reason === 'session_unreachable') {
+    showLoginScreen({
+      prefillServerUrl: connectionManager.getSnapshot().serverUrl || '',
+      openTokenStep: true,
+      bannerMessage: boot.message || 'Server is not reachable. Check the URL or network, then try signing in again.',
+    });
   } else {
     showLoginScreen({ prefillServerUrl: connectionManager.getSnapshot().serverUrl || '' });
   }
 
-  setupEventListeners();
   startConnectionCheck();
-  setupTrayListeners();
 
   window.addEventListener('online', async () => {
     if (!connectionManager.getClient()) {
       const retry = await connectionManager.bootstrapFromStore();
       if (retry.ok && document.getElementById('main-screen')?.classList.contains('active')) {
         state.authFailureStreak = 0;
-        await loadCurrentUserProfile();
-        loadDashboard();
+        await loadInitialData();
       }
     }
     await checkConnection();
   });
+}
+
+async function loadInitialData() {
+  try {
+    await loadCurrentUserProfile();
+  } catch (err) {
+    console.error('Initial profile load failed:', err);
+  }
+  try {
+    await loadDashboard();
+  } catch (err) {
+    console.error('Initial dashboard load failed:', err);
+  }
 }
 
 function setupTrayListeners() {
@@ -402,7 +450,7 @@ async function handleLoginTestServer() {
     return;
   }
   const ver = pub.app_version ? ` (server version ${pub.app_version})` : '';
-  showSuccess(`TimeTracker server detected${ver}. Continue to enter your API token.`);
+  showSuccess(`TimeTracker server detected${ver}. Continue to sign in.`);
   if (contServer) contServer.disabled = false;
 }
 
@@ -456,19 +504,19 @@ async function handleLogin(e) {
   }
   const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
 
-  const apiToken = document.getElementById('api-token')?.value.trim() || '';
-  if (!apiToken || !apiToken.startsWith('tt_')) {
-    showLoginError('Please enter a valid API token (must start with tt_)');
+  const username = document.getElementById('login-username')?.value.trim() || '';
+  const password = document.getElementById('login-password')?.value || '';
+  if (!username || !password) {
+    showLoginError('Please enter your username and password');
     return;
   }
 
-  const result = await connectionManager.login(serverUrl, apiToken);
+  const result = await connectionManager.login(serverUrl, username, password);
 
   if (result.ok) {
     state.authFailureStreak = 0;
-    await loadCurrentUserProfile();
     showMainScreen();
-    loadDashboard();
+    await loadInitialData();
   } else {
     const msg = result.session?.message || result.message || 'Login failed';
     showLoginError(msg);
@@ -510,6 +558,16 @@ function showLoginScreen(options = {}) {
     const contServer = document.getElementById('login-wizard-continue-server');
     if (contServer) contServer.disabled = false;
     showWizardTokenStep();
+    if (options.bannerMessage) {
+      showLoginError(options.bannerMessage);
+    } else {
+      clearLoginError();
+    }
+    return;
+  }
+
+  if (options.startAtServer) {
+    showWizardServerStep();
     if (options.bannerMessage) {
       showLoginError(options.bannerMessage);
     } else {
@@ -1690,22 +1748,24 @@ async function deleteTimeOffRequestAction(requestId) {
 async function loadSettings() {
   // Load current settings
   const serverUrl = await storeGet('server_url') || '';
-  const apiToken = await storeGet('api_token') || '';
+  const username = await storeGet('username') || '';
   const autoSync = await storeGet('auto_sync');
   const syncInterval = await storeGet('sync_interval');
   
   const serverUrlInput = document.getElementById('settings-server-url');
-  const apiTokenInput = document.getElementById('settings-api-token');
+  const usernameInput = document.getElementById('settings-username');
+  const passwordInput = document.getElementById('settings-password');
   const autoSyncInput = document.getElementById('auto-sync');
   const syncIntervalInput = document.getElementById('sync-interval');
   
   if (serverUrlInput) {
     serverUrlInput.value = serverUrl ? ApiClient.normalizeBaseUrl(String(serverUrl)) : '';
   }
-  if (apiTokenInput) {
-    // Only show if token exists, otherwise leave empty
-    apiTokenInput.value = apiToken ? '••••••••' : '';
-    apiTokenInput.dataset.hasToken = apiToken ? 'true' : 'false';
+  if (usernameInput) {
+    usernameInput.value = username ? String(username) : '';
+  }
+  if (passwordInput) {
+    passwordInput.value = '';
   }
   if (autoSyncInput) {
     autoSyncInput.checked = autoSync !== null ? Boolean(autoSync) : true;
@@ -1725,16 +1785,18 @@ function updateSyncIntervalState() {
 
 async function handleSaveSettings() {
   const serverUrlInput = document.getElementById('settings-server-url');
-  const apiTokenInput = document.getElementById('settings-api-token');
+  const usernameInput = document.getElementById('settings-username');
+  const passwordInput = document.getElementById('settings-password');
   const autoSyncInput = document.getElementById('auto-sync');
   const syncIntervalInput = document.getElementById('sync-interval');
   const messageDiv = document.getElementById('settings-message');
   
-  if (!serverUrlInput || !apiTokenInput || !autoSyncInput || !syncIntervalInput) return;
+  if (!serverUrlInput || !usernameInput || !passwordInput || !autoSyncInput || !syncIntervalInput) return;
   
   const rawServer = serverUrlInput.value.trim();
   const normalizedInput = normalizeServerUrlInput(rawServer);
-  const apiToken = apiTokenInput.value.trim();
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value;
   const autoSync = autoSyncInput.checked;
   const syncInterval = parseInt(syncIntervalInput.value, 10);
 
@@ -1743,16 +1805,9 @@ async function handleSaveSettings() {
     return;
   }
   const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
-  
-  // Check if API token was changed (if it's not the masked value)
-  const hasExistingToken = apiTokenInput.dataset.hasToken === 'true';
-  let finalApiToken = apiToken;
-  
-  // If token input shows masked value and user didn't change it, keep existing token
-  if (hasExistingToken && apiToken === '••••••••') {
-    finalApiToken = await storeGet('api_token');
-  } else if (!apiToken || !apiToken.startsWith('tt_')) {
-    showSettingsMessage('Please enter a valid API token (must start with tt_)', 'error');
+
+  if (!username || !password) {
+    showSettingsMessage('Please enter your username and password to save settings', 'error');
     return;
   }
 
@@ -1762,7 +1817,7 @@ async function handleSaveSettings() {
   }
 
   try {
-    const saved = await connectionManager.saveServerAndToken(serverUrl, finalApiToken, {
+    const saved = await connectionManager.saveServerAndCredentials(serverUrl, username, password, {
       auto_sync: autoSync,
       sync_interval: syncInterval,
     });
@@ -1775,8 +1830,7 @@ async function handleSaveSettings() {
     await loadCurrentUserProfile();
     updateConnectionFromManager();
     showSettingsMessage('Settings saved successfully!', 'success');
-    apiTokenInput.value = '••••••••';
-    apiTokenInput.dataset.hasToken = 'true';
+    passwordInput.value = '';
     serverUrlInput.value = serverUrl;
   } catch (error) {
     console.error('Error saving settings:', error);
@@ -1787,14 +1841,16 @@ async function handleSaveSettings() {
 
 async function handleTestConnection() {
   const serverUrlInput = document.getElementById('settings-server-url');
-  const apiTokenInput = document.getElementById('settings-api-token');
+  const usernameInput = document.getElementById('settings-username');
+  const passwordInput = document.getElementById('settings-password');
   const messageDiv = document.getElementById('settings-message');
   
-  if (!serverUrlInput || !apiTokenInput) return;
+  if (!serverUrlInput || !usernameInput || !passwordInput) return;
   
   const rawServer = serverUrlInput.value.trim();
   const normalizedInput = normalizeServerUrlInput(rawServer);
-  let apiToken = apiTokenInput.value.trim();
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value;
 
   if (!normalizedInput || !isValidUrl(normalizedInput)) {
     showSettingsMessage('Please enter a valid server URL', 'error');
@@ -1802,19 +1858,14 @@ async function handleTestConnection() {
   }
   const serverUrl = ApiClient.normalizeBaseUrl(normalizedInput);
 
-  const hasExistingToken = apiTokenInput.dataset.hasToken === 'true';
-  if (hasExistingToken && apiToken === '••••••••') {
-    apiToken = await storeGet('api_token');
-  }
-
-  if (!apiToken || !apiToken.startsWith('tt_')) {
-    showSettingsMessage('Please enter a valid API token (must start with tt_)', 'error');
+  if (!username || !password) {
+    showSettingsMessage('Please enter your username and password to test connection', 'error');
     return;
   }
 
   try {
     showSettingsMessage('Testing connection...', 'info');
-    const r = await connectionManager.testServerAndSession(serverUrl, apiToken);
+    const r = await connectionManager.testServerAndCredentials(serverUrl, username, password);
     if (!r.ok) {
       showSettingsMessage(r.message || 'Connection test failed.', 'error');
       updateConnectionFromManager();
@@ -1826,7 +1877,7 @@ async function handleTestConnection() {
     }
     updateConnectionFromManager();
     const ver = r.app_version ? ` (${r.app_version})` : '';
-    showSettingsMessage(`Connection successful: server and API token are valid${ver}.`, 'success');
+    showSettingsMessage(`Connection successful: credentials are valid${ver}.`, 'success');
   } catch (error) {
     console.error('Error testing connection:', error);
     if (error && error.stack) console.error(error.stack);
@@ -1852,7 +1903,7 @@ function showSettingsMessage(message, type = 'info') {
 }
 
 async function handleLogout() {
-  if (!confirm('Sign out and remove the API token? Your server URL will be kept.')) return;
+  if (!confirm('Sign out of this desktop app? Your server URL will be kept.')) return;
   if (state.isTimerRunning) {
     state.isTimerRunning = false;
     stopTimerPolling();
@@ -1874,24 +1925,33 @@ async function handleResetConfiguration() {
     stopTimerPolling();
   }
   await connectionManager.fullStoreReset();
-  showLoginScreen({ prefillServerUrl: '' });
+  showLoginScreen({ prefillServerUrl: '', startAtServer: true });
 }
 
 // Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
+async function safeInitApp() {
+  try {
+    await initApp();
+  } catch (err) {
+    console.error('initApp failed:', err);
+    try {
+      showLoginScreen({
+        prefillServerUrl: '',
+        startAtServer: true,
+        bannerMessage:
+          'Startup failed. Please re-enter your server URL and sign in again.',
+      });
+    } catch (e) {
+      console.error('Failed to show login screen after init failure:', e);
+    }
+  }
 }
 
-// Use helper functions from helpers.js
-const {
-  formatDuration,
-  formatDurationLong,
-  formatDateTime,
-  isValidUrl,
-  normalizeServerUrlInput,
-} = window.Helpers || {};
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', safeInitApp);
+} else {
+  safeInitApp();
+}
 
 // Filter functions
 function toggleFilters() {

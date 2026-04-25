@@ -28,7 +28,7 @@ npm run build
 npm run build:win
 
 # macOS
-npm run mac
+npm run build:mac
 
 # Linux
 npm run build:linux
@@ -77,7 +77,7 @@ The UI is bundled from [`src/renderer/js/app.js`](src/renderer/js/app.js) into [
 npm start
 ```
 
-(`npm start` runs `build:renderer` first via **prestart**, then launches Electron. `npm run build` uses **prebuild** the same way so installers do not ship a stale `bundle.js`.)
+(`npm start` and every packaging script run `build:renderer` first so installers do not ship a stale `bundle.js`.)
 
 ### Run with DevTools
 

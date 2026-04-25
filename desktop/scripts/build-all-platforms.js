@@ -11,6 +11,9 @@ const platform = os.platform();
 let buildCommand = 'electron-builder';
 
 console.log(`\n🔨 Building for all supported platforms on ${platform}\n`);
+console.log('📦 Building renderer bundle...');
+execSync('npm run build:renderer', { stdio: 'inherit' });
+console.log('');
 
 // Determine which platforms can be built on the current OS
 switch (platform) {
@@ -58,9 +61,7 @@ if (platform === 'win32') {
   if (process.env.CSC_LINK || process.env.CSC_LINK_FILE) {
     console.log('ℹ️  Code signing will be enabled (certificate detected)\n');
   } else {
-    console.log('ℹ️  Code signing disabled (no certificate configured)\n');
-    // Explicitly disable signing to avoid errors
-    buildCommand += ' --config.win.sign=null';
+    console.log('ℹ️  No signing certificate configured; building unsigned Windows artifacts.\n');
   }
 }
 

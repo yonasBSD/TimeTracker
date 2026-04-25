@@ -218,11 +218,11 @@ def health_check():
 @api_v1_bp.route("/auth/login", methods=["POST"])
 @limiter.limit("5 per minute", methods=["POST"])
 def auth_login():
-    """Login with username and password; returns an API token for mobile/app use.
+    """Login with username and password; returns an API token for app use.
 
     Accepts JSON: { "username": "...", "password": "..." }.
     Returns 200 with { "token": "tt_..." } or 401 with { "error": "..." }.
-    The token has scopes for basics: read:projects, read:tasks, read:time_entries, write:time_entries.
+    Admin users receive admin scope; regular users receive broad read/write API scopes.
     """
     current_app.logger.info(
         "POST /api/v1/auth/login from %s",
@@ -239,12 +239,12 @@ def auth_login():
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid username or password"}), 401
 
-    scopes = "read:projects,read:tasks,read:time_entries,write:time_entries"
+    scopes = "admin:all" if user.is_admin else "read:*,write:*"
     expiry_days = current_app.config.get("API_TOKEN_DEFAULT_EXPIRY_DAYS", 90)
     api_token, plain_token = ApiToken.create_token(
         user_id=user.id,
-        name=f"Mobile app - {user.username}",
-        description="Token issued via mobile/app login",
+        name=f"App login - {user.username}",
+        description="Token issued via desktop/mobile app login",
         scopes=scopes,
         expires_days=expiry_days if expiry_days else None,
     )

@@ -1,5 +1,8 @@
 name: Build Desktop Apps
 
+env:
+  NODE_VERSION: '24'
+
 on:
   push:
     branches: [ main, develop ]
@@ -19,9 +22,9 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
       
       - name: Generate desktop icons
         run: |
@@ -52,9 +55,9 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
       
       - name: Generate desktop icons
         run: |
@@ -83,9 +86,9 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
       
       - name: Generate desktop icons
         run: |

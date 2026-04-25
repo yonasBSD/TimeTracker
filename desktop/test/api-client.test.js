@@ -37,7 +37,7 @@ test('classifyAxiosError maps 401', () => {
   const err = { response: { status: 401, data: {} } };
   const r = ApiClient.classifyAxiosError(err);
   assert.strictEqual(r.code, 'UNAUTHORIZED');
-  assert.ok(r.message.includes('token'));
+  assert.ok(r.message.toLowerCase().includes('sign in'));
 });
 
 test('classifyAxiosError maps TLS-ish code', () => {

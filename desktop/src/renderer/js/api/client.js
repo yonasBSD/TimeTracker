@@ -44,7 +44,7 @@ function classifyAxiosError(error) {
     if (status === 401) {
       return {
         code: 'UNAUTHORIZED',
-        message: 'Authentication failed. Check your API token.',
+        message: 'Authentication failed. Sign in again.',
       };
     }
     if (status === 403) {
@@ -67,7 +67,7 @@ function classifyAxiosError(error) {
     }
     return { code: 'HTTP_' + status, message: `Server returned HTTP ${status}.` };
   }
-  if (error.code === 'ECONNABORTED') {
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
     return {
       code: 'TIMEOUT',
       message: 'Request timed out. Check the server URL, firewall, and network.',
@@ -121,14 +121,14 @@ const { attachIdempotentRetryInterceptors } = require('../connection/request_pol
 class ApiClient {
   /**
    * @param {string} baseUrl
-   * @param {{ enableIdempotentRetry?: boolean }} [options]
+   * @param {{ enableIdempotentRetry?: boolean, timeoutMs?: number }} [options]
    */
   constructor(baseUrl, options = {}) {
     const normalized = ApiClient.normalizeBaseUrl(baseUrl);
     this.baseUrl = normalized;
     this.client = axios.create({
       baseURL: normalized,
-      timeout: 10000,
+      timeout: options.timeoutMs ?? 10000,
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -158,7 +158,7 @@ class ApiClient {
           const data = error.response.data;
 
           if (status === 401) {
-            error.message = 'Authentication failed. Please check your API token.';
+            error.message = 'Authentication failed. Please sign in again.';
           } else if (status === 403) {
             error.message = 'Access denied. Your token may not have the required permissions.';
           } else if (status === 404) {
@@ -250,6 +250,45 @@ class ApiClient {
     }
   }
 
+  /**
+   * Login with the same username/password flow used by the mobile app.
+   * The server returns an API token, which the desktop stores internally.
+   * @param {string} baseUrl
+   * @param {string} username
+   * @param {string} password
+   * @returns {Promise<{ ok: true, token: string } | ValidationResult>}
+   */
+  static async loginWithPassword(baseUrl, username, password) {
+    const normalized = ApiClient.normalizeBaseUrl(baseUrl);
+    const plain = axios.create({
+      baseURL: normalized,
+      timeout: 15000,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+    });
+
+    try {
+      const response = await plain.post('/api/v1/auth/login', {
+        username,
+        password,
+      });
+      const token = response.data && response.data.token;
+      if (response.status !== 200 || typeof token !== 'string' || !token.startsWith('tt_')) {
+        return {
+          ok: false,
+          code: 'INVALID_RESPONSE',
+          message: 'Server login response did not include a valid app token.',
+        };
+      }
+      return { ok: true, token };
+    } catch (error) {
+      const { code, message } = classifyAxiosError(error);
+      return { ok: false, code, message };
+    }
+  }
+
   async setAuthToken(token) {
     await storeSet('api_token', token);
   }
@@ -298,7 +337,7 @@ class ApiClient {
           ok: false,
           code: 'FORBIDDEN',
           message:
-            'This API token cannot access your profile or timer. Use a token with read:users or read:time_entries.',
+            'This signed-in account cannot access your profile or timer.',
         };
       }
       const { code, message } = classifyAxiosError(error);

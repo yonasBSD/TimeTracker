@@ -510,17 +510,33 @@ def ensure_default_data(app):
             # Demo user or admin users (same logic as app.initialize_database)
             if app.config.get("DEMO_MODE"):
                 from app.models import Role
+
                 demo_username = (app.config.get("DEMO_USERNAME") or "demo").strip().lower()
-                existing = User.query.filter_by(username=demo_username).first()
-                if not existing:
-                    demo_user = User(username=demo_username, role="admin")
+                demo_user = User.query.filter_by(username=demo_username).first()
+                if not demo_user:
+                    demo_user = User(username=demo_username, role="user")
                     demo_user.is_active = True
                     demo_user.set_password(app.config.get("DEMO_PASSWORD", "demo"))
-                    admin_role = Role.query.filter_by(name="admin").first()
-                    if admin_role:
-                        demo_user.roles.append(admin_role)
+                    user_role = Role.query.filter_by(name="user").first()
+                    if user_role:
+                        demo_user.roles.append(user_role)
                     db.session.add(demo_user)
                     log(f"Created demo user: {demo_username}", "INFO")
+                else:
+                    user_role = Role.query.filter_by(name="user").first()
+                    changed = False
+                    if demo_user.role != "user":
+                        demo_user.role = "user"
+                        changed = True
+                    for r in list(demo_user.roles):
+                        if r.name in ("admin", "super_admin"):
+                            demo_user.roles.remove(r)
+                            changed = True
+                    if user_role and user_role not in demo_user.roles:
+                        demo_user.roles.append(user_role)
+                        changed = True
+                    if changed:
+                        log(f"Updated demo user privileges: {demo_username}", "INFO")
                 db.session.commit()
             else:
                 admin_usernames = [u.strip().lower() for u in os.getenv("ADMIN_USERNAMES", "admin").split(",") if u.strip()]
