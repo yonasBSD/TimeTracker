@@ -22,7 +22,7 @@
 - 40+ pre-configured shortcuts
 - Context-aware shortcuts (global, table, modal, editing)
 - Sequential key combinations (`g d`, `c p`, etc.)
-- Shortcuts help panel (press `?`)
+- Shortcuts help panel (Shift+? / Shift+/)
 - Customization support
 - LocalStorage persistence
 

@@ -151,7 +151,7 @@ This document summarizes the Quick Win improvements made to the TimeTracker cale
 
 ### 6. ❓ Keyboard Shortcuts Help Panel
 
-**Location:** Modal (press `?` to open)  
+**Location:** Modal (Shift+? / Shift+/ to open)  
 **Description:** Interactive help showing all available keyboard shortcuts.
 
 **Features:**

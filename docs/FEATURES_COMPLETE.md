@@ -805,7 +805,7 @@ TimeTracker is a comprehensive, self-hosted time tracking and project management
 ### Navigation & Search
 
 #### 89. **Command Palette**
-- Keyboard-driven navigation (press `?`)
+- Keyboard-driven navigation (Ctrl+K / Cmd+K)
 - Quick action execution
 - Search across all features
 - Command shortcuts

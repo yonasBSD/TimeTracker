@@ -362,18 +362,24 @@ class KeyboardShortcutManager {
 
     // Action implementations
     openCommandPalette() {
-        const modal = document.getElementById('commandPaletteModal');
-        if (modal) {
-            // If already open, just focus
-            if (!modal.classList.contains('hidden')) {
-                const inputExisting = document.getElementById('commandPaletteInput');
-                if (inputExisting) setTimeout(() => inputExisting.focus(), 50);
-                return;
-            }
-            modal.classList.remove('hidden');
-            const input = document.getElementById('commandPaletteInput');
-            if (input) setTimeout(() => input.focus(), 100);
+        // Delegate to the global command palette implementation.
+        // This keeps shortcut handling decoupled from the palette UI markup.
+        if (typeof window.openCommandPalette === 'function') {
+            window.openCommandPalette();
+            return;
         }
+
+        // Fallback for older builds/pages: try to open the legacy modal if present.
+        const modal = document.getElementById('commandPaletteModal');
+        if (!modal) return;
+        if (!modal.classList.contains('hidden')) {
+            const inputExisting = document.getElementById('commandPaletteInput');
+            if (inputExisting) setTimeout(() => inputExisting.focus(), 50);
+            return;
+        }
+        modal.classList.remove('hidden');
+        const input = document.getElementById('commandPaletteInput');
+        if (input) setTimeout(() => input.focus(), 100);
     }
 
     toggleSearch() {

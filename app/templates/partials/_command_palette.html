@@ -1,0 +1,56 @@
+{# Global command palette modal (hidden by default) #}
+{# Links are passed via data-* to keep JS self-contained and route-safe. #}
+<div
+  id="ttCommandPalette"
+  class="fixed inset-0 z-50 hidden"
+  data-dashboard-url="{{ url_for('main.dashboard') }}"
+  data-reports-url="{{ url_for('reports.reports') }}"
+  data-clients-url="{{ url_for('clients.list_clients') }}"
+  data-new-time-entry-url="{{ url_for('timer.manual_entry') }}"
+  data-new-project-url="{{ url_for('projects.create_project') }}"
+  data-new-invoice-url="{{ url_for('invoices.create_invoice') }}"
+>
+  <div class="absolute inset-0 bg-black/50" data-tt-cp-close></div>
+
+  <div class="relative mx-auto mt-20 w-[92vw] max-w-2xl">
+    <div class="bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark rounded-xl shadow-2xl border border-border-light dark:border-border-dark overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-border-light dark:border-border-dark">
+        <div class="text-xs text-text-muted-light dark:text-text-muted-dark">
+          <span class="hidden sm:inline">Press</span>
+          <kbd class="px-1.5 py-0.5 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded text-[11px]">Esc</kbd>
+          <span class="hidden sm:inline">to close,</span>
+          <kbd class="px-1.5 py-0.5 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded text-[11px]">↑</kbd>
+          <kbd class="px-1.5 py-0.5 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded text-[11px]">↓</kbd>
+          <span class="hidden sm:inline">to navigate,</span>
+          <kbd class="px-1.5 py-0.5 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded text-[11px]">Enter</kbd>
+          <span class="hidden sm:inline">to run</span>
+        </div>
+        <button id="ttCommandPaletteClose" type="button" class="px-2 py-1 text-sm rounded hover:bg-background-light dark:hover:bg-background-dark">
+          Close
+        </button>
+      </div>
+
+      <div class="p-4">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-terminal text-text-muted-light dark:text-text-muted-dark"></i>
+          <input
+            id="ttCommandPaletteInput"
+            type="text"
+            class="w-full bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="{{ _('Type a command or search...') }}"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+          >
+        </div>
+
+        <div class="mt-3">
+          <div id="ttCommandPaletteSubheader" class="text-xs text-text-muted-light dark:text-text-muted-dark mb-2 hidden"></div>
+          <div id="ttCommandPaletteList" class="flex flex-col max-h-[24rem] overflow-y-auto divide-y divide-border-light dark:divide-border-dark"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

@@ -139,7 +139,7 @@ See [CHANGELOG.md](CHANGELOG.md) for all release notes and version history.
 - **Audit Logs** — Track all system activity and user actions
 
 #### ⌨️ **Productivity Power-Ups**
-- **Command Palette** — Keyboard-driven navigation (press `?` to open)
+- **Command Palette** — Keyboard-driven navigation (Ctrl+K / Cmd+K)
 - **Keyboard Shortcuts** — 50+ shortcuts for lightning-fast navigation
 - **Quick Search** — Fast search across projects, tasks, clients, and more (Ctrl+K)
 - **Saved Filters** — Save frequently used report filters for instant access
@@ -270,7 +270,7 @@ TimeTracker includes **130+ features** across 13 major categories. See the [Comp
 - **Audit Logs** — Track all system activity and user actions
 
 ### ⌨️ **Productivity Features**
-- **Command Palette** — Keyboard-driven navigation with shortcuts (press `?`) ([Guide](docs/COMMAND_PALETTE_USAGE.md))
+- **Command Palette** — Keyboard-driven navigation with shortcuts (Ctrl+K / Cmd+K) ([Guide](docs/COMMAND_PALETTE_USAGE.md))
 - **Keyboard Shortcuts** — 50+ shortcuts for lightning-fast navigation and actions
 - **Quick Search** — Enhanced instant search with autocomplete and categorized results (Ctrl+K)
 - **Quick Actions Menu** — Floating action button with 6 quick actions (bottom-right)
@@ -929,7 +929,7 @@ This starts:
 - ✅ **Audit Logs** — Complete system activity and user action tracking
 
 #### ⌨️ Productivity Features
-- ✅ **Command Palette** — Keyboard-driven navigation (press `?` to open)
+- ✅ **Command Palette** — Keyboard-driven navigation (Ctrl+K / Cmd+K)
 - ✅ **Keyboard Shortcuts** — 50+ shortcuts for power users
 - ✅ **Quick Search** — Fast search across all entities (Ctrl+K)
 - ✅ **Saved Filters** — Save frequently used report filters for quick access

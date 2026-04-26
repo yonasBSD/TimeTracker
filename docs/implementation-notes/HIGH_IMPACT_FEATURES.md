@@ -77,10 +77,10 @@ const search = new EnhancedSearch(inputElement, {
 ## 2. ⌨️ Keyboard Shortcuts & Command Palette
 
 ### What It Does
-Provides power-user keyboard shortcuts for quick navigation and actions, plus a searchable command palette. Now with **instant `?` key access** for lightning-fast command execution! ⚡
+Provides power-user keyboard shortcuts for quick navigation and actions, plus a searchable command palette. Open it with **Ctrl+K / Cmd+K** for fast command execution.
 
 ### Features
-✅ **Quick Access** - Just press `?` to open command palette instantly  
+✅ **Quick Access** - `Ctrl+K` / `Cmd+K` opens the command palette  
 ✅ **Quick Search** - `Ctrl+K` to instantly focus search box  
 ✅ **50+ Pre-configured Shortcuts** - Navigation, actions, timer controls  
 ✅ **Visual Help** - `Shift+?` to show all shortcuts  

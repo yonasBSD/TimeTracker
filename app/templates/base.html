@@ -384,6 +384,22 @@
                 {% set pdf_open = ep == 'admin.pdf_layout' or ep == 'admin.quote_pdf_layout' %}
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-medium text-text-muted-light dark:text-text-muted-dark uppercase tracking-wider sidebar-label">{{ _('Navigation') }}</span>
+                    <button
+                        type="button"
+                        class="p-1.5 rounded hover:bg-background-light dark:hover:bg-background-dark"
+                        onclick="window.openCommandPalette?.()"
+                        aria-label="{{ _('Open command palette') }}"
+                        title="{{ _('Open command palette') }}"
+                    >
+                        <span class="inline-flex items-center gap-1.5 text-xs text-text-muted-light dark:text-text-muted-dark">
+                            <i class="fas fa-terminal"></i>
+                            <span class="hidden sidebar-label sm:inline">{{ _('Commands') }}</span>
+                            <span class="inline-flex items-center gap-1">
+                                <kbd class="px-1.5 py-0.5 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded text-[11px]">Ctrl</kbd>
+                                <kbd class="px-1.5 py-0.5 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded text-[11px]">K</kbd>
+                            </span>
+                        </span>
+                    </button>
                     <button id="sidebarCollapseBtn" class="p-1.5 rounded hover:bg-background-light dark:hover:bg-background-dark" aria-label="{{ _('Toggle sidebar') }}" title="{{ _('Toggle sidebar') }}">
                         <i id="sidebarCollapseIcon" class="fas fa-angles-left"></i>
                     </button>
@@ -1397,8 +1413,8 @@
     {% if is_admin_user %}
     <script src="{{ url_for('static', filename='admin-version-update.js') }}?v={{ app_version }}"></script>
     {% endif %}
-    <!-- Old command palette and keyboard navigation (restored) -->
-    <script src="{{ url_for('static', filename='commands.js') }}?v=2.0"></script>
+    <!-- Global Command Palette -->
+    <script type="module" src="{{ url_for('static', filename='js/command-palette.js') }}?v={{ app_version }}"></script>
     <script>window.__BASE_INIT__={timerStatus:"{{ url_for('timer.timer_status') }}",stopTimer:"{{ url_for('timer.stop_timer') }}",dashboard:"{{ url_for('main.dashboard') }}",manualEntry:"{{ url_for('timer.manual_entry') }}"};</script>
     <script src="{{ url_for('static', filename='base-init.js') }}"></script>
     <script src="{{ url_for('static', filename='mobile.js') }}"></script>
@@ -1791,50 +1807,11 @@
             });
         })();
     </script>
-    <!-- Command Palette Modal (restored, Tailwind-styled, no Bootstrap required) -->
     <!-- Keyboard Shortcuts Help Modal -->
     {% include 'components/keyboard_shortcuts_help.html' %}
 
-    <div id="commandPaletteModal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50" onclick="document.getElementById('commandPaletteModal').classList.add('hidden')"></div>
-        <div class="relative max-w-2xl mx-auto mt-24 bg-card-light dark:bg-card-dark text-text-light dark:text-text-dark rounded-lg shadow-xl">
-            <div class="p-3 sm:p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between">
-                <div id="commandPaletteHelp" class="text-xs text-text-muted-light dark:text-text-muted-dark">
-                    Press <kbd class="px-1 py-0.5 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded text-xs">Esc</kbd> to close, <kbd class="px-1 py-0.5 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded text-xs">Shift+?</kbd> for all shortcuts
-                </div>
-                <button id="commandPaletteClose" class="px-2 py-1 text-sm hover:bg-background-light dark:hover:bg-background-dark rounded">Close</button>
-            </div>
-            <div class="p-3 sm:p-4">
-                <div class="flex items-center gap-2 mb-3">
-                    <i class="fas fa-terminal text-text-muted-light dark:text-text-muted-dark"></i>
-                    <input id="commandPaletteInput" type="text" class="w-full bg-background-light dark:bg-gray-700 border border-border-light dark:border-border-dark rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="{{ _('Type a command or search...') }}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
-                </div>
-                <div id="commandPaletteList" class="flex flex-col max-h-96 overflow-y-auto divide-y divide-border-light dark:divide-border-dark"></div>
-            </div>
-        </div>
-    </div>
-    <script>
-        // Command Palette close handlers
-        (function() {
-            const modal = document.getElementById('commandPaletteModal');
-            const closeBtn = document.getElementById('commandPaletteClose');
-            const input = document.getElementById('commandPaletteInput');
-            
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
-            }
-            
-            // Close on Escape key
-            if (input) {
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape') {
-                        e.preventDefault();
-                        modal.classList.add('hidden');
-                    }
-                });
-            }
-        })();
-    </script>
+    <!-- Global Command Palette Modal -->
+    {% include 'partials/_command_palette.html' %}
     <script>
         var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
         var themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
