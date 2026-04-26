@@ -31,6 +31,10 @@ Install Docker for your platform: [Docker Installation Guide](https://docs.docke
      ```bash
      python -c "import secrets; print(secrets.token_hex(32))"
      ```
+   - **SETTINGS_ENCRYPTION_KEY** — Recommended to encrypt stored secrets (SMTP password, OAuth client secrets, Peppol token, AI key, and 2FA secrets). Generate one:
+     ```bash
+     python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+     ```
    - **TZ** — Your timezone (e.g. `America/New_York`, `Europe/Brussels`).
    - **CURRENCY** — Default currency (e.g. `USD`, `EUR`).
 
