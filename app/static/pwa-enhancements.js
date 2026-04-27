@@ -11,9 +11,25 @@ class PWAEnhancements {
     }
 
     async init() {
-        // Register service worker
+        // Service worker is registered from base.html as /service-worker.js (full site scope).
         if ('serviceWorker' in navigator) {
-            await this.registerServiceWorker();
+            try {
+                this.serviceWorkerRegistration = await navigator.serviceWorker.ready;
+                this.serviceWorkerRegistration.addEventListener('updatefound', () => {
+                    const nw = this.serviceWorkerRegistration.installing;
+                    if (!nw) return;
+                    nw.addEventListener('statechange', () => {
+                        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                            this.showUpdateNotification();
+                        }
+                    });
+                });
+                setInterval(() => {
+                    this.serviceWorkerRegistration.update();
+                }, 60000);
+            } catch (e) {
+                console.warn('Service worker ready failed:', e);
+            }
         }
 
         // Setup offline detection
@@ -29,32 +45,6 @@ class PWAEnhancements {
 
         // Setup IndexedDB for offline storage
         await this.setupIndexedDB();
-    }
-
-    async registerServiceWorker() {
-        try {
-            const registration = await navigator.serviceWorker.register('/static/service-worker.js');
-            this.serviceWorkerRegistration = registration;
-            
-            // Listen for updates
-            registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // New service worker available
-                        this.showUpdateNotification();
-                    }
-                });
-            });
-
-            // Check for updates periodically
-            setInterval(() => {
-                registration.update();
-            }, 60000); // Check every minute
-
-        } catch (error) {
-            console.error('Service Worker registration failed:', error);
-        }
     }
 
     setupOfflineDetection() {

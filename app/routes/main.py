@@ -1,4 +1,3 @@
-import json
 import os
 from datetime import datetime, timedelta
 
@@ -11,6 +10,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_from_directory,
     session,
     url_for,
 )
@@ -627,155 +627,19 @@ def search():
 
 @main_bp.route("/manifest.webmanifest")
 def manifest():
-    """Serve PWA manifest with theme_color. Prepared for custom themes - extend to use user accent preference when implemented."""
-    theme_color = getattr(current_app.config, "PWA_THEME_COLOR", "#4A90E2")
-    manifest_data = {
-        "name": "TimeTracker - Professional Time Tracking",
-        "short_name": "TimeTracker",
-        "description": "Professional time tracking and project management application",
-        "start_url": "/",
-        "display": "standalone",
-        "background_color": "#ffffff",
-        "theme_color": theme_color,
-        "orientation": "any",
-        "icons": [
-            {
-                "src": url_for("static", filename="images/timetracker-logo.svg"),
-                "sizes": "any",
-                "type": "image/svg+xml",
-                "purpose": "any maskable",
-            },
-            {
-                "src": url_for("static", filename="images/android-chrome-192x192.png"),
-                "sizes": "192x192",
-                "type": "image/png",
-                "purpose": "any maskable",
-            },
-            {
-                "src": url_for("static", filename="images/android-chrome-512x512.png"),
-                "sizes": "512x512",
-                "type": "image/png",
-                "purpose": "any maskable",
-            },
-            {
-                "src": url_for("static", filename="images/apple-touch-icon.png"),
-                "sizes": "180x180",
-                "type": "image/png",
-                "purpose": "any",
-            },
-        ],
-        "screenshots": [],
-        "categories": ["productivity", "business"],
-        "shortcuts": [
-            {
-                "name": "Start Timer",
-                "short_name": "Timer",
-                "description": "Start tracking time",
-                "url": url_for("timer.manual_entry"),
-                "icons": [{"src": url_for("static", filename="images/timetracker-logo.svg"), "sizes": "96x96"}],
-            },
-            {
-                "name": "Dashboard",
-                "short_name": "Dashboard",
-                "description": "View dashboard",
-                "url": url_for("main.dashboard"),
-                "icons": [{"src": url_for("static", filename="images/timetracker-logo.svg"), "sizes": "96x96"}],
-            },
-            {
-                "name": "Projects",
-                "short_name": "Projects",
-                "description": "Manage projects",
-                "url": url_for("projects.list_projects"),
-                "icons": [{"src": url_for("static", filename="images/timetracker-logo.svg"), "sizes": "96x96"}],
-            },
-            {
-                "name": "Reports",
-                "short_name": "Reports",
-                "description": "View reports",
-                "url": url_for("reports.reports"),
-                "icons": [{"src": url_for("static", filename="images/timetracker-logo.svg"), "sizes": "96x96"}],
-            },
-        ],
-        "share_target": {
-            "action": url_for("timer.manual_entry"),
-            "method": "GET",
-            "params": {"title": "notes", "text": "notes"},
-        },
-        "prefer_related_applications": False,
-        "display_override": ["window-controls-overlay", "standalone"],
-        "edge_side_panel": {"preferred_width": 400},
-        "launch_handler": {"client_mode": "focus-existing"},
-    }
-    resp = make_response(json.dumps(manifest_data, indent=2))
-    resp.headers["Content-Type"] = "application/manifest+json"
+    """Legacy URL: canonical manifest is /static/manifest.json."""
+    return redirect(url_for("static", filename="manifest.json"), code=302)
+
+
+@main_bp.route("/offline")
+def offline_page():
+    """Public offline fallback for PWA (no login required)."""
+    resp = make_response(render_template("offline.html"))
+    resp.headers["Cache-Control"] = "public, max-age=3600"
     return resp
 
 
 @main_bp.route("/service-worker.js")
 def service_worker():
-    """Serve a minimal service worker for PWA offline caching."""
-    # Build absolute URLs for static assets to ensure proper caching
-    assets = [
-        "/",
-        # CSS
-        url_for("static", filename="dist/output.css"),
-        url_for("static", filename="enhanced-ui.css"),
-        url_for("static", filename="ui-enhancements.css"),
-        url_for("static", filename="form-validation.css"),
-        url_for("static", filename="keyboard-shortcuts.css"),
-        url_for("static", filename="toast-notifications.css"),
-        # JS
-        url_for("static", filename="mobile.js"),
-        url_for("static", filename="commands.js"),
-        url_for("static", filename="enhanced-ui.js"),
-        url_for("static", filename="ui-enhancements.js"),
-        url_for("static", filename="toast-notifications.js"),
-    ]
-    preamble = "const CACHE_NAME='tt-cache-v2';\n"
-    assets_js = "const ASSETS=" + json.dumps(assets) + ";\n\n"
-    body = "self.addEventListener('install', (event)=>{ event.waitUntil(caches.open(CACHE_NAME).then((c)=>c.addAll(ASSETS))); self.skipWaiting()); });\n".replace(
-        "); );", ");"
-    )  # guard against formatting
-    body = (
-        "self.addEventListener('install', (event)=>{\n"
-        "  event.waitUntil((async()=>{\n"
-        "    const cache = await caches.open(CACHE_NAME);\n"
-        "    try { await cache.addAll(ASSETS); } catch(e) {}\n"
-        "    self.skipWaiting();\n"
-        "  })());\n"
-        "});\n"
-        "self.addEventListener('activate', (event)=>{\n"
-        "  event.waitUntil((async()=>{\n"
-        "    const keys = await caches.keys();\n"
-        "    await Promise.all(keys.map((k)=>{ if(k!==CACHE_NAME){ return caches.delete(k); } return null; }));\n"
-        "    self.clients.claim();\n"
-        "  })());\n"
-        "});\n"
-        "self.addEventListener('fetch', (event)=>{\n"
-        "  const req = event.request;\n"
-        "  if (req.method !== 'GET') { return; }\n"
-        "  const url = new URL(req.url);\n"
-        "  const sameOrigin = url.origin === self.location.origin;\n"
-        "  if (!sameOrigin) {\n"
-        "    // Do not intercept cross-origin (CDN) requests\n"
-        "    return;\n"
-        "  }\n"
-        "  event.respondWith((async()=>{\n"
-        "    const cached = await caches.match(req);\n"
-        "    if (cached) return cached;\n"
-        "    try {\n"
-        "      const res = await fetch(req);\n"
-        "      const cache = await caches.open(CACHE_NAME);\n"
-        "      cache.put(req, res.clone());\n"
-        "      return res;\n"
-        "    } catch(e) {\n"
-        "      const fallback = await caches.match('/');\n"
-        "      return fallback || new Response('', { status: 504, statusText: 'Gateway Timeout' });\n"
-        "    }\n"
-        "  })());\n"
-        "});\n"
-    )
-    sw_js = preamble + assets_js + body
-    resp = make_response(sw_js)
-    resp.headers["Content-Type"] = "application/javascript"
-    return resp
+    """Site-scoped service worker; implementation lives in app/static/js/sw.js."""
+    return send_from_directory(current_app.static_folder, "js/sw.js", mimetype="application/javascript")

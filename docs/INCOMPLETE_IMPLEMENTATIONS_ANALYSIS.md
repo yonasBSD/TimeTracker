@@ -350,9 +350,9 @@ The dedicated PostHog feature-flag helper under `app/utils/` was **removed**. Re
 ### 2. Frontend Features
 
 #### 2.1 Service Worker
-- **File:** `app/static/service-worker.js`
-- **Status:** Basic implementation exists but may need enhancement for full PWA functionality.
-  **Priority:** Medium
+- **File:** `app/static/js/sw.js` (registered URL: `/service-worker.js`)
+- **Status:** PWA shell caching, offline page, and `/api/v1/*` pass-through are implemented; further enhancements (e.g. broader precache, background sync tuning) remain optional.
+  **Priority:** Low
 
 #### 2.2 Kiosk Mode
 - **File:** `app/routes/kiosk.py`

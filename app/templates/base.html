@@ -6,7 +6,7 @@
     <title>{% block title %}{{ app_name }}{% endblock %}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="Professional time tracking and project management">
-    <meta name="theme-color" content="#4A90E2">
+    <meta name="theme-color" content="#4F46E5">
     
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
@@ -42,7 +42,7 @@
     
     Telemetry instrumentation should avoid these elements by design.
     -->
-    <link rel="manifest" href="{{ url_for('main.manifest') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="vapid-public-key" content="{{ config.get('VAPID_PUBLIC_KEY', '') }}">
     <script src="{{ url_for('static', filename='pwa-enhancements.js') }}"></script>
     <!-- Inter font is loaded via CSS @import in app/static/src/input.css -->
@@ -2436,6 +2436,11 @@ function trackBannerImpression(source) {
     
     {% block scripts_extra %}{% endblock %}
     {% include 'partials/_bottom_nav.html' %}
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('{{ url_for("main.service_worker") }}', { updateViaCache: 'none' }).catch(function () {});
+        }
+    </script>
 </body>
 </html>
 

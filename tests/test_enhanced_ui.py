@@ -3,7 +3,6 @@ Tests for enhanced UI features
 """
 
 import os
-import pytest
 from flask import url_for
 
 
@@ -214,30 +213,31 @@ class TestPWA:
     """Test PWA features"""
 
     def test_service_worker_exists(self):
-        """Test that service worker file exists"""
+        """Test that service worker source file exists"""
         import os
 
-        sw_path = "app/static/service-worker.js"
+        sw_path = "app/static/js/sw.js"
         assert os.path.exists(sw_path)
 
     def test_manifest_exists(self):
         """Test that manifest file exists"""
         import os
 
-        manifest_path = "app/static/manifest.webmanifest"
+        manifest_path = "app/static/manifest.json"
         assert os.path.exists(manifest_path)
 
     def test_manifest_linked_in_base(self, authenticated_client):
         """Test that manifest is linked in base template"""
         response = authenticated_client.get(url_for("main.dashboard"))
         assert response.status_code == 200
-        assert b"manifest.webmanifest" in response.data
+        assert b"manifest.json" in response.data
 
     def test_pwa_meta_tags(self, authenticated_client):
         """Test that PWA meta tags are present"""
         response = authenticated_client.get(url_for("main.dashboard"))
         assert response.status_code == 200
         assert b"theme-color" in response.data
+        assert b"#4F46E5" in response.data
 
 
 class TestAccessibility:
@@ -345,54 +345,7 @@ class TestStaticFiles:
         assert os.path.exists("app/static/onboarding.js")
 
     def test_service_worker_js_exists(self):
-        """Test service-worker.js exists"""
+        """Test PWA service worker source exists"""
         import os
 
-        assert os.path.exists("app/static/service-worker.js")
-
-
-# Fixtures
-@pytest.fixture
-def app():
-    """Create application for testing"""
-    from app import create_app, db
-    from sqlalchemy.pool import StaticPool
-
-    app = create_app(
-        {
-            "TESTING": True,
-            "WTF_CSRF_ENABLED": False,
-            "SQLALCHEMY_DATABASE_URI": "sqlite://",
-            "SQLALCHEMY_ENGINE_OPTIONS": {
-                "connect_args": {"check_same_thread": False, "timeout": 30},
-                "poolclass": StaticPool,
-            },
-            "SQLALCHEMY_SESSION_OPTIONS": {"expire_on_commit": False},
-        }
-    )
-    with app.app_context():
-        db.create_all()
-        try:
-            db.session.execute("PRAGMA journal_mode=WAL;")
-            db.session.execute("PRAGMA synchronous=NORMAL;")
-            db.session.execute("PRAGMA busy_timeout=30000;")
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-    return app
-
-
-@pytest.fixture
-def client(app):
-    """Create test client"""
-    return app.test_client()
-
-
-@pytest.fixture
-def auth_headers(client):
-    """Get authentication headers"""
-    # Login first
-    response = client.post("/auth/login", data={"username": "testuser"}, follow_redirects=True)
-
-    # Return headers with session cookie
-    return {}
+        assert os.path.exists("app/static/js/sw.js")

@@ -167,7 +167,10 @@ Some formats require manual conversion:
 - **Base template:** `app/templates/base.html`
 - **Login page:** `app/templates/auth/login.html`
 - **About page:** `app/templates/main/about.html`
-- **Manifest:** `app/static/manifest.webmanifest`
+- **PWA manifest:** `app/static/manifest.json` (linked from `base.html`; `GET /manifest.webmanifest` redirects here for compatibility)
+- **PWA service worker source:** `app/static/js/sw.js` (served at `GET /service-worker.js` for site-wide scope; registered from `base.html`)
+- **PWA offline fallback page:** `app/templates/offline.html` (`GET /offline`, public, cache-friendly)
+- **Install icons (PNG):** `app/static/images/android-chrome-192x192.png`, `android-chrome-512x512.png` — regenerate with `python3 scripts/generate_pwa_icons.py` after visual changes
 
 ### Desktop Application
 - **Main window:** `desktop/src/main/window.js`

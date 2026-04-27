@@ -104,7 +104,7 @@ See `desktop/assets/README.md` for detailed instructions on generating icons fro
 The web application uses the logo as favicon:
 - Location: `app/static/images/timetracker-logo.svg`
 - Configured in: `app/templates/base.html`
-- Also used in PWA manifest: `app/static/manifest.webmanifest`
+- Also used in PWA manifest: `app/static/manifest.json` (see `scripts/generate_pwa_icons.py` for install icons)
 
 ## Build Optimization
 

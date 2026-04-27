@@ -48,7 +48,7 @@ All 16 planned improvements have been successfully implemented and tested. The T
 8. `app/static/enhanced-ui.js` - **950 lines** - Core enhanced functionality
 9. `app/static/charts.js` - **450 lines** - Chart management utilities
 10. `app/static/onboarding.js` - **380 lines** - Onboarding system
-11. `app/static/service-worker.js` - **400 lines** - PWA service worker
+11. `app/static/js/sw.js` - PWA service worker (served at `/service-worker.js`; replaces former `app/static/service-worker.js`)
 
 ### Documentation (3)
 12. `LAYOUT_IMPROVEMENTS_COMPLETE.md` - **800 lines** - Complete documentation
@@ -58,7 +58,7 @@ All 16 planned improvements have been successfully implemented and tested. The T
 14. `tests/test_enhanced_ui.py` - **350 lines** - Comprehensive test suite
 
 ### Configuration (1)
-15. Updated `app/static/manifest.webmanifest` - PWA manifest with shortcuts
+15. `app/static/manifest.json` - PWA web app manifest (`/manifest.webmanifest` redirects for old clients)
 
 ---
 

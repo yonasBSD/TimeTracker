@@ -258,7 +258,7 @@ Routes → Services → Repositories → Models → Database
      - Lazy loading for routes
      - Image optimization
      - CDN for static assets
-     - Service worker caching (exists: `app/static/service-worker.js`)
+     - Service worker caching (`app/static/js/sw.js`, served at `/service-worker.js`)
 
 #### 🟡 Medium Priority
 

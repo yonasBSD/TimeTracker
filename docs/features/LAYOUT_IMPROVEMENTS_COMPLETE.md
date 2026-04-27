@@ -326,9 +326,10 @@ new DragDropManager(document.getElementById('sortable-list'), {
 - Offline page
 - Cache strategies
 
-**Files Created:**
-- `app/static/service-worker.js`
-- Updated `manifest.webmanifest`
+**Files Created / current layout:**
+- `app/static/js/sw.js` (service worker; registered as `/service-worker.js`)
+- `app/static/manifest.json` (PWA manifest; legacy `GET /manifest.webmanifest` redirects)
+- `app/templates/offline.html`, `GET /offline`
 
 **Features:**
 - ✅ Offline mode
@@ -584,10 +585,10 @@ window.onboardingManager.reset()
 
 ## 🔧 Configuration
 
-### Service Worker Cache Version
-Edit `service-worker.js`:
+### Service Worker cache name
+Edit `app/static/js/sw.js` and bump the cache constant when changing caching behavior (e.g. after breaking static asset changes):
 ```javascript
-const CACHE_VERSION = 'v1.0.0';
+const CACHE_NAME = 'timetracker-v1';
 ```
 
 ### Chart Default Colors
