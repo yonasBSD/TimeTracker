@@ -50,6 +50,18 @@ Use the `page_header` macro from `app/templates/components/ui.html` on every mai
 - **Components:** Use `modal` and `confirm_dialog` from `components/ui.html`. Ensure focus is trapped inside when open and restored on close.
 - **Start Timer modal:** Same pattern; single primary “Start” action; progressive disclosure (project/client → task → notes/tags) where possible.
 
+### Global FAB (quick time actions)
+
+- **Where:** Authenticated layout in `app/templates/base.html` (`#globalTimeFab`), bottom-right (`fixed`, `z-40`), with a popover above the button (scale + opacity transition; `prefers-reduced-motion` reduces motion).
+- **Behavior:** Start Timer (clicks `#openStartTimer` on the dashboard when present, otherwise navigates to the dashboard with `#start-timer` so the modal opens), Log Time (manual entry page), New Task (task create page). Outside click and Escape close the menu.
+- **Desktop:** When the header floating timer shows an active session (`floating-timer-bar.js`), the FAB is hidden from the `md` breakpoint up via `body.fab-hide-desktop-timer-active` so it does not duplicate stop/resume controls.
+- **Script:** `app/static/global-fab.js` (loaded from `base.html`).
+
+### Time entries table (inline edit)
+
+- **Where:** `app/templates/timer/_time_entries_list.html` (included from the time entries overview). Editable **Notes** and **Duration** for rows the user may change (permissions match server rules: own entry or admin; duration also requires schedule edit permission and a completed entry with `end_time`).
+- **Script:** `app/static/time-entries-inline-edit.js` (loaded from `time_entries_overview.html`). Saves with **`PUT` or `PATCH`** to **`/api/entry/<id>`** (session JSON, same-origin `fetch`). Success shows a short green check; errors use the toast manager and revert the cell.
+
 ### Notifications
 
 - Use the existing **toast** system for success, error, warning, and info. Support optional `actionLink` and `actionLabel` for follow-up (e.g. “View time entries” after stopping the timer).
@@ -85,8 +97,9 @@ Use the `page_header` macro from `app/templates/components/ui.html` on every mai
 | Mobile shell behavior | `app/static/mobile.js` |
 | Design tokens / Tailwind | `app/static/src/input.css`, `tailwind.config.js` |
 | Components | `app/templates/components/ui.html`, `app/templates/components/cards.html` |
-| Dashboard | `app/templates/main/dashboard.html` |
+| Dashboard | `app/templates/main/dashboard.html`, `app/static/dashboard-enhancements.js` (value dashboard, week comparison chart, …) |
 | Timer flow | `app/templates/timer/timer_page.html`, Start Timer modal (dashboard), `app/static/floating-timer-bar.js` |
-| Time entries | `app/templates/timer/time_entries_overview.html`, `app/templates/timer/_time_entries_list.html` |
+| Global FAB | `app/templates/base.html`, `app/static/global-fab.js` |
+| Time entries | `app/templates/timer/time_entries_overview.html`, `app/templates/timer/_time_entries_list.html`, `app/static/time-entries-inline-edit.js` |
 
 For accessibility and quality checks, see [FRONTEND_QUALITY_GATES.md](development/FRONTEND_QUALITY_GATES.md).

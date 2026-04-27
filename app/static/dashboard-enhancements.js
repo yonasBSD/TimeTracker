@@ -9,6 +9,8 @@
     let realTimeUpdateInterval = null;
     let activityTimeline = null;
     let lastDashboardUpdateAt = 0;
+    let weekComparisonChart = null;
+    let weekComparisonHasRendered = false;
     const MIN_UPDATE_INTERVAL_MS = 5000; // Throttle: no updates more than once per 5s
 
     // Initialize on DOM ready
@@ -22,7 +24,8 @@
         return window.location.pathname === '/dashboard' ||
             document.getElementById('todayHoursValue') != null ||
             document.querySelector('[data-sparkline]') != null ||
-            document.getElementById('valueDashboardRoot') != null;
+            document.getElementById('valueDashboardRoot') != null ||
+            document.getElementById('weekComparisonRoot') != null;
     }
 
     function init() {
@@ -311,6 +314,7 @@
             await updateSparklines();
 
             await loadValueDashboard();
+            await loadWeekComparison();
         } catch (error) {
             console.error('Error updating dashboard:', error);
         }
@@ -433,6 +437,175 @@
      */
     function initValueDashboard() {
         loadValueDashboard();
+    }
+
+    /**
+     * Week vs last week chart (/api/reports/week-comparison); invoked from updateDashboardData.
+     */
+    async function loadWeekComparison() {
+        const root = document.getElementById('weekComparisonRoot');
+        if (!root) return;
+
+        const sk = document.getElementById('weekComparisonSkeleton');
+        const body = document.getElementById('weekComparisonBody');
+        const errEl = document.getElementById('weekComparisonError');
+        const summaryEl = document.getElementById('weekComparisonSummary');
+        const canvas = document.getElementById('weekComparisonChart');
+        const isFirst = !weekComparisonHasRendered;
+
+        if (isFirst) {
+            if (sk) sk.classList.remove('hidden');
+            if (body) body.classList.add('hidden');
+            if (errEl) {
+                errEl.classList.add('hidden');
+                errEl.textContent = '';
+            }
+        }
+
+        const apiUrl = root.getAttribute('data-api-url') || '/api/reports/week-comparison';
+
+        try {
+            const response = await fetch(apiUrl, { credentials: 'same-origin' });
+            if (!response.ok) {
+                throw new Error('week-comparison failed');
+            }
+            const data = await response.json();
+
+            const cur = data.current_week || {};
+            const last = data.last_week || {};
+            const curDays = Array.isArray(cur.by_day) ? cur.by_day : [];
+            const lastDays = Array.isArray(last.by_day) ? last.by_day : [];
+
+            const labels = curDays.map(function (row) {
+                try {
+                    var dt = new Date((row.day || '') + 'T12:00:00');
+                    return dt.toLocaleDateString(undefined, { weekday: 'short' });
+                } catch (e) {
+                    return (row.day || '').slice(5);
+                }
+            });
+            var thisWeekHours = curDays.map(function (row) { return Number(row.hours) || 0; });
+            var lastWeekHours = lastDays.map(function (row) {
+                return Number(row.hours) || 0;
+            });
+
+            if (typeof Chart === 'undefined' || !canvas) {
+                throw new Error('Chart.js unavailable');
+            }
+
+            if (weekComparisonChart) {
+                weekComparisonChart.destroy();
+                weekComparisonChart = null;
+            }
+
+            var isDark = document.documentElement.classList.contains('dark');
+            var tickColor = isDark ? '#9ca3af' : '#6b7280';
+            var gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+            weekComparisonChart = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: root.getAttribute('data-legend-this') || 'This week',
+                            data: thisWeekHours,
+                            backgroundColor: 'rgba(59, 130, 246, 0.85)',
+                            borderColor: 'rgb(59, 130, 246)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: root.getAttribute('data-legend-last') || 'Last week',
+                            data: lastWeekHours,
+                            backgroundColor: 'rgba(156, 163, 175, 0.55)',
+                            borderColor: 'rgba(107, 114, 128, 0.9)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: tickColor, boxWidth: 12, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (ctx) {
+                                    var v = ctx.parsed.y != null ? ctx.parsed.y : ctx.parsed;
+                                    return (ctx.dataset.label || '') + ': ' + Number(v).toFixed(2) + ' h';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: tickColor, maxRotation: 0, font: { size: 11 } },
+                            grid: { color: gridColor }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: tickColor, maxTicksLimit: 6 },
+                            grid: { color: gridColor }
+                        }
+                    }
+                }
+            });
+
+            if (summaryEl) {
+                var total = Number(cur.total_hours) || 0;
+                var pct = data.change_percent;
+                var hrsSuffix = root.getAttribute('data-hrs-suffix') || 'hrs this week';
+                var vs = root.getAttribute('data-vs-last-week') || 'vs last week';
+                var naPct = root.getAttribute('data-no-prior-pct') || '—';
+
+                summaryEl.className = 'text-sm font-medium mb-3 text-text-light dark:text-text-dark';
+                summaryEl.textContent = '';
+
+                var prefix = document.createTextNode(
+                    total.toFixed(1) + ' ' + hrsSuffix + ' — '
+                );
+                summaryEl.appendChild(prefix);
+
+                if (pct === null || pct === undefined) {
+                    var na = document.createElement('span');
+                    na.className = 'text-text-muted-light dark:text-text-muted-dark';
+                    na.textContent = naPct + ' ';
+                    summaryEl.appendChild(na);
+                    summaryEl.appendChild(document.createTextNode(vs));
+                } else {
+                    var pctSpan = document.createElement('span');
+                    var n = Number(pct);
+                    if (n > 0) {
+                        pctSpan.className = 'text-emerald-600 dark:text-emerald-400';
+                        pctSpan.textContent = '\u25B2' + Math.abs(n) + '% ';
+                    } else if (n < 0) {
+                        pctSpan.className = 'text-red-600 dark:text-red-400';
+                        pctSpan.textContent = '\u25BC' + Math.abs(n) + '% ';
+                    } else {
+                        pctSpan.className = 'text-text-muted-light dark:text-text-muted-dark';
+                        pctSpan.textContent = '0% ';
+                    }
+                    summaryEl.appendChild(pctSpan);
+                    summaryEl.appendChild(document.createTextNode(vs));
+                }
+            }
+
+            weekComparisonHasRendered = true;
+            if (sk) sk.classList.add('hidden');
+            if (body) body.classList.remove('hidden');
+            if (errEl) errEl.classList.add('hidden');
+        } catch (e) {
+            console.error('Week comparison load error', e);
+            if (sk) sk.classList.add('hidden');
+            if (isFirst && errEl) {
+                errEl.textContent = root.getAttribute('data-error-msg') || 'Error';
+                errEl.classList.remove('hidden');
+            }
+        }
     }
 
     async function loadValueDashboard() {
@@ -565,7 +738,8 @@
         createSparkline,
         loadActivityTimeline,
         updateDashboardData,
-        loadValueDashboard
+        loadValueDashboard,
+        loadWeekComparison
     };
 
 })();

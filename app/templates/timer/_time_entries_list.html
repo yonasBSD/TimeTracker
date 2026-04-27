@@ -48,7 +48,9 @@
             <tbody class="bg-card-light dark:bg-card-dark divide-y divide-border-light dark:divide-border-dark">
                 {% if time_entries %}
                     {% for entry in time_entries %}
-                    <tr class="hover:bg-background-light dark:hover:bg-background-dark transition-colors">
+                    {% set can_edit_entry = current_user.is_admin or (entry.user_id == current_user.id) %}
+                    {% set can_row_schedule = current_user.is_admin or (entry.user_id == current_user.id and current_user.has_permission('edit_own_time_entries')) %}
+                    <tr class="hover:bg-background-light dark:hover:bg-background-dark transition-colors" data-entry-id="{{ entry.id }}" data-entry-active="{{ '1' if entry.is_active else '0' }}">
                         <td class="px-4 py-3 whitespace-nowrap bulk-checkbox-cell">
                             <input type="checkbox" name="entry_ids[]" value="{{ entry.id }}" class="entry-checkbox h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" onchange="updateBulkActions()">
                         </td>
@@ -84,16 +86,37 @@
                                 -
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" data-label="{{ _('Duration') }}">
-                            {{ entry.duration_formatted }}
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" data-label="{{ _('Duration') }}"
+                            data-duration-cell
+                            data-duration-formatted="{{ entry.duration_formatted }}"
+                            data-duration-seconds="{{ entry.duration_seconds or 0 }}"
+                            data-break-seconds="{{ entry.break_seconds or 0 }}"
+                            data-start-local="{{ entry.start_time.strftime('%Y-%m-%dT%H:%M') if entry.start_time else '' }}"
+                            data-end-local="{{ entry.end_time.strftime('%Y-%m-%dT%H:%M') if entry.end_time else '' }}"
+                            data-can-edit-duration="{{ '1' if (can_edit_entry and can_row_schedule and not entry.is_active and entry.end_time) else '0' }}">
+                            {% if can_edit_entry and can_row_schedule and not entry.is_active and entry.end_time %}
+                            <button type="button" class="time-entry-inline-target inline-flex max-w-full cursor-pointer rounded border border-transparent px-1 py-0.5 text-left hover:border-border-light hover:bg-background-light dark:hover:border-border-dark dark:hover:bg-background-dark" data-inline-field="duration" tabindex="0" title="{{ _('Click to edit') }}">
+                                <span class="time-entry-inline-display">{{ entry.duration_formatted }}</span>
+                            </button>
+                            {% elif entry.is_active %}
+                            <span class="text-text-muted-light dark:text-text-muted-dark" title="{{ _('Stop the timer to edit duration') }}">{{ entry.duration_formatted }}</span>
+                            {% else %}
+                            <span>{{ entry.duration_formatted }}</span>
+                            {% endif %}
                         </td>
-                        <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 max-w-xs" data-label="{{ _('Notes') }}">
-                            {% if entry.notes %}
+                        <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 max-w-xs" data-label="{{ _('Notes') }}" data-notes-cell data-notes-raw={{ (entry.notes or '')|tojson }}>
+                            {% if can_edit_entry %}
+                            <button type="button" class="time-entry-inline-target inline-flex max-w-full cursor-pointer rounded border border-transparent px-1 py-0.5 text-left hover:border-border-light hover:bg-background-light dark:hover:border-border-dark dark:hover:bg-background-dark" data-inline-field="notes" tabindex="0" title="{{ _('Click to edit') }}">
+                                <span class="time-entry-inline-display block max-w-xs truncate">{% if entry.notes %}{{ entry.notes|striptags|truncate(60) }}{% else %}-{% endif %}</span>
+                            </button>
+                            {% else %}
+                                {% if entry.notes %}
                                 <div class="truncate" title="{{ entry.notes|striptags }}">
                                     {{ entry.notes|striptags|truncate(60) }}
                                 </div>
-                            {% else %}
+                                {% else %}
                                 -
+                                {% endif %}
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" data-label="{{ _('Tags') }}">

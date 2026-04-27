@@ -277,6 +277,44 @@
     </div>
 </div>
 
+<!-- This week vs last week (Chart.js + /api/reports/week-comparison) -->
+<div id="weekComparisonRoot" class="mb-6 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-xl shadow-sm p-6 dashboard-widget"
+     data-api-url="{{ url_for('api.week_comparison') }}"
+     data-title="{{ _('This week vs last week') }}"
+     data-subtitle="{{ _('Hours per day (Mon–today vs same days last week)') }}"
+     data-hrs-suffix="{{ _('hrs this week') }}"
+     data-vs-last-week="{{ _('vs last week') }}"
+     data-legend-this="{{ _('This week') }}"
+     data-legend-last="{{ _('Last week') }}"
+     data-error-msg="{{ _('Could not load comparison.') }}"
+     data-no-prior-pct="{{ _('—') }}">
+    <div class="flex items-center gap-3 mb-4">
+        <div class="bg-blue-500/10 dark:bg-blue-400/10 p-3 rounded-lg">
+            <i class="fas fa-chart-column text-blue-600 dark:text-blue-400 text-xl" aria-hidden="true"></i>
+        </div>
+        <div>
+            <h2 class="text-lg font-semibold text-text-light dark:text-text-dark">{{ _('This week vs last week') }}</h2>
+            <p class="text-sm text-text-muted-light dark:text-text-muted-dark">{{ _('Hours per day (Mon–today vs same days last week)') }}</p>
+        </div>
+    </div>
+    <div id="weekComparisonSkeleton" class="min-h-[220px] rounded-lg bg-gray-100 dark:bg-gray-800/80 p-4 animate-pulse flex items-end justify-between gap-2 sm:gap-3" aria-hidden="true">
+        <div class="flex-1 h-24 sm:h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+        <div class="flex-1 h-32 sm:h-40 bg-gray-200 dark:bg-gray-700 rounded"></div>
+        <div class="flex-1 h-20 sm:h-28 bg-gray-200 dark:bg-gray-700 rounded"></div>
+        <div class="flex-1 h-28 sm:h-36 bg-gray-200 dark:bg-gray-700 rounded"></div>
+        <div class="flex-1 h-16 sm:h-24 bg-gray-200 dark:bg-gray-700 rounded hidden sm:block"></div>
+        <div class="flex-1 h-36 sm:h-44 bg-gray-200 dark:bg-gray-700 rounded hidden sm:block"></div>
+        <div class="flex-1 h-24 sm:h-32 bg-gray-200 dark:bg-gray-700 rounded hidden lg:block"></div>
+    </div>
+    <p id="weekComparisonError" class="hidden text-sm text-text-muted-light dark:text-text-muted-dark"></p>
+    <div id="weekComparisonBody" class="hidden">
+        <p id="weekComparisonSummary" class="text-sm font-medium mb-3 text-text-light dark:text-text-dark" aria-live="polite"></p>
+        <div class="relative" style="height: 220px;">
+            <canvas id="weekComparisonChart" aria-label="{{ _('This week and last week hours by day') }}"></canvas>
+        </div>
+    </div>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
     <!-- Left Column: Recent Entries -->
     <div class="lg:col-span-2">
@@ -1220,6 +1258,13 @@
                     // Now submit the form normally
                     startTimerForm.submit();
                 }, true); // Use capture phase to run before other handlers
+            }
+
+            if (window.location.hash === '#start-timer') {
+                openStartTimerModal();
+                try {
+                    history.replaceState(null, '', window.location.pathname + window.location.search);
+                } catch (err) { /* ignore */ }
             }
         }
         

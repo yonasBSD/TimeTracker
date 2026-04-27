@@ -7,6 +7,14 @@
 
     const POLL_INTERVAL_MS = 30000;
 
+    function syncFabDesktopHide(timerData) {
+        try {
+            var md = typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 768px)').matches;
+            var active = !!timerData;
+            document.body.classList.toggle('fab-hide-desktop-timer-active', md && active);
+        } catch (e) { /* ignore */ }
+    }
+
     class FloatingTimerBar {
         constructor() {
             this.bar = null;
@@ -175,6 +183,7 @@
                     </button>
                 `;
             }
+            syncFabDesktopHide(this.timerData);
         }
 
         destroy() {

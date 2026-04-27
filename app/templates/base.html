@@ -235,6 +235,36 @@
         .dark #sidebar::-webkit-scrollbar-thumb:hover {
             background-color: rgba(156, 163, 175, 0.5);
         }
+        /* Global time FAB: hide on desktop when header timer is active (see floating-timer-bar.js) */
+        @media (min-width: 768px) {
+            body.fab-hide-desktop-timer-active #globalTimeFab {
+                display: none;
+            }
+        }
+        #globalTimeFab .global-fab__popover {
+            transform-origin: bottom right;
+            transform: scale(0.92);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.18s ease, opacity 0.18s ease;
+        }
+        #globalTimeFab.is-open .global-fab__popover {
+            transform: scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #globalTimeFab .global-fab__popover {
+                transition: none;
+                transform: none;
+            }
+            #globalTimeFab:not(.is-open) .global-fab__popover {
+                opacity: 0;
+            }
+            #globalTimeFab.is-open .global-fab__popover {
+                opacity: 1;
+            }
+        }
     </style>
     <script>
         // Theme init (unchanged)
@@ -1361,6 +1391,34 @@
         </section>
         {% endif %}
 
+        {% if current_user.is_authenticated %}
+        <div id="globalTimeFab" class="fixed bottom-6 right-6 z-40 max-md:bottom-20" role="group" aria-label="{{ _('Quick time actions') }}"
+             data-dashboard-url="{{ url_for('main.dashboard') }}"
+             data-manual-entry-url="{{ url_for('timer.manual_entry') }}"
+             data-new-task-url="{{ url_for('tasks.create_task') }}">
+            <div class="relative flex flex-col items-end">
+                <div id="globalTimeFabMenu" class="global-fab__popover absolute bottom-full mb-2 right-0 min-w-[12rem] rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark shadow-lg py-1 text-left" role="menu" aria-hidden="true">
+                    <button type="button" class="global-fab__action flex w-full items-center gap-2 px-3 py-2.5 text-sm text-text-light dark:text-text-dark hover:bg-background-light dark:hover:bg-background-dark text-left" data-fab-action="start" role="menuitem">
+                        <span class="w-5 text-center text-primary" aria-hidden="true"><i class="fas fa-play text-xs"></i></span>
+                        <span>{{ _('Start Timer') }}</span>
+                    </button>
+                    <button type="button" class="global-fab__action flex w-full items-center gap-2 px-3 py-2.5 text-sm text-text-light dark:text-text-dark hover:bg-background-light dark:hover:bg-background-dark text-left" data-fab-action="log" role="menuitem">
+                        <span class="w-5 text-center" aria-hidden="true"><i class="fas fa-plus text-xs"></i></span>
+                        <span>{{ _('Log Time') }}</span>
+                    </button>
+                    <button type="button" class="global-fab__action flex w-full items-center gap-2 px-3 py-2.5 text-sm text-text-light dark:text-text-dark hover:bg-background-light dark:hover:bg-background-dark text-left" data-fab-action="task" role="menuitem">
+                        <span class="w-5 text-center" aria-hidden="true"><i class="fas fa-plus text-xs"></i></span>
+                        <span>{{ _('New Task') }}</span>
+                    </button>
+                </div>
+                <button type="button" id="globalTimeFabBtn" class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary/50" aria-expanded="false" aria-haspopup="true" aria-controls="globalTimeFabMenu" title="{{ _('Quick actions') }}">
+                    <i class="fas fa-plus text-xl" aria-hidden="true"></i>
+                    <span class="sr-only">{{ _('Quick time actions') }}</span>
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
@@ -1379,6 +1437,7 @@
     <script src="{{ url_for('static', filename='mentions.js') }}"></script>
     <!-- Floating timer bar -->
     {% if current_user.is_authenticated %}
+    <script src="{{ url_for('static', filename='global-fab.js') }}?v={{ app_version }}"></script>
     <script src="{{ url_for('static', filename='floating-timer-bar.js') }}"></script>
     <script src="{{ url_for('static', filename='idle.js') }}"></script>
     <script src="{{ url_for('static', filename='ai-helper.js') }}?v={{ app_version }}-ai1"></script>
@@ -1388,7 +1447,7 @@
     {% endif %}
     <!-- Global Command Palette -->
     <script type="module" src="{{ url_for('static', filename='js/command-palette.js') }}?v={{ app_version }}"></script>
-    <script>window.__BASE_INIT__={timerStatus:"{{ url_for('timer.timer_status') }}",stopTimer:"{{ url_for('timer.stop_timer') }}",dashboard:"{{ url_for('main.dashboard') }}",manualEntry:"{{ url_for('timer.manual_entry') }}"};</script>
+    <script>window.__BASE_INIT__={timerStatus:"{{ url_for('timer.timer_status') }}",stopTimer:"{{ url_for('timer.stop_timer') }}",dashboard:"{{ url_for('main.dashboard') }}",manualEntry:"{{ url_for('timer.manual_entry') }}",newTask:"{{ url_for('tasks.create_task') }}"};</script>
     <script src="{{ url_for('static', filename='base-init.js') }}"></script>
     <script src="{{ url_for('static', filename='mobile.js') }}"></script>
     <script>
