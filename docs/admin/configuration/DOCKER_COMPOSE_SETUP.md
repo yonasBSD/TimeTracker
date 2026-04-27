@@ -52,7 +52,8 @@ docker-compose logs app --tail=100
 ### 4) Optional services
 - Reverse proxy (HTTPS): See `docker-compose.yml` (services `certgen` and `nginx`).
   - **Note**: The `certgen` service is now self-contained and works with Portainer and other container orchestration tools without requiring host filesystem mounts.
-- Monitoring stack: Prometheus, Grafana, Loki, Promtail are available in `docker-compose.yml`.
+- Monitoring stack: Prometheus, Grafana, Loki, Promtail are available in `docker-compose.yml` (commented out by default; uncomment services to enable).
+- **Ollama (bundled LLM)**: The root `docker-compose.yml` includes `ollama` and a one-shot `ollama-init` container that pulls `AI_MODEL` into the `ollama_data` volume. The `app` service defaults to `AI_BASE_URL=http://ollama:11434` and waits for `ollama-init` to succeed before starting. Set `AI_ENABLED=false` in `.env` to turn off the in-app AI helper without removing the containers. Details: [README.md](../../../README.md) (sections *AI Helper* and *Bundled Ollama service*).
 
 ---
 
@@ -147,6 +148,18 @@ All environment variables can be provided via `.env` and are consumed by the `ap
 ### Logging
 - LOG_LEVEL: Default: `INFO`.
 - LOG_FILE: Default: `/data/logs/timetracker.log` or `/app/logs/timetracker.log` based on compose.
+
+### AI helper (optional)
+Used by the server-side AI helper (`/api/ai/*`, Admin → System Settings). In the root `docker-compose.yml`, defaults target the bundled `ollama` service.
+
+- AI_ENABLED: Enable the AI helper. Default in root compose: `true` (override with `false` if you do not want LLM calls).
+- AI_PROVIDER: `ollama` or `openai_compatible`. Default: `ollama`.
+- AI_BASE_URL: Provider base URL without a trailing path. Default in root compose: `http://ollama:11434` (Docker service name). For Ollama on the host: `http://127.0.0.1:11434`.
+- AI_MODEL: Model tag (e.g. `llama3.1`, `qwen2.5:3b`). Pulled automatically on startup by `ollama-init` when using the bundled stack.
+- AI_API_KEY: Required when `AI_PROVIDER=openai_compatible`. Empty for Ollama.
+- AI_TIMEOUT_SECONDS: HTTP timeout for provider requests. Default in root compose: `60`.
+- AI_CONTEXT_LIMIT: Max recent time entries included in context. Default: `40`.
+- OLLAMA_KEEP_ALIVE: Passed to the `ollama` service (how long models stay loaded). Default: `5m`.
 
 ### Analytics & Telemetry (optional)
 - SENTRY_DSN: Sentry DSN (empty by default).

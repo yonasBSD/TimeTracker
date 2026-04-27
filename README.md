@@ -709,13 +709,24 @@ docker-compose -f docker/docker-compose.remote.yml up -d
 TimeTracker includes an optional **server-side AI helper** for the web app and API clients.
 
 - **Enable**: set `AI_ENABLED=true`
-- **Ollama (default)**: set `AI_PROVIDER=ollama`, `AI_BASE_URL=http://127.0.0.1:11434`, `AI_MODEL=...`
+- **Ollama (default)**: set `AI_PROVIDER=ollama`, `AI_MODEL=...`, and `AI_BASE_URL` to `http://ollama:11434` when using the bundled stack in `docker-compose.yml`, or `http://127.0.0.1:11434` when Ollama runs on the host outside Docker.
 - **Hosted OpenAI-compatible**: set `AI_PROVIDER=openai_compatible` and `AI_API_KEY=...`
 
 The AI helper is exposed as:
 
 - Session web UI JSON: `POST /api/ai/chat` (same-origin, login required)
 - REST API v1: `POST /api/v1/ai/chat` (API token required, scopes `read:ai`/`write:ai`)
+
+### Bundled Ollama service (Docker Compose)
+
+`docker-compose.yml` ships a CPU-only `ollama` service plus a one-shot `ollama-init` sidecar that pulls the model defined by `AI_MODEL` (default `llama3.1`, ~4.7 GB) on first boot. The `app` service waits for the pull to finish before starting.
+
+- The app reaches it at `http://ollama:11434` over the Docker network — no host ports need to be opened.
+- Change the model by setting `AI_MODEL` in `.env` (e.g. `AI_MODEL=qwen2.5:3b` for lighter hardware) and re-running `docker compose up -d`; the init sidecar will pull the new model.
+- Pulled models are cached in the `ollama_data` named volume, so subsequent boots are instant.
+- Verify in the UI: **Admin → System Settings → AI helper**, then click *Test connection*.
+- To pull additional models manually: `docker compose exec ollama ollama pull <model>`.
+- To use a hosted provider instead, set `AI_PROVIDER=openai_compatible`, `AI_BASE_URL=https://api.your-provider.example/`, `AI_API_KEY=…` in `.env`; the in-cluster Ollama can stay running or be removed.
 
 ### Encrypting stored secrets (recommended)
 

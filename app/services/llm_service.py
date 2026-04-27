@@ -42,6 +42,7 @@ class AIProviderConfig:
     base_url: str
     model: str
     api_key: str
+    api_key_set: bool
     timeout_seconds: int
     context_limit: int
     system_prompt: str
@@ -58,7 +59,7 @@ class AIProviderConfig:
             "provider": self.provider,
             "base_url": self.base_url,
             "model": self.model,
-            "api_key_set": bool(self.api_key),
+            "api_key_set": self.api_key_set,
             "timeout_seconds": self.timeout_seconds,
             "context_limit": self.context_limit,
         }
