@@ -447,7 +447,8 @@ def api_stop_timer_at():
 @deprecated_session_api("/api/v1/timer/start")
 def api_resume_timer():
     """Resume timer for last used project/task or provided project/task."""
-    if current_user.active_timer:
+    can_start, _ = TimeTrackingService().can_start_timer(current_user.id)
+    if not can_start:
         return jsonify({"error": "Timer already running"}), 400
 
     data = request.get_json() or {}

@@ -101,7 +101,7 @@ A Python backend (Flask recommended) runs inside Docker on a Raspberry Pi. The f
 2. **Server-Side Persistence:** Timer continues running on the server even if the browser closes, device sleeps, or network drops.
 3. **Stop Timer:** User clicks **Stop** from any browser session or device; server finalizes entry (start->stop).
 4. **Resilience:** If the RPI restarts, active timers are restored using last known start time and a flag indicating “active”.
-5. **Single Active Timer per User:** Enforced; starting a new timer stops the previous one (configurable).
+5. **Single Active Timer per User:** By default only one running timer per user is allowed; attempting to start another while one is running is rejected until the first is stopped. **System Settings** can disable this to allow multiple concurrent timers. The `SINGLE_ACTIVE_TIMER` environment variable seeds the initial stored value for new deployments; runtime enforcement follows the database setting.
 6. **Idle/AFK (optional v1.1):** After N minutes of inactivity, prompt on next visit to confirm whether to subtract idle time.
 
 ### 5.5 Time Entry Annotations & Metadata

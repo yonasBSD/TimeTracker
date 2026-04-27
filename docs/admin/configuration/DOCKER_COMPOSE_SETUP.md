@@ -80,7 +80,7 @@ All environment variables can be provided via `.env` and are consumed by the `ap
 ### Application behavior
 - CURRENCY: ISO currency code. Default: `EUR`.
 - ROUNDING_MINUTES: Rounding step for entries. Default: `1`.
-- SINGLE_ACTIVE_TIMER: Allow only one active timer per user. Default: `true`.
+- SINGLE_ACTIVE_TIMER: Seeds **allow only one active timer per user** for the initial settings row. Default: `true`. After install, **System Settings → Settings** updates the database value used at runtime (web, API v1, kiosk).
 - IDLE_TIMEOUT_MINUTES: Auto-pause after idle. Default: `30`.
 - ALLOW_SELF_REGISTER: Allow new users to self-register by entering any username and password on the login page. Default: `true`. **Security note**: When enabled, anyone can create an app user with whatever credentials they type. The app does not use or import database credentials—users are created with exactly what is entered. Avoid using your database username (e.g. `timetracker`) as an app username; if someone creates an app user with matching DB credentials, it can be confusing or a security risk.
 - ADMIN_USERNAMES: Comma-separated admin usernames. Default: `admin`. **Important**: Only the first username in the list is automatically created during database initialization. Additional admin usernames must either:

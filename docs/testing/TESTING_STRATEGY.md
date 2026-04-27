@@ -22,7 +22,7 @@ Tests must cover:
 | Area | What to test |
 |------|--------------|
 | **Auth** | Web login (GET/POST, success, wrong password, redirect); API token extraction, validation, scopes, IP whitelist. |
-| **Timer** | Start/stop via web (POST /timer/start, /timer/stop) and API; single active timer; scope (user can only start timer for allowed project). |
+| **Timer** | Start/stop via web (POST /timer/start, /timer/stop) and API; `Settings.single_active_timer` respected on start (web, `POST /api/v1/timer/start`, kiosk); see `tests/test_single_active_timer_setting.py`. Scope: user can only start a timer for an allowed project. |
 | **Time entries** | CRUD and edit (API PATCH, web if applicable); linking to project/client/task; duration and billable. |
 | **Project/client linking** | Project belongs to client; scope filter restricts visible projects/clients for subcontractors. |
 | **Invoicing** | Create invoice from time entries; recurring invoices; list/detail; payments. |

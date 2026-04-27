@@ -620,6 +620,13 @@ POST /api/v1/timer/start
 }
 ```
 
+**Responses:**
+- **`201 Created`** — Timer started; JSON includes `message` and `timer` (time entry fields).
+- **`409 Conflict`** — **Allow only one active timer per user** is enabled in **System Settings** (`single_active_timer`) and the user already has a running timer. Response uses the standard error shape with `error_code` set to `timer_already_running`.
+- **`400 Bad Request`** — Validation or other errors (e.g. invalid project, inactive project).
+
+Enforcement uses the persisted **Settings** row, not the `SINGLE_ACTIVE_TIMER` env var alone (the env var seeds the setting on first install).
+
 #### Stop Timer
 ```
 POST /api/v1/timer/stop

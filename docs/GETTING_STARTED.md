@@ -153,7 +153,7 @@ The Admin Settings page has multiple sections. Configure what you need:
 #### Timer Settings
 - **Rounding (Minutes)**: Round to nearest 1/5/15 minutes
 - **Idle Timeout (Minutes)**: Auto-pause after idle (default: 30)
-- **Single Active Timer**: Allow only one running timer per user
+- **Single Active Timer**: When enabled (default), a user cannot start another timer until the current running entry is stopped. When disabled, multiple concurrent timers are allowed. The value is stored in the database (**System Settings**); the `SINGLE_ACTIVE_TIMER` environment variable only seeds that row on first install—after that, changes in the admin UI apply immediately to web, REST v1, and kiosk timer starts.
 
 #### User Management
 - **Allow Self-Registration**: ☑ Enable this to let users create accounts by entering any username and password on the login page. When enabled, anyone can create an app user with whatever credentials they type—there is no link to database credentials. **Security note**: Avoid using your database username (e.g. `timetracker`) as an app username, and do not share database passwords. With self-register enabled, someone could create an app account with credentials that match your DB user, which can be confusing or a security risk.

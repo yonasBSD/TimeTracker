@@ -10,6 +10,7 @@ from sqlalchemy import func, or_
 
 from app import db, log_event
 from app.models import Project, Settings, StockItem, StockMovement, Task, TimeEntry, User, Warehouse, WarehouseStock
+from app.services.time_tracking_service import TimeTrackingService
 from app.utils.db import safe_commit
 from app.utils.module_helpers import module_enabled
 from app.utils.permissions import admin_or_permission_required
@@ -469,9 +470,8 @@ def kiosk_start_timer():
     if not user_can_access_project(current_user, project_id):
         return jsonify({"error": "You do not have access to this project"}), 403
 
-    # Check if user already has an active timer
-    active_timer = current_user.active_timer
-    if active_timer:
+    can_start, _ = TimeTrackingService().can_start_timer(current_user.id)
+    if not can_start:
         return jsonify({"error": "You already have an active timer"}), 400
 
     # Validate task if provided

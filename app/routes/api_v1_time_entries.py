@@ -374,6 +374,12 @@ def start_timer():
         template_id=data.get("template_id"),
     )
     if not result.get("success"):
+        if result.get("error") == "timer_already_running":
+            return error_response(
+                result.get("message", "Could not start timer"),
+                error_code="timer_already_running",
+                status_code=409,
+            )
         return error_response(
             result.get("message", "Could not start timer"),
             status_code=400,

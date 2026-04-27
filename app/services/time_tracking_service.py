@@ -34,6 +34,19 @@ class TimeTrackingService:
             end_time=end_time,
         )
 
+    def can_start_timer(self, user_id: int) -> tuple[bool, Optional[str]]:
+        """Return (True, None) if the user may start a new timer, else (False, message).
+
+        Reads ``Settings.get_settings()`` at call time (DB), not ``Config.SINGLE_ACTIVE_TIMER``
+        alone—env seeds new installs; admin UI updates the row users expect at runtime.
+        """
+        settings = Settings.get_settings()
+        if not settings.single_active_timer:
+            return True, None
+        if self.time_entry_repo.get_active_timer(user_id):
+            return False, "You already have an active timer. Stop it before starting a new one."
+        return True, None
+
     def start_timer(
         self,
         user_id: int,
@@ -48,29 +61,6 @@ class TimeTrackingService:
         Returns:
             dict with 'success', 'message', and 'timer' keys
         """
-        # Load template if provided
-        if template_id:
-            from app.models import TimeEntryTemplate
-
-            template = TimeEntryTemplate.query.filter_by(id=template_id, user_id=user_id).first()
-            if template:
-                # Override with template values if not explicitly set
-                if not project_id and template.project_id:
-                    project_id = template.project_id
-                if not task_id and template.task_id:
-                    task_id = template.task_id
-                if not notes and template.default_notes:
-                    notes = template.default_notes
-                # Mark template as used
-                template.record_usage()
-                db.session.commit()
-        """
-        Start a new timer for a user.
-        
-        Returns:
-            dict with 'success', 'message', and 'timer' keys
-        """
-        # Check if user already has an active timer
         if self._is_locked_period(user_id, local_now()):
             return {
                 "success": False,
@@ -78,13 +68,27 @@ class TimeTrackingService:
                 "error": "timesheet_period_locked",
             }
 
-        active_timer = self.time_entry_repo.get_active_timer(user_id)
-        if active_timer:
+        ok, conflict_msg = self.can_start_timer(user_id)
+        if not ok:
             return {
                 "success": False,
-                "message": "You already have an active timer. Stop it before starting a new one.",
+                "message": conflict_msg or "You already have an active timer. Stop it before starting a new one.",
                 "error": "timer_already_running",
             }
+
+        # Resolve template defaults before project validation
+        if template_id:
+            from app.models import TimeEntryTemplate
+
+            template = TimeEntryTemplate.query.filter_by(id=template_id, user_id=user_id).first()
+            if template:
+                if not project_id and template.project_id:
+                    project_id = template.project_id
+                if not task_id and template.task_id:
+                    task_id = template.task_id
+                if not notes and template.default_notes:
+                    notes = template.default_notes
+                template.record_usage()
 
         # Validate project
         project = self.project_repo.get_by_id(project_id)
@@ -105,20 +109,6 @@ class TimeTrackingService:
                 "message": "Cannot start timer for an inactive project",
                 "error": "project_inactive",
             }
-
-        # Load template if provided
-        if template_id:
-            from app.models import TimeEntryTemplate
-
-            template = TimeEntryTemplate.query.filter_by(id=template_id, user_id=user_id).first()
-            if template:
-                if not project_id and template.project_id:
-                    project_id = template.project_id
-                if not task_id and template.task_id:
-                    task_id = template.task_id
-                if not notes and template.default_notes:
-                    notes = template.default_notes
-                template.record_usage()
 
         # Validate task if provided
         if task_id:
