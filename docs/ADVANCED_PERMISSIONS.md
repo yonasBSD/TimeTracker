@@ -221,6 +221,10 @@ if current_user.has_all_permissions('create_invoices', 'send_invoices'):
     # Allow action
 ```
 
+#### Quote access scope note
+
+For quote listing/detail routes, users with quote-management permissions (for example `edit_quotes`) may need access beyond "own quotes only" in order to open the quote they just edited from redirects and list views. Keep list/detail scoping aligned with route-level permission intent to avoid "edit succeeds but view returns 404/redirect" behavior.
+
 #### Using Permission Decorators
 
 Protect routes with permission decorators:

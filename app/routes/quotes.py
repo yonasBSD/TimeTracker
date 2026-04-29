@@ -10,6 +10,7 @@ from app.models import Client, Invoice, Project, Quote, QuoteAttachment, QuoteIm
 from app.utils.config_manager import ConfigManager
 from app.utils.db import safe_commit
 from app.utils.permissions import admin_or_permission_required, permission_required
+from app.utils.quote_access import quote_list_scope_user_id
 
 quotes_bp = Blueprint("quotes", __name__)
 
@@ -71,7 +72,7 @@ def list_quotes():
 
     quote_service = QuoteService()
     result = quote_service.list_quotes(
-        user_id=current_user.id if not current_user.is_admin else None,
+        user_id=quote_list_scope_user_id(current_user),
         is_admin=current_user.is_admin,
         status=status,
         search=search if search else None,
@@ -486,7 +487,7 @@ def view_quote(quote_id):
     quote_service = QuoteService()
     quote = quote_service.get_quote_with_details(
         quote_id=quote_id,
-        user_id=current_user.id if not current_user.is_admin else None,
+        user_id=quote_list_scope_user_id(current_user),
         is_admin=current_user.is_admin,
     )
 

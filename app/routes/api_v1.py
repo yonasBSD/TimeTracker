@@ -68,6 +68,7 @@ from app.utils.api_responses import (
     validation_error_response,
 )
 from app.utils.error_handling import safe_log
+from app.utils.quote_access import quote_list_scope_user_id
 from app.utils.scope_filter import apply_client_scope, apply_project_scope
 from app.utils.timezone import get_app_timezone, parse_local_datetime, utc_to_local
 
@@ -1307,7 +1308,7 @@ def list_quotes():
     # Use service layer with eager loading
     quote_service = QuoteService()
     result = quote_service.list_quotes(
-        user_id=g.api_user.id if not g.api_user.is_admin else None,
+        user_id=quote_list_scope_user_id(g.api_user),
         is_admin=g.api_user.is_admin,
         status=status,
         search=None,
@@ -1352,7 +1353,9 @@ def get_quote(quote_id):
 
     quote_service = QuoteService()
     quote = quote_service.get_quote_with_details(
-        quote_id=quote_id, user_id=g.api_user.id if not g.api_user.is_admin else None, is_admin=g.api_user.is_admin
+        quote_id=quote_id,
+        user_id=quote_list_scope_user_id(g.api_user),
+        is_admin=g.api_user.is_admin,
     )
 
     if not quote:
@@ -1553,7 +1556,9 @@ def delete_quote(quote_id):
     # Use service layer with eager loading
     quote_service = QuoteService()
     quote = quote_service.get_quote_with_details(
-        quote_id=quote_id, user_id=g.api_user.id if not g.api_user.is_admin else None, is_admin=g.api_user.is_admin
+        quote_id=quote_id,
+        user_id=quote_list_scope_user_id(g.api_user),
+        is_admin=g.api_user.is_admin,
     )
 
     if not quote:
