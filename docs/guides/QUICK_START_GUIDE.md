@@ -256,9 +256,9 @@ print(f"Jobs: {scheduler.get_jobs()}")
 
 | Feature | Model | Routes | Template |
 |---------|-------|--------|----------|
-| Time Entry Templates | `app/models/time_entry_template.py` | TBD | TBD |
-| Activity Feed | `app/models/activity.py` | TBD | TBD |
-| User Preferences | `app/models/user.py` | TBD | TBD |
+| Time Entry Templates | `app/models/time_entry_template.py` | `app/routes/api_v1.py` (`/api/v1/time-entry-templates`) | API-driven (consumed by clients) |
+| Activity Feed | `app/models/activity.py` | `app/routes/main.py` (dashboard feed), `app/routes/projects.py` (project activity) | `app/templates/dashboard.html`, `app/templates/projects/view.html` |
+| User Preferences | `app/models/user.py` | `app/routes/user.py` (`/settings`, `/api/preferences`) | `app/templates/user/settings.html` |
 | Excel Export | `app/utils/excel_export.py` | `app/routes/reports.py` | Add button |
 | Email Notifications | `app/utils/email.py` | Automatic | `app/templates/email/` |
 | Scheduled Tasks | `app/utils/scheduled_tasks.py` | Automatic | N/A |

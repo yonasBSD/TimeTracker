@@ -32,6 +32,10 @@
                                 <a href="{{ url_for('tasks.view_task', task_id=comment.task.id) }}" class="ms-2">
                                     <i class="fas fa-tasks me-1"></i>{{ comment.task.name }}
                                 </a>
+                                {% elif comment.quote %}
+                                <a href="{{ url_for('quotes.view_quote', quote_id=comment.quote.id) }}" class="ms-2">
+                                    <i class="fas fa-file-contract me-1"></i>{{ comment.quote.quote_number }} — {{ comment.quote.title }}
+                                </a>
                                 {% endif %}
                             </div>
                         </div>

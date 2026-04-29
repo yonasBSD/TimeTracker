@@ -2,7 +2,7 @@
 
 This document describes the comprehensive version management system for TimeTracker that provides flexible versioning for both GitHub releases and build numbers.
 
-**For contributors:** Application version is defined only in **setup.py**. Do not duplicate it in README or other docs. Desktop and mobile builds may use their own version numbers; see [BUILD.md](../../build/BUILD.md) and repo scripts.
+**For contributors:** Application version is defined only in **setup.py**. Do not duplicate it in README or other docs. Desktop and mobile builds may use their own version numbers; see the [Build Guide](../../../scripts/README-BUILD.md) and repo scripts.
 
 **OpenAPI (`/api/openapi.json`):** The `info.version` field uses the same resolution as the in-app version helpers: environment variables **`TIMETRACKER_VERSION`** or **`APP_VERSION`** override the value read from **`setup.py`**; see `get_version_from_setup()` in `app/config/analytics_defaults.py` and `openapi_spec()` in `app/routes/api_docs.py`.
 

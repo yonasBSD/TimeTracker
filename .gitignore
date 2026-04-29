@@ -130,6 +130,8 @@ dmypy.json
 .pyre/
 
 # Application specific
+# gettext template produced by `pybabel extract` (regenerate as needed; do not commit)
+messages.pot
 data/
 # Flutter app source lives under mobile/lib/data/ (do not treat as runtime data dir)
 !mobile/lib/data/

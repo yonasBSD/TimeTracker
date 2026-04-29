@@ -206,6 +206,33 @@ curl -X POST https://your-domain.com/api/v1/clients \
 
 ---
 
+### Quotes
+
+#### `read:quotes`
+**Grants**: List and view quotes  
+**Endpoints**:
+- `GET /api/v1/quotes` - List quotes
+- `GET /api/v1/quotes/{id}` - Get quote details
+
+**Use Cases**:
+- Client portal and CRM read integrations
+- Quote status dashboards
+- External systems that only need quote visibility
+
+#### `write:quotes`
+**Grants**: Create, update, and delete quotes  
+**Endpoints**:
+- `POST /api/v1/quotes` - Create quote
+- `PUT /api/v1/quotes/{id}` - Update quote
+- `DELETE /api/v1/quotes/{id}` - Delete quote
+
+**Use Cases**:
+- Quote generation from external systems
+- Automated quote updates and status sync
+- Back-office quote lifecycle tools
+
+---
+
 ### Invoices
 
 #### `read:invoices`
@@ -368,6 +395,8 @@ read:tasks
 write:tasks
 read:clients
 write:clients
+read:quotes
+write:quotes
 read:reports
 ```
 **Use For**: Personal automation, full-featured integrations
@@ -565,6 +594,8 @@ curl -X POST https://your-domain.com/api/v1/projects \
 | `write:tasks` | ✅ | ✅ | ❌ | Manage tasks |
 | `read:clients` | ✅ | ❌ | ❌ | View clients |
 | `write:clients` | ✅ | ✅ | ❌ | Manage clients |
+| `read:quotes` | ✅ | ❌ | ❌ | View quotes |
+| `write:quotes` | ✅ | ✅ | ❌ | Manage quotes |
 | `read:reports` | ✅ | ❌ | ❌ | View own reports |
 | `read:users` | ✅ | ❌ | Partial | `/users/me` for all, `/users` admin only |
 | `admin:all` | ✅ | ✅ | ✅ | Full access |

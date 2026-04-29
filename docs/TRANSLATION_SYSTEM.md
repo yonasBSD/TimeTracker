@@ -10,7 +10,10 @@ TimeTracker includes a comprehensive internationalization (i18n) system powered 
 - **French** (fr - Français)
 - **Italian** (it - Italiano)
 - **Finnish** (fi - Suomi)
+- **Portuguese** (pt - Português)
 - **Spanish** (es), **Norwegian** (no), **Arabic** (ar), **Hebrew** (he), and others as configured
+
+Regional Portuguese tags (`pt-BR`, `pt-PT`, etc.) are normalized to **`pt`** so a single catalog under `translations/pt/` is used.
 
 ## User Experience
 
@@ -50,6 +53,7 @@ translations/
 ├── it/LC_MESSAGES/messages.po   # Italian
 ├── fi/LC_MESSAGES/messages.po   # Finnish
 ├── es/LC_MESSAGES/messages.po   # Spanish
+├── pt/LC_MESSAGES/messages.po   # Portuguese
 └── ...                          # Other locales as configured
 ```
 
@@ -65,6 +69,8 @@ LANGUAGES = {
     'fr': 'Français',
     'it': 'Italiano',
     'fi': 'Suomi',
+    'pt': 'Português',
+    # ... es, no, ar, he, etc. — see app/config.py for the full map
 }
 BABEL_DEFAULT_LOCALE = 'en'
 ```
@@ -77,6 +83,8 @@ The system determines the user's language in the following order:
 2. **Session override** (via set-language route)
 3. **Browser Accept-Language header** (best match)
 4. **Default locale** (en)
+
+The locale normalizer maps **`no` → `nb`** (Norwegian catalog folder) and folds **`pt-*`** (e.g. `pt-BR`, `pt-PT`) to **`pt`**.
 
 See `app/__init__.py` for the locale selector implementation.
 
@@ -144,19 +152,37 @@ To add a new language:
 
 When you add new translatable strings to the application:
 
-1. **Extract messages**:
+1. Use a virtualenv with project dependencies (at least **Babel** and **Jinja2**) so `pybabel` can scan templates.
+
+2. **Extract messages** (writes `messages.pot` at the repo root; it is gitignored):
    ```bash
    pybabel extract -F babel.cfg -o messages.pot .
    ```
 
-2. **Update all translation files**:
+   `babel.cfg` defines a `[extractors]` alias so the **jinja2** method resolves to `jinja2.ext:babel_extract` (needed on some Python/setuptools setups where the `babel.extractors` entry point is not visible).
+
+3. **Update all translation files**:
    ```bash
-   pybabel update -i messages.pot -d translations
+   pybabel update -i messages.pot -d translations --no-wrap
    ```
 
-3. **Translate new strings** in each `.po` file
+   To drop obsolete entries after a large refactor:
+   ```bash
+   pybabel update -i messages.pot -d translations --ignore-obsolete --no-wrap
+   ```
 
-4. **Restart application** - changes will be compiled automatically
+4. **Translate new strings** in each `.po` file (human review, [Crowdin](https://crowdin.com/project/drytrix-timetracker), or a local helper).
+
+   For a **first-pass Portuguese fill** using offline Argos models (machine quality; always review):
+   ```bash
+   pip install polib argostranslate
+   python -c "import argostranslate.package as p; p.update_package_index(); pkg=next(x for x in p.get_available_packages() if x.from_code=='en' and x.to_code=='pt'); p.install_from_path(pkg.download())"
+   python scripts/fill_po_argos.py translations/pt/LC_MESSAGES/messages.po --from en --to pt
+   ```
+
+   Machine translators often break `%(name)s` / `{name}` placeholders. Run **`python scripts/sanitize_po_format_strings.py translations/pt/LC_MESSAGES/messages.po`** afterward, then **`msgfmt --check-format -o /dev/null …/messages.po`** to confirm the catalog is safe for Python’s `%` / `.format()` at runtime.
+
+5. **Restart application** (or set `TT_COMPILE_TRANSLATIONS_ON_STARTUP=true`) so `.mo` files are compiled when needed
 
 ## Translation File Format
 
@@ -253,7 +279,7 @@ The language switcher includes:
 
 Potential improvements:
 
-1. Add more languages (Spanish, Portuguese, Japanese, etc.)
+1. Add more languages (Japanese, Chinese, etc.)
 2. Right-to-left (RTL) language support (Arabic, Hebrew)
 3. User-contributed translations via [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md) (issues, spreadsheet, [Crowdin — Drytrix TimeTracker](https://crowdin.com/project/drytrix-timetracker), or Weblate)
 4. Automatic language detection improvement
@@ -271,7 +297,7 @@ For questions or issues with translations:
 
 ---
 
-**Last Updated**: 2026-04-15
+**Last Updated**: 2026-04-29 (catalog sync and `babel.cfg` extractors note)
 **Flask-Babel Version**: 4.0.0
 **Babel Version**: 2.14.0
 

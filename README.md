@@ -89,7 +89,7 @@ TimeTracker has been continuously enhanced with powerful new features! Here's wh
 > **📋 For complete release history, see [CHANGELOG.md](CHANGELOG.md)**
 
 **Current version** is defined in `setup.py` (single source of truth). See [CHANGELOG.md](CHANGELOG.md) for versioned release history.
-- 📱 **Native Mobile & Desktop Apps** — Flutter mobile app (iOS/Android) and Electron desktop app with time tracking, offline support, and API integration ([Build Guide](docs/build/BUILD.md), [Docs](docs/mobile-desktop-apps/README.md))
+- 📱 **Native Mobile & Desktop Apps** — Flutter mobile app (iOS/Android) and Electron desktop app with time tracking, offline support, and API integration ([Build Guide](scripts/README-BUILD.md), [Docs](docs/mobile-desktop-apps/README.md))
 - 📋 **Project Analysis & Documentation** — Comprehensive project analysis and documentation updates
 - 🔧 **Version Consistency** — Fixed version inconsistencies across documentation files
 
@@ -290,7 +290,7 @@ TimeTracker includes **130+ features** across 13 major categories. See the [Comp
 - **Docker Ready** — Deploy in minutes with Docker Compose
 - **Database Flexibility** — PostgreSQL for production, SQLite for testing
 - **Responsive Design** — Mobile-first design works perfectly on desktop, tablet, and mobile
-- **Native Mobile & Desktop Apps** — Flutter mobile app (iOS/Android) and Electron desktop app with time tracking, offline support, and API integration ([Build Guide](docs/build/BUILD.md), [Docs](docs/mobile-desktop-apps/README.md))
+- **Native Mobile & Desktop Apps** — Flutter mobile app (iOS/Android) and Electron desktop app with time tracking, offline support, and API integration ([Build Guide](scripts/README-BUILD.md), [Docs](docs/mobile-desktop-apps/README.md))
 - **Real-time Sync** — WebSocket support for live updates across devices
 - **Automatic Backups** — Scheduled database backups (configurable)
 - **Progressive Web App (PWA)** — Install as mobile app with offline support and background sync
@@ -631,7 +631,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory. See 
 
 **Integrations & Apps:**
 - **[Mobile & Desktop Apps](docs/mobile-desktop-apps/README.md)** — Flutter mobile and Electron desktop apps
-- **[Build Guide (Mobile & Desktop)](docs/build/BUILD.md)** — Build scripts for Android, iOS, Windows, macOS, Linux
+- **[Build Guide (Mobile & Desktop)](scripts/README-BUILD.md)** — Build scripts for Android, iOS, Windows, macOS, Linux
 - **[Peppol & ZugFerd e-Invoicing](docs/admin/configuration/PEPPOL_EINVOICING.md)** — Peppol sending and ZugFerd/Factur-X PDF embedding (EN 16931)
 - **[API Documentation](docs/api/REST_API.md)** — REST API reference
 - **[API Token Scopes](docs/api/API_TOKEN_SCOPES.md)** — Token permissions
@@ -963,7 +963,7 @@ This starts:
 #### 📱 Native Mobile & Desktop Apps
 - ✅ **Flutter Mobile App** — Native iOS and Android apps with time tracking, calendar view, offline sync, and API token authentication
 - ✅ **Electron Desktop App** — Windows, macOS, and Linux desktop app with system tray, time tracking, and offline support
-- ✅ **Build Scripts** — Cross-platform build scripts for mobile and desktop ([BUILD.md](docs/build/BUILD.md))
+- ✅ **Build Scripts** — Cross-platform build scripts for mobile and desktop ([Build Guide](scripts/README-BUILD.md))
 
 #### 🏗️ Architecture & Performance
 - ✅ **Service Layer Migration** — Routes migrated to service layer pattern

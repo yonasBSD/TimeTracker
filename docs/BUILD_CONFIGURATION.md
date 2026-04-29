@@ -31,7 +31,7 @@ All build scripts automatically sync the version before building.
 
 **Version Code Calculation:**
 - Android version code is calculated as: `major * 10000 + minor * 100 + patch`
-- Example: Version `5.5.0` → version code `50500`
+- Example: Version `5.5.1` → version code `50501`
 
 **Build Scripts:**
 - `scripts/build-mobile.bat` (Windows)
@@ -184,7 +184,7 @@ To update the version for all applications:
    ```python
    setup(
        name='timetracker',
-       version='5.5.0',  # Update here
+       version='5.5.1',  # Update here
        ...
    )
    ```

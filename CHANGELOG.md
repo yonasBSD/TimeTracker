@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Quote edit redirect for delegated editors** — Users with `edit_quotes` permission could save changes on draft quotes they did not create but were redirected to an empty/“not found” flow because quote detail/list visibility was still filtered by `created_by`. Quote list/detail scope now matches edit capability for users with `edit_quotes` across web and API quote reads. Added a regression test for edit-then-redirect view loading and updated quote comment edit context links.
+
 ## [5.5.0] - 2026-04-27
 
 ### Added

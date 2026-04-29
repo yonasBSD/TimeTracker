@@ -87,7 +87,7 @@ Run the full test suite before opening a PR. Add tests for new behavior (e.g. in
 ## Versioning
 
 - **Application version**: Defined **only** in `setup.py`. Do not duplicate it in README or other docs.
-- **Desktop / mobile**: Desktop and mobile builds may use their own version numbers; see [BUILD.md](../build/BUILD.md) and repo scripts. Align with app version when releasing together.
+- **Desktop / mobile**: Desktop and mobile builds may use their own version numbers; see [Build Guide](../../scripts/README-BUILD.md) and repo scripts. Align with app version when releasing together.
 - **Releases and Docker images**: Tagging, GitHub releases, and image publishing are in [VERSION_MANAGEMENT.md](../admin/deployment/VERSION_MANAGEMENT.md) and [RELEASE_PROCESS.md](../admin/deployment/RELEASE_PROCESS.md).
 
 **For contributors**: When updating the app version, change only `setup.py`. Do not add the version number to README, FEATURES_COMPLETE, or PROJECT_STRUCTURE.

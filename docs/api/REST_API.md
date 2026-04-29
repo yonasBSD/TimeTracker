@@ -86,6 +86,8 @@ API tokens use scopes to control access to resources. When creating a token, sel
 | `write:tasks` | Create and update tasks |
 | `read:clients` | View clients |
 | `write:clients` | Create and update clients |
+| `read:quotes` | View quotes |
+| `write:quotes` | Create and update quotes |
 | `read:reports` | View reports and analytics |
 | `read:users` | View user information |
 | `admin:all` | Full administrative access (use with caution) |
@@ -694,6 +696,54 @@ POST /api/v1/clients
   "phone": "+1-555-0123"
 }
 ```
+
+### Quotes
+
+#### List Quotes
+```
+GET /api/v1/quotes
+```
+
+**Required Scope:** `read:quotes`
+
+#### Get Quote
+```
+GET /api/v1/quotes/{quote_id}
+```
+
+**Required Scope:** `read:quotes`
+
+#### Create Quote
+```
+POST /api/v1/quotes
+```
+
+**Required Scope:** `write:quotes`
+
+**Request Body (example):**
+```json
+{
+  "client_id": 1,
+  "title": "Website maintenance retainer",
+  "description": "Monthly maintenance and support",
+  "tax_rate": 21.0,
+  "currency_code": "EUR"
+}
+```
+
+#### Update Quote
+```
+PUT /api/v1/quotes/{quote_id}
+```
+
+**Required Scope:** `write:quotes`
+
+#### Delete Quote
+```
+DELETE /api/v1/quotes/{quote_id}
+```
+
+**Required Scope:** `write:quotes`
 
 ### Inventory
 

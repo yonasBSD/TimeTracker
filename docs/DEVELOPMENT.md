@@ -119,7 +119,7 @@ See [Contributing – Testing](docs/development/CONTRIBUTING.md#testing) for mor
 
 - **Web app:** No separate frontend build required; Tailwind and static assets are served as-is (or built via your pipeline if you use one). Run the app with `flask run` or `python app.py`.
 - **Docker image:** `docker build -t timetracker .` from repo root. See [Docker Compose Setup](docs/admin/configuration/DOCKER_COMPOSE_SETUP.md).
-- **Mobile/Desktop:** See [BUILD.md](build/BUILD.md) and [mobile-desktop-apps/README.md](mobile-desktop-apps/README.md) for Flutter and Electron build steps.
+- **Mobile/Desktop:** See [Build Guide](../scripts/README-BUILD.md) and [mobile-desktop-apps/README.md](mobile-desktop-apps/README.md) for Flutter and Electron build steps.
 
 ## Contributing
 

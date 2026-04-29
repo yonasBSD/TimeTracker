@@ -238,6 +238,7 @@ class Config:
         "it": "Italiano",
         "fi": "Suomi",
         "es": "Español",
+        "pt": "Português",
         "no": "Norsk",
         "ar": "العربية",
         "he": "עברית",

@@ -40,7 +40,7 @@ This repo includes a root [`crowdin.yml`](../crowdin.yml) that maps **source** `
 
 1. **Crowdin account and project** — [Sign up at Crowdin](https://crowdin.com/) if needed. Translators work in **[Drytrix TimeTracker](https://crowdin.com/project/drytrix-timetracker)** (ask a maintainer for access if the project is private). Maintainers configure API tokens and GitHub integration against that same project unless you intentionally use a separate test project.
 2. **Source language:** English. Treat the resource as **Gettext PO** (`.po`).
-3. **Target languages:** Add every locale you ship: `nl`, `de`, `fr`, `it`, `fi`, `es`, `no`, `ar`, `he` (match `LANGUAGES` in `app/config.py`). For Norwegian, add Norwegian (Bokmål) in Crowdin; the `crowdin.yml` mapping writes files into `translations/no/`.
+3. **Target languages:** Add every locale you ship: `nl`, `de`, `fr`, `it`, `fi`, `es`, `pt`, `no`, `ar`, `he` (match `LANGUAGES` in `app/config.py`). For Norwegian, add Norwegian (Bokmål) in Crowdin; the `crowdin.yml` mapping writes files into `translations/no/`.
 4. **Sync with this repository (pick one):**
    - **GitHub Action:** In the GitHub repo, add Actions secrets `CROWDIN_PROJECT_ID` and `CROWDIN_PERSONAL_TOKEN` (Crowdin project **Details** shows the numeric project ID; **Account Settings → API** creates the token with project access, typically Manager). Run **Crowdin sync** from the **Actions** tab → **Run workflow**. For a **one-time** import of existing `.po` files into Crowdin’s translation memory, temporarily set `upload_translations: true` in [.github/workflows/crowdin-sync.yml](../.github/workflows/crowdin-sync.yml), run it once, then set it back to `false`.
    - **Crowdin’s GitHub integration:** Crowdin → **Integrations → GitHub** → connect the repo and branch; point it at the same `crowdin.yml` so Crowdin can open PRs when translations are updated.
@@ -79,11 +79,15 @@ Follow these so your suggestion can be applied without breaking the app:
 4. **Context matters.** Say which **page**, **button**, or **dialog** the text appears on, and attach a **screenshot** if possible. One English phrase can appear in multiple places with different meanings.
 5. **Length and tone:** Short labels (buttons, nav) should stay compact. Full sentences can be more natural in your language than literal word-for-word English.
 
-**Supported locale codes** (see `app/config.py` `LANGUAGES`): `en`, `nl`, `de`, `fr`, `it`, `fi`, `es`, `no`, `ar`, `he`.
+**Supported locale codes** (see `app/config.py` `LANGUAGES`): `en`, `nl`, `de`, `fr`, `it`, `fi`, `es`, `pt`, `no`, `ar`, `he`.
 
 ## Maintainer workflow
 
 Designate at least one person responsible for translation intake (issues, spreadsheet, or platform export).
+
+### Syncing catalogs with the codebase
+
+When new or changed `msgid` strings land in the app, refresh every locale from a new template: run **`pybabel extract`** then **`pybabel update`** as in [TRANSLATION_SYSTEM.md](TRANSLATION_SYSTEM.md) (venv with Babel + Jinja2, `babel.cfg` **`[extractors]`** block for Jinja2, root **`messages.pot`** gitignored). Use **`--ignore-obsolete`** if you want obsolete entries removed from all `.po` files after a large refactor.
 
 ### Applying contributor suggestions
 

@@ -221,6 +221,14 @@ if current_user.has_all_permissions('create_invoices', 'send_invoices'):
     # Allow action
 ```
 
+#### Quote access scope note
+
+For quote listing/detail routes, users with quote-management permissions (for example `edit_quotes`) may need access beyond "own quotes only" in order to open the quote they just edited from redirects and list views. Keep list/detail scoping aligned with route-level permission intent to avoid "edit succeeds but view returns 404/redirect" behavior.
+
+Current implementation uses a shared quote-access helper so quote list/detail scope matches edit capability: admins and users with `edit_quotes` can access quote list/detail across owners, while users without that permission remain scoped to their own quotes.
+
+Validation reference: behavior is covered by quote web/API regression tests in `tests/test_routes/test_quotes_web.py` and `tests/test_routes/test_api_v1_quotes_refactored.py`.
+
 #### Using Permission Decorators
 
 Protect routes with permission decorators:
@@ -357,6 +365,8 @@ This command updates permissions and roles without affecting user assignments.
 GET /api/users/<user_id>/permissions
 ```
 
+Access expectations: intended for administrator use (admin session / admin-equivalent role).
+
 Returns:
 ```json
 {
@@ -376,6 +386,8 @@ Returns:
 ```
 GET /api/roles/<role_id>/permissions
 ```
+
+Access expectations: intended for administrator use (admin session / admin-equivalent role).
 
 Returns:
 ```json

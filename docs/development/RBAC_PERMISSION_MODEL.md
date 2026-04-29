@@ -34,12 +34,33 @@ These blueprints use only `@login_required`. Any logged-in user can access the r
 
 **Examples:** deals, leads, invoices (main routes), timer, reports, calendar, expenses (main routes), main dashboard, time_approvals, contacts, tasks, client_notes, budget_alerts, payments, recurring_invoices, etc.
 
+### Quotes access nuance
+
+Quotes use permission checks plus scope logic aligned to effective capabilities. In practice:
+
+- users with `edit_quotes` are allowed quote list/detail visibility beyond own-created quotes so post-edit redirects and detail pages remain accessible;
+- users without quote-management permissions remain scoped to their own quotes;
+- admins retain full access.
+
+This behavior is implemented via shared quote access helpers (for list/detail scope parity) and is regression-tested in `tests/test_routes/test_quotes_web.py`.
+
 ## When to add permission decorators
 
 - **New admin-only or sensitive feature:** Use `@admin_or_permission_required("appropriate_permission")` and define the permission in the permission system if it does not exist.
 - **New feature for all users:** Use only `@login_required`.
 - **Existing “login only” route:** Leave as-is unless you are explicitly tightening access; then add a permission and document it in ADVANCED_PERMISSIONS.md.
 
+## Denial behavior in web routes
+
+For UI routes protected by permission decorators, unauthorized non-admin users can be denied in two valid ways depending on route and UX flow:
+
+- direct `403 Forbidden` response, or
+- redirect to a page that returns `200` and shows an access/error message (for example when `follow_redirects=True` in tests).
+
+Keep tests and docs tolerant of both outcomes where the user is denied access but not shown privileged content (see `tests/test_permissions_routes.py`).
+
 ## API v1 (REST)
 
 REST API v1 uses API token scopes (e.g. `read:deals`, `write:time_entries`) rather than web permission names. See [API Token Scopes](../api/API_TOKEN_SCOPES.md) and [REST_API.md](../api/REST_API.md).
+
+Quotes in API v1 require `read:quotes` for list/detail and `write:quotes` for create/update/delete (`/api/v1/quotes*`).

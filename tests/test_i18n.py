@@ -28,10 +28,12 @@ class TestI18nConfiguration:
             assert "nl" in languages
             assert "it" in languages
             assert "fi" in languages
+            assert "pt" in languages
 
             # Check that language labels are set
             assert languages["en"] == "English"
             assert languages["es"] == "Español"
+            assert languages["pt"] == "Português"
             assert languages["ar"] == "العربية"
             assert languages["he"] == "עברית"
 
@@ -248,7 +250,7 @@ class TestTranslations:
         """Test that translation files exist for all languages"""
         import os
 
-        languages = ["en", "de", "fr", "es", "ar", "he", "nl", "it", "fi"]
+        languages = ["en", "de", "fr", "es", "ar", "he", "nl", "it", "fi", "pt"]
 
         for lang in languages:
             po_file = os.path.join("translations", lang, "LC_MESSAGES", "messages.po")
