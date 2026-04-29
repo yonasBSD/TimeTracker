@@ -203,7 +203,7 @@ To test the translation system:
 
 Potential improvements for the future:
 
-1. Add more languages (Spanish, Portuguese, Japanese, Chinese)
+1. Add more languages (Japanese, Chinese, etc.)
 2. Implement RTL support for Arabic and Hebrew
 3. Add translation management UI in admin panel
 4. Integrate with translation services (Crowdin, Lokalise)

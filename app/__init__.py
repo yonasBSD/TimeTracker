@@ -415,18 +415,20 @@ def create_app(config=None):
         """Normalize locale codes for Flask-Babel compatibility.
 
         Some locale codes need to be normalized:
-        - 'no' -> 'nb' (Norwegian Bokmål is the standard, but we'll try 'no' first)
+        - 'no' -> 'nb' (Norwegian Bokmål catalog directory)
+        - 'pt-br', 'pt_pt', 'pt-pt', etc. -> 'pt' (single Portuguese catalog)
         """
         if not locale_code:
             return "en"
-        locale_code = locale_code.lower().strip()
-        # Try 'no' first - if translations don't exist, Flask-Babel will fall back
-        # If 'no' doesn't work, we can map to 'nb' as fallback
-        # For now, keep 'no' as-is since we have translations/nb/ directory
-        # The directory structure should match what Flask-Babel expects
+        raw = locale_code.strip()
+        lower = raw.lower().replace("_", "-")
+        # Portuguese: fold regional variants to generic pt (one catalog under translations/pt/)
+        if lower == "pt" or lower.startswith("pt-"):
+            # pt-br, pt-pt, PT -> pt
+            return "pt"
+        locale_code = raw.lower().strip()
         if locale_code == "no":
             # Use 'nb' for Flask-Babel (standard Norwegian Bokmål locale)
-            # But ensure we have translations in both 'no' and 'nb' directories
             return "nb"
         return locale_code
 

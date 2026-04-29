@@ -10,7 +10,10 @@ TimeTracker includes a comprehensive internationalization (i18n) system powered 
 - **French** (fr - Français)
 - **Italian** (it - Italiano)
 - **Finnish** (fi - Suomi)
+- **Portuguese** (pt - Português)
 - **Spanish** (es), **Norwegian** (no), **Arabic** (ar), **Hebrew** (he), and others as configured
+
+Regional Portuguese tags (`pt-BR`, `pt-PT`, etc.) are normalized to **`pt`** so a single catalog under `translations/pt/` is used.
 
 ## User Experience
 
@@ -50,6 +53,7 @@ translations/
 ├── it/LC_MESSAGES/messages.po   # Italian
 ├── fi/LC_MESSAGES/messages.po   # Finnish
 ├── es/LC_MESSAGES/messages.po   # Spanish
+├── pt/LC_MESSAGES/messages.po   # Portuguese
 └── ...                          # Other locales as configured
 ```
 
@@ -65,6 +69,8 @@ LANGUAGES = {
     'fr': 'Français',
     'it': 'Italiano',
     'fi': 'Suomi',
+    'pt': 'Português',
+    # ... es, no, ar, he, etc. — see app/config.py for the full map
 }
 BABEL_DEFAULT_LOCALE = 'en'
 ```
@@ -77,6 +83,8 @@ The system determines the user's language in the following order:
 2. **Session override** (via set-language route)
 3. **Browser Accept-Language header** (best match)
 4. **Default locale** (en)
+
+The locale normalizer maps **`no` → `nb`** (Norwegian catalog folder) and folds **`pt-*`** (e.g. `pt-BR`, `pt-PT`) to **`pt`**.
 
 See `app/__init__.py` for the locale selector implementation.
 
@@ -253,7 +261,7 @@ The language switcher includes:
 
 Potential improvements:
 
-1. Add more languages (Spanish, Portuguese, Japanese, etc.)
+1. Add more languages (Japanese, Chinese, etc.)
 2. Right-to-left (RTL) language support (Arabic, Hebrew)
 3. User-contributed translations via [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md) (issues, spreadsheet, [Crowdin — Drytrix TimeTracker](https://crowdin.com/project/drytrix-timetracker), or Weblate)
 4. Automatic language detection improvement
@@ -271,7 +279,7 @@ For questions or issues with translations:
 
 ---
 
-**Last Updated**: 2026-04-15
+**Last Updated**: 2026-04-29
 **Flask-Babel Version**: 4.0.0
 **Babel Version**: 2.14.0
 
