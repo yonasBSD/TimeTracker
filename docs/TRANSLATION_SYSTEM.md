@@ -152,19 +152,35 @@ To add a new language:
 
 When you add new translatable strings to the application:
 
-1. **Extract messages**:
+1. Use a virtualenv with project dependencies (at least **Babel** and **Jinja2**) so `pybabel` can scan templates.
+
+2. **Extract messages** (writes `messages.pot` at the repo root; it is gitignored):
    ```bash
    pybabel extract -F babel.cfg -o messages.pot .
    ```
 
-2. **Update all translation files**:
+   `babel.cfg` defines a `[extractors]` alias so the **jinja2** method resolves to `jinja2.ext:babel_extract` (needed on some Python/setuptools setups where the `babel.extractors` entry point is not visible).
+
+3. **Update all translation files**:
    ```bash
-   pybabel update -i messages.pot -d translations
+   pybabel update -i messages.pot -d translations --no-wrap
    ```
 
-3. **Translate new strings** in each `.po` file
+   To drop obsolete entries after a large refactor:
+   ```bash
+   pybabel update -i messages.pot -d translations --ignore-obsolete --no-wrap
+   ```
 
-4. **Restart application** - changes will be compiled automatically
+4. **Translate new strings** in each `.po` file (human review, [Crowdin](https://crowdin.com/project/drytrix-timetracker), or a local helper).
+
+   For a **first-pass Portuguese fill** using offline Argos models (machine quality; always review):
+   ```bash
+   pip install polib argostranslate
+   python -c "import argostranslate.package as p; p.update_package_index(); pkg=next(x for x in p.get_available_packages() if x.from_code=='en' and x.to_code=='pt'); p.install_from_path(pkg.download())"
+   python scripts/fill_po_argos.py translations/pt/LC_MESSAGES/messages.po --from en --to pt
+   ```
+
+5. **Restart application** (or set `TT_COMPILE_TRANSLATIONS_ON_STARTUP=true`) so `.mo` files are compiled when needed
 
 ## Translation File Format
 
@@ -279,7 +295,7 @@ For questions or issues with translations:
 
 ---
 
-**Last Updated**: 2026-04-29
+**Last Updated**: 2026-04-29 (catalog sync and `babel.cfg` extractors note)
 **Flask-Babel Version**: 4.0.0
 **Babel Version**: 2.14.0
 

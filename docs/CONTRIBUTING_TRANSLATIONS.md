@@ -85,6 +85,10 @@ Follow these so your suggestion can be applied without breaking the app:
 
 Designate at least one person responsible for translation intake (issues, spreadsheet, or platform export).
 
+### Syncing catalogs with the codebase
+
+When new or changed `msgid` strings land in the app, refresh every locale from a new template: run **`pybabel extract`** then **`pybabel update`** as in [TRANSLATION_SYSTEM.md](TRANSLATION_SYSTEM.md) (venv with Babel + Jinja2, `babel.cfg` **`[extractors]`** block for Jinja2, root **`messages.pot`** gitignored). Use **`--ignore-obsolete`** if you want obsolete entries removed from all `.po` files after a large refactor.
+
 ### Applying contributor suggestions
 
 1. Identify the locale file: `translations/<locale>/LC_MESSAGES/messages.po`.
