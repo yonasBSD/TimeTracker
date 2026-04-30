@@ -2651,18 +2651,48 @@ def pdf_layout_preview():
         f"[PDF_PREVIEW] Final validated PageSize: '{page_size}', TemplateJSON provided: {bool(template_json_str and template_json_str.strip())}"
     )
 
-    # CRITICAL: Always load saved template_json from database for preview
-    # This ensures we use the ACTUAL saved template, not what's in the form (which might be empty)
+    # Prefer form template_json (current canvas, including unsaved edits); fall back to saved DB template
+    import json
+
     from app.models import InvoicePDFTemplate
+    from app.utils.pdf_template_schema import get_page_dimensions_mm
 
     template_json_parsed = None
     saved_template = InvoicePDFTemplate.query.filter_by(page_size=page_size).first()
-    if saved_template and saved_template.template_json and saved_template.template_json.strip():
-        import json
 
+    if template_json_str and template_json_str.strip():
         try:
             current_app.logger.info(
-                f"[PDF_PREVIEW] Loading saved template JSON from database - PageSize: '{page_size}', TemplateID: {saved_template.id}, JSON length: {len(saved_template.template_json)}"
+                f"[PDF_PREVIEW] Parsing form-provided JSON template (preferred for live preview) - PageSize: '{page_size}', JSON length: {len(template_json_str)}"
+            )
+            template_json_parsed = json.loads(template_json_str)
+            if isinstance(template_json_parsed, dict):
+                template_json_parsed.setdefault("page", {})
+                template_json_parsed["page"]["size"] = page_size
+                expected_dims = get_page_dimensions_mm(page_size)
+                template_json_parsed["page"]["width"] = expected_dims["width"]
+                template_json_parsed["page"]["height"] = expected_dims["height"]
+            element_count = (
+                len(template_json_parsed.get("elements", [])) if isinstance(template_json_parsed, dict) else 0
+            )
+            json_page_size = (
+                template_json_parsed.get("page", {}).get("size", "unknown")
+                if isinstance(template_json_parsed, dict)
+                else "unknown"
+            )
+            current_app.logger.info(
+                f"[PDF_PREVIEW] Form JSON template parsed and page normalized - PageSize: '{page_size}', JSON PageSize: '{json_page_size}', Elements: {element_count}"
+            )
+        except json.JSONDecodeError as e:
+            current_app.logger.warning(
+                f"[PDF_PREVIEW] Invalid form template_json, will try database - PageSize: '{page_size}', Error: {str(e)}, User: {current_user.username}"
+            )
+            template_json_parsed = None
+
+    if template_json_parsed is None and saved_template and saved_template.template_json and saved_template.template_json.strip():
+        try:
+            current_app.logger.info(
+                f"[PDF_PREVIEW] Loading saved template JSON from database (fallback) - PageSize: '{page_size}', TemplateID: {saved_template.id}, JSON length: {len(saved_template.template_json)}"
             )
             template_json_parsed = json.loads(saved_template.template_json)
             element_count = len(template_json_parsed.get("elements", []))
@@ -2674,26 +2704,6 @@ def pdf_layout_preview():
             current_app.logger.error(
                 f"[PDF_PREVIEW] Failed to parse saved template JSON - PageSize: '{page_size}', Error: {str(e)}, User: {current_user.username}",
                 exc_info=True,
-            )
-            template_json_parsed = None
-
-    # If form provided template_json, use it (for live editing preview)
-    if not template_json_parsed and template_json_str and template_json_str.strip():
-        import json
-
-        try:
-            current_app.logger.info(
-                f"[PDF_PREVIEW] Parsing form-provided JSON template - PageSize: '{page_size}', JSON length: {len(template_json_str)}"
-            )
-            template_json_parsed = json.loads(template_json_str)
-            element_count = len(template_json_parsed.get("elements", []))
-            json_page_size = template_json_parsed.get("page", {}).get("size", "unknown")
-            current_app.logger.info(
-                f"[PDF_PREVIEW] Form JSON template parsed - PageSize: '{page_size}', JSON PageSize: '{json_page_size}', Elements: {element_count}"
-            )
-        except json.JSONDecodeError as e:
-            current_app.logger.warning(
-                f"[PDF_PREVIEW] Invalid form template_json - PageSize: '{page_size}', Error: {str(e)}, User: {current_user.username}"
             )
             template_json_parsed = None
 
@@ -2896,11 +2906,11 @@ def pdf_layout_preview():
             html = "<div class='invoice-wrapper'></div>"
             css = ""
     else:
-        # No template_json available - this should not happen if template was saved
+        # No template_json in form or database (or both failed to parse)
         current_app.logger.error(
-            f"[PDF_PREVIEW] No template JSON available for preview - PageSize: '{page_size}', SavedTemplateExists: {saved_template is not None}, SavedTemplateHasJSON: {saved_template.template_json if saved_template else False}, User: {current_user.username}"
+            f"[PDF_PREVIEW] No template JSON available for preview - PageSize: '{page_size}', SavedTemplateExists: {saved_template is not None}, SavedTemplateHasJSON: {bool(saved_template and saved_template.template_json and saved_template.template_json.strip())}, FormTemplateProvided: {bool(template_json_str and template_json_str.strip())}, User: {current_user.username}"
         )
-        html = "<div class='invoice-wrapper'><p style='color:red; padding:20px;'>Error: No template found. Please save a template first.</p></div>"
+        html = "<div class='invoice-wrapper'><p style='color:red; padding:20px;'>Error: No template found. Add content in the editor or save a template first.</p></div>"
         css = ""
 
     # CRITICAL: Load the saved template CSS for this page size and merge with editor CSS

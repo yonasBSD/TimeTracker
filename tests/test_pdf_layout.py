@@ -1,5 +1,7 @@
 """Tests for PDF layout customization functionality."""
 
+import json
+
 import pytest
 from datetime import date, timedelta
 from decimal import Decimal
@@ -193,6 +195,74 @@ def test_pdf_layout_preview(admin_authenticated_client, sample_invoice):
     assert response.status_code == 200
     # Should return HTML content (invoice number or heading)
     assert b"Test Invoice" in response.data or b"INV-2024-001" in response.data
+
+
+@pytest.mark.smoke
+@pytest.mark.admin
+def test_pdf_layout_preview_prefers_form_template_json_over_database(
+    admin_authenticated_client, app, sample_invoice
+):
+    """Issue #600: preview must use template_json from the POST body when present, not only the DB."""
+    from app.models import InvoicePDFTemplate
+
+    db_template = {
+        "page": {
+            "size": "A4",
+            "margin": {"top": 20, "right": 20, "bottom": 20, "left": 20},
+            "width": 210,
+            "height": 297,
+        },
+        "elements": [
+            {
+                "type": "text",
+                "x": 50,
+                "y": 50,
+                "text": "DB_PREVIEW_MARKER_XYZ",
+                "width": 400,
+                "style": {"font": "Helvetica", "size": 12, "color": "#000000", "align": "left"},
+            }
+        ],
+        "styles": {"default": {"font": "Helvetica", "size": 10, "color": "#000000"}},
+    }
+    form_template = {
+        "page": {
+            "size": "A4",
+            "margin": {"top": 20, "right": 20, "bottom": 20, "left": 20},
+            "width": 210,
+            "height": 297,
+        },
+        "elements": [
+            {
+                "type": "text",
+                "x": 50,
+                "y": 50,
+                "text": "FORM_PREVIEW_MARKER_XYZ",
+                "width": 400,
+                "style": {"font": "Helvetica", "size": 12, "color": "#000000", "align": "left"},
+            }
+        ],
+        "styles": {"default": {"font": "Helvetica", "size": 10, "color": "#000000"}},
+    }
+
+    with app.app_context():
+        t = InvoicePDFTemplate.get_template("A4")
+        t.template_json = json.dumps(db_template)
+        db.session.commit()
+
+    response = admin_authenticated_client.post(
+        "/admin/pdf-layout/preview",
+        data={
+            "html": "<div></div>",
+            "css": "",
+            "template_json": json.dumps(form_template),
+            "page_size": "A4",
+            "invoice_id": sample_invoice.id,
+        },
+    )
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert "FORM_PREVIEW_MARKER_XYZ" in body
+    assert "DB_PREVIEW_MARKER_XYZ" not in body
 
 
 @pytest.mark.smoke
